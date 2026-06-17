@@ -1,0 +1,35 @@
+@use 'controls';
+
+:host {
+  display: grid;
+  gap: 1rem;
+}
+
+.appstore-domain-form,
+.appstore-record-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.appstore-table-wrap {
+  overflow-x: auto;
+  margin-top: 0.75rem;
+}
+
+.appstore-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.5rem 0.65rem;
+    border-bottom: 1px solid var(--appstore-border);
+    vertical-align: top;
+  }
+
+  th {
+    color: var(--appstore-text-muted);
+    font-weight: 700;
+  }
+}

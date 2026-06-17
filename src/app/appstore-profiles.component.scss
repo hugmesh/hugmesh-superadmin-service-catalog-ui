@@ -1,0 +1,50 @@
+@use 'controls';
+
+:host {
+  display: grid;
+  gap: 1rem;
+}
+
+.appstore-profile-form {
+  display: grid;
+  gap: 0.5rem;
+
+  h3 {
+    margin: 0.25rem 0 0.5rem;
+  }
+
+  textarea {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    resize: vertical;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+.appstore-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.appstore-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--appstore-border);
+  border-radius: var(--appstore-radius);
+
+  &__key {
+    font-weight: 600;
+    min-width: 10rem;
+    margin-right: auto;
+  }
+}

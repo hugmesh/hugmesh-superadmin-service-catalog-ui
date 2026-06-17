@@ -1,0 +1,36 @@
+<section class="appstore-forbidden appstore-panel" role="alert" aria-labelledby="appstore-forbidden-title">
+  <h2 id="appstore-forbidden-title">You don't have access to this console</h2>
+  <p>
+    The Superadmin App-Store is the infra control plane — curating which services
+    each domain is offered, managing deploy templates, and recording the deployment
+    lifecycle. It requires the superadmin role. If you need access, ask a superadmin.
+  </p>
+</section>
+
+@if (canReadOwnCatalog()) {
+  <section class="appstore-panel appstore-forbidden__catalog" aria-labelledby="appstore-mycatalog-title">
+    <h3 id="appstore-mycatalog-title">Your domain’s offered catalog (read-only)</h3>
+    <p class="appstore-muted">
+      As an admin you can read the services a superadmin has offered to your domain.
+      You cannot offer, withdraw, or deploy from here.
+    </p>
+
+    @if (loading()) {
+      <p role="status" data-testid="appstore-mycatalog-loading">Loading your offered catalog…</p>
+    } @else if (error()) {
+      <p class="appstore-error" role="alert" data-testid="appstore-mycatalog-error">{{ error() }}</p>
+      <button type="button" class="appstore-btn appstore-btn--secondary" (click)="loadCatalog()">Retry</button>
+    } @else if (catalog() && catalog()!.length === 0) {
+      <p class="appstore-muted" data-testid="appstore-mycatalog-empty">No services have been offered to your domain yet.</p>
+    } @else if (catalog()) {
+      <ul class="appstore-list" data-testid="appstore-mycatalog-list">
+        @for (row of catalog()!; track trackId($index, row)) {
+          <li class="appstore-row">
+            <span class="appstore-row__key">{{ row.serviceKey }}</span>
+            <span class="appstore-muted">{{ row.domain }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

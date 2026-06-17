@@ -1,0 +1,20 @@
+// Native-federation config for the "appstore" remote.
+//
+// The shareAll args + RxJS skip list live in ./federation-base.js (copied
+// BYTE-IDENTICAL from the snapdragon.systems host, like every other Snapdragon
+// remote) so this remote's federation surface can't drift from the host. The
+// remote name ("appstore") and the exposed module key ("./Appstore") are the
+// contract the host's loadRemoteModule() depends on AND the contract the
+// federation-api appstore module row points at:
+//   remote_entry_url = http://snapdragon-superadmin-appstore-ui:8080/remoteEntry.json
+//   metadata.mountAt = /appstore   metadata.requiresRole = superadmin   visibility = internal
+// So the remoteEntry.json emitted by the production build MUST expose ./Appstore,
+// and the container MUST serve it on :8080 (see Dockerfile + nginx.conf).
+const { snapdragonRemote } = require('./federation-base');
+
+module.exports = snapdragonRemote({
+  name: 'appstore',
+  exposes: {
+    './Appstore': './src/app/appstore.routes.ts',
+  },
+});

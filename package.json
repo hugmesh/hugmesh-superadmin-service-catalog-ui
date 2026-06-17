@@ -1,0 +1,51 @@
+{
+  "name": "snapdragon-superadmin-appstore-ui",
+  "version": "0.1.0",
+  "description": "Superadmin App-Store console — native-federation remote (exposes ./Appstore at remoteEntry.json on :8080), SUPERADMIN-only console over snapdragon-admin-bff-api /bff/superadmin/service-store + /bff/superadmin/app-profiles (per-domain service curation, app-profile deploy templates, service-deployment lifecycle accounting); mounted by the snapdragon.systems host at /appstore.",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve appstore",
+    "build": "ng build appstore",
+    "build:appstore": "ng build appstore",
+    "test": "ng test appstore --watch=false --browsers=ChromeHeadlessCI",
+    "test:watch": "ng test appstore",
+    "gen": "ng-openapi-gen",
+    "gen:fetch": "curl -fsS http://localhost:8080/v3/api-docs -o openapi.json && npm run gen"
+  },
+  "dependencies": {
+    "@angular-architects/native-federation": "^22.0.0",
+    "@angular/animations": "^22.0.0",
+    "@angular/common": "^22.0.0",
+    "@angular/compiler": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/forms": "^22.0.0",
+    "@angular/platform-browser": "^22.0.0",
+    "@angular/platform-browser-dynamic": "^22.0.0",
+    "@angular/router": "^22.0.0",
+    "@softarc/native-federation-node": "^3.5.5",
+    "dompurify": "^3.2.4",
+    "es-module-shims": "^2.8.1",
+    "rxjs": "^7.8.2",
+    "tslib": "^2.6.0",
+    "zone.js": "^0.16.1"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^22.0.0",
+    "@angular/cli": "^22.0.0",
+    "@angular/compiler-cli": "^22.0.0",
+    "@types/dompurify": "^3.0.5",
+    "@types/jasmine": "^5.1.15",
+    "jasmine-core": "^5.13.0",
+    "karma": "^6.4.4",
+    "karma-chrome-launcher": "^3.2.0",
+    "karma-coverage": "^2.2.1",
+    "karma-jasmine": "^5.1.0",
+    "karma-jasmine-html-reporter": "^2.2.0",
+    "karma-junit-reporter": "^2.0.1",
+    "ng-openapi-gen": "^0.51.0",
+    "ng-packagr": "^22.0.0",
+    "typescript": "~6.0.3"
+  }
+}

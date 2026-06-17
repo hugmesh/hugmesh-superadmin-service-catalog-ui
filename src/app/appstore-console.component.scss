@@ -1,0 +1,46 @@
+:host {
+  display: block;
+}
+
+.appstore-head {
+  margin-bottom: 1.5rem;
+
+  h1 {
+    margin: 0 0 0.25rem;
+  }
+
+  &__sub {
+    margin: 0 0 1rem;
+    color: var(--appstore-text-muted);
+  }
+}
+
+.appstore-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--appstore-border);
+  padding-bottom: 0.5rem;
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 0.9rem;
+    border-radius: var(--appstore-radius);
+    background: var(--appstore-surface);
+    color: var(--appstore-text);
+    text-decoration: none;
+    border: 1px solid var(--appstore-border);
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--appstore-accent-soft);
+    }
+
+    &--active {
+      border-color: var(--appstore-accent-soft);
+      color: var(--appstore-accent-soft);
+      font-weight: 700;
+    }
+  }
+}

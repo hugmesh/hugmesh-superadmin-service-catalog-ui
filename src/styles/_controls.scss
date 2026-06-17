@@ -1,0 +1,116 @@
+// Shared app-store control styles (buttons, helper text, status colours) the
+// per-component sidecar SCSS pull in via `@use 'controls'`. Centralised so the
+// console's affordances stay visually consistent and the WCAG palette tokens
+// are read from ONE place. (src/styles is on the sass includePaths.)
+
+.appstore-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: var(--appstore-radius);
+  background: var(--appstore-accent);
+  color: #ffffff;
+  border: 1px solid var(--appstore-accent);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--appstore-accent-soft);
+    color: #0a0a12;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.appstore-btn--secondary {
+  background: transparent;
+  color: var(--appstore-text);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--appstore-surface);
+    color: var(--appstore-text);
+    border-color: var(--appstore-accent-soft);
+  }
+}
+
+.appstore-btn--danger {
+  background: transparent;
+  color: var(--appstore-error);
+  border-color: var(--appstore-error);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--appstore-error);
+    color: #0a0a12;
+  }
+}
+
+.appstore-muted {
+  color: var(--appstore-text-muted);
+}
+
+.appstore-error {
+  color: var(--appstore-error);
+  font-weight: 600;
+}
+
+.appstore-success {
+  color: var(--appstore-success);
+  font-weight: 600;
+}
+
+.appstore-warning {
+  color: var(--appstore-warning);
+  font-weight: 600;
+}
+
+.appstore-field {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+
+  > label,
+  > .appstore-field__label {
+    font-weight: 600;
+  }
+
+  input,
+  textarea,
+  select {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    background: var(--appstore-bg);
+    color: var(--appstore-text);
+    border: 1px solid var(--appstore-border);
+    border-radius: var(--appstore-radius);
+    font: inherit;
+
+    &[aria-invalid='true'] {
+      border-color: var(--appstore-error);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__help {
+    color: var(--appstore-text-muted);
+    font-size: 0.9rem;
+  }
+}
+
+.appstore-panel {
+  background: var(--appstore-surface);
+  border: 1px solid var(--appstore-border);
+  border-radius: var(--appstore-radius);
+  padding: 1.25rem 1.5rem;
+}
