@@ -24,6 +24,7 @@ import {
  *   GET    /bff/superadmin/service-store/{domain}/deployments
  *   POST   /bff/superadmin/service-store/{domain}/deployments  {serviceKey, profileRef, endingAt, enforceActions}
  *   POST   /bff/superadmin/service-store/{domain}/deployments/{id}/end
+ *   POST   /bff/superadmin/service-store/{domain}/deployments/{id}/provision {sourceKind, repoUrl, path, targetRevision}  (PR #67 effector)
  *   GET    /bff/admin/service-store                            (the two-tier read)
  *
  * fetch is stubbed; each test asserts the URL the service hit + the JSON body it
@@ -203,6 +204,32 @@ describe('AppstoreService (exact PR1 bff paths)', () => {
     expect(row.state).toBe('ended');
   });
 
+  it('provisionDeployment → POST .../{domain}/deployments/{id}/provision with {sourceKind, repoUrl, path?, targetRevision?}', async () => {
+    ok({ ...deployment, propagationState: 'applied' });
+    await service.provisionDeployment('acme.test', 'dep-1', {
+      sourceKind: 'GIT',
+      repoUrl: 'https://gitlab.acme.test/svc/owncast.git',
+      path: 'deploy/',
+      targetRevision: 'main',
+    });
+    const { url, init } = lastCall();
+    expect(url).toBe('/bff/superadmin/service-store/acme.test/deployments/dep-1/provision');
+    expect(init.method).toBe('POST');
+    expect(sentBody()).toEqual({
+      sourceKind: 'GIT',
+      repoUrl: 'https://gitlab.acme.test/svc/owncast.git',
+      path: 'deploy/',
+      targetRevision: 'main',
+    });
+    expect(sentBody().domain).withContext('domain is the PATH, never the body').toBeUndefined();
+  });
+
+  it('provisionDeployment encodes the {id} path segment safely', async () => {
+    ok(deployment);
+    await service.provisionDeployment('acme.test', 'a/b', { sourceKind: 'SELECT', repoUrl: 'r' });
+    expect(lastCall().url).toBe('/bff/superadmin/service-store/acme.test/deployments/a%2Fb/provision');
+  });
+
   // ── TWO-TIER ADMIN READ ─────────────────────────────────────────────────
 
   it('myDomainCatalog → GET /bff/admin/service-store (the two-tier admin read)', async () => {
@@ -243,5 +270,24 @@ describe('AppstoreService (exact PR1 bff paths)', () => {
     }
     expect(caught instanceof AppstoreApiError).toBeTrue();
     expect((caught as AppstoreApiError).isConflict).toBeTrue();
+  });
+
+  it('surfaces a 400 (the Kaniko-builder guard) as AppstoreApiError.isBadRequest with the server message', async () => {
+    failWith(400, {
+      message:
+        'service source DOCKERFILE requires the in-cluster image builder (Kaniko) which is not yet available',
+    });
+    let caught: unknown;
+    try {
+      await service.provisionDeployment('acme.test', 'dep-1', {
+        sourceKind: 'DOCKERFILE',
+        repoUrl: 'r',
+      });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught instanceof AppstoreApiError).toBeTrue();
+    expect((caught as AppstoreApiError).isBadRequest).toBeTrue();
+    expect((caught as AppstoreApiError).message).toContain('Kaniko');
   });
 });

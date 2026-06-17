@@ -1,0 +1,206 @@
+<section class="appstore-panel" aria-labelledby="appstore-add-title">
+  <h2 id="appstore-add-title">Add a service</h2>
+  <p class="appstore-muted">
+    Provision a recorded deployment into a real service through the App-Store effector — a per-service
+    role, a route-access rule, and an ArgoCD application. Pick the domain, pick the deployment, then
+    choose one of the four sources.
+  </p>
+  <p class="appstore-warning" role="note" data-testid="appstore-add-dark-note">
+    The effector ships dark by default — provisioning wires the per-service role and route-access rule
+    and records the source; the real ArgoCD apply lands when the effector is enabled. Record a
+    deployment first in the Deployments view.
+  </p>
+
+  <form class="appstore-domain-form" (ngSubmit)="loadDomain()">
+    <div class="appstore-field">
+      <label for="appstore-add-domain">Domain</label>
+      <input
+        id="appstore-add-domain"
+        name="domain"
+        type="text"
+        autocomplete="off"
+        [ngModel]="domain()"
+        (ngModelChange)="domain.set($event)"
+        aria-describedby="appstore-add-domain-help"
+        placeholder="acme.test"
+      />
+      <span id="appstore-add-domain-help" class="appstore-field__help">
+        The brand/domain whose recorded deployments you want to provision.
+      </span>
+    </div>
+    <button type="submit" class="appstore-btn" [disabled]="domain().trim().length === 0 || listLoading()">
+      Load services
+    </button>
+  </form>
+</section>
+
+@if (loadedDomain()) {
+  <section class="appstore-panel" aria-labelledby="appstore-add-list-title">
+    <h3 id="appstore-add-list-title">Recorded services for {{ loadedDomain() }}</h3>
+
+    @if (listLoading()) {
+      <p role="status" data-testid="appstore-add-loading">Loading services…</p>
+    } @else if (listError()) {
+      <p class="appstore-error" role="alert" data-testid="appstore-add-list-error">{{ listError() }}</p>
+      <button type="button" class="appstore-btn appstore-btn--secondary" (click)="loadDomain()">Retry</button>
+    } @else if (rows() && rows()!.length === 0) {
+      <p class="appstore-muted" data-testid="appstore-add-empty">
+        No recorded deployments for {{ loadedDomain() }}. Record one in the Deployments view first, then
+        return here to provision it.
+      </p>
+    } @else if (rows()) {
+      <div class="appstore-table-wrap">
+        <table class="appstore-table" data-testid="appstore-add-list">
+          <caption class="sr">Recorded services for {{ loadedDomain() }} — choose one to provision</caption>
+          <thead>
+            <tr>
+              <th scope="col"><span class="sr">Select</span></th>
+              <th scope="col">Service</th>
+              <th scope="col">State</th>
+              <th scope="col">Propagation</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows()!; track trackId($index, row)) {
+              <tr [class.appstore-row--selected]="row.id === selectedId()">
+                <td>
+                  <button
+                    type="button"
+                    class="appstore-btn appstore-btn--secondary"
+                    [attr.aria-pressed]="row.id === selectedId()"
+                    [attr.aria-label]="'Choose ' + row.serviceKey + ' to provision'"
+                    (click)="select(row)"
+                  >{{ row.id === selectedId() ? 'Chosen' : 'Choose' }}</button>
+                </td>
+                <td>{{ row.serviceKey }}</td>
+                <td>{{ row.state }}</td>
+                <td>{{ row.propagationState }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  @if (selectedRow(); as row) {
+    <section class="appstore-panel" aria-labelledby="appstore-source-title">
+      <h3 id="appstore-source-title">Provision {{ row.serviceKey }} in {{ loadedDomain() }}</h3>
+
+      @if (notice()) {
+        <p class="appstore-success" role="status" data-testid="appstore-add-notice">{{ notice() }}</p>
+      }
+      @if (formError()) {
+        <p class="appstore-error" role="alert" data-testid="appstore-add-form-error">{{ formError() }}</p>
+      }
+
+      <form class="appstore-source-form" (ngSubmit)="provision()">
+        <fieldset class="appstore-sources">
+          <legend>Source</legend>
+          <p id="appstore-source-help" class="appstore-field__help">
+            Where the service image comes from. Two sources need the in-cluster image builder, which is
+            not available yet, so they are disabled.
+          </p>
+          @for (opt of sourceOptions; track trackKind($index, opt)) {
+            <label
+              class="appstore-source-option"
+              [class.appstore-source-option--disabled]="opt.builderGated"
+              [attr.data-testid]="'appstore-source-' + opt.kind"
+            >
+              <input
+                type="radio"
+                name="sourceKind"
+                [value]="opt.kind"
+                [checked]="sourceKind() === opt.kind"
+                [disabled]="opt.builderGated"
+                [attr.aria-describedby]="'appstore-source-blurb-' + opt.kind"
+                (change)="chooseSource(opt.kind)"
+              />
+              <span class="appstore-source-option__label">
+                {{ opt.label }}
+                @if (opt.builderGated) {
+                  <span class="appstore-badge" data-testid="appstore-source-gated-badge">needs builder</span>
+                }
+              </span>
+              <span [id]="'appstore-source-blurb-' + opt.kind" class="appstore-field__help">{{ opt.blurb }}</span>
+            </label>
+          }
+        </fieldset>
+
+        <div class="appstore-field">
+          <label for="appstore-source-repo">Repository URL</label>
+          <input
+            id="appstore-source-repo"
+            name="repoUrl"
+            type="text"
+            autocomplete="off"
+            [ngModel]="repoUrl()"
+            (ngModelChange)="repoUrl.set($event)"
+            [attr.aria-invalid]="repoUrlInvalid() ? 'true' : null"
+            aria-describedby="appstore-source-repo-help"
+            placeholder="https://gitlab.acme.test/services/owncast.git"
+          />
+          <span id="appstore-source-repo-help" class="appstore-field__help">
+            The descriptor / GitOps repo ArgoCD watches (required).
+          </span>
+          @if (repoUrlInvalid()) {
+            <span class="appstore-error" role="alert">A repository URL is required.</span>
+          }
+        </div>
+
+        <div class="appstore-field">
+          <label for="appstore-source-path">Path in repo (optional)</label>
+          <input
+            id="appstore-source-path"
+            name="path"
+            type="text"
+            autocomplete="off"
+            [ngModel]="path()"
+            (ngModelChange)="path.set($event)"
+            aria-describedby="appstore-source-path-help"
+            placeholder="deploy/"
+          />
+          <span id="appstore-source-path-help" class="appstore-field__help">
+            The path within the repo ArgoCD syncs. Leave blank for the repo root.
+          </span>
+        </div>
+
+        <div class="appstore-field">
+          <label for="appstore-source-rev">Target revision (optional)</label>
+          <input
+            id="appstore-source-rev"
+            name="targetRevision"
+            type="text"
+            autocomplete="off"
+            [ngModel]="targetRevision()"
+            (ngModelChange)="targetRevision.set($event)"
+            aria-describedby="appstore-source-rev-help"
+            placeholder="main"
+          />
+          <span id="appstore-source-rev-help" class="appstore-field__help">
+            The branch, tag or commit. Leave blank for HEAD.
+          </span>
+        </div>
+
+        @if (sourceBuilderGated()) {
+          <p class="appstore-warning" role="status" data-testid="appstore-source-gated-notice">
+            This source needs the in-cluster image builder (Kaniko), which is not available yet. Choose
+            a catalog or git source to provision now.
+          </p>
+        }
+
+        <button
+          type="submit"
+          class="appstore-btn"
+          [disabled]="!canProvision()"
+          [attr.aria-describedby]="!canProvision() ? 'appstore-provision-help' : null"
+        >Provision service</button>
+        @if (!canProvision()) {
+          <span id="appstore-provision-help" class="appstore-field__help">
+            Choose a deployment, a non-builder source, and enter a repository URL to provision.
+          </span>
+        }
+      </form>
+    </section>
+  }
+}

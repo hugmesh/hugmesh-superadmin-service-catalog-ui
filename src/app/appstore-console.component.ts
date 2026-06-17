@@ -18,10 +18,11 @@ interface AppstoreNavItem {
  * WAI-ARIA APG) over the SUPERADMIN-gated child views, plus the swappable content
  * outlet.
  *
- * The WHOLE console is SUPERADMIN (the infra control plane): all three nav items
+ * The WHOLE console is SUPERADMIN (the infra control plane): all four nav items
  * are shown only to canManageStore (SUPERADMIN). A non-superadmin who reaches the
  * bundle sees an EMPTY menubar and the default route's superadminGuard sends them
  * to /appstore/forbidden.
+ *   Add a service (add)         — provision a deployment via one of the 4 sources (effector PR #67).
  *   Curation     (curation)    — per-domain offered catalog (offer/withdraw a service_key).
  *   App profiles (profiles)    — app_profile deploy-template CRUD.
  *   Deployments  (deployments) — service_deployment lifecycle accounting.
@@ -46,6 +47,13 @@ export class AppstoreConsoleComponent {
   active = 0;
 
   readonly items: AppstoreNavItem[] = [
+    {
+      path: 'add',
+      label: 'Add a service',
+      aria: 'Add a service — provision a deployment from one of the four sources',
+      help: 'Provision a recorded deployment into a real service from a catalog tile, a git/GitLab repo, a Dockerfile or a zip upload. Dockerfile and zip need the in-cluster builder, which is not available yet. Requires the superadmin role.',
+      show: () => this.session.canManageStore(),
+    },
     {
       path: 'curation',
       label: 'Curation',

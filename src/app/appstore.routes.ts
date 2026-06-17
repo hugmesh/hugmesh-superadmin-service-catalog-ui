@@ -3,6 +3,7 @@ import { AppstoreConsoleComponent } from './appstore-console.component';
 import { AppstoreCurationComponent } from './appstore-curation.component';
 import { AppstoreProfilesComponent } from './appstore-profiles.component';
 import { AppstoreDeploymentsComponent } from './appstore-deployments.component';
+import { AppstoreAddServiceComponent } from './appstore-add-service.component';
 import { AppstoreForbiddenComponent } from './appstore-forbidden.component';
 import { superadminGuard } from './appstore.guard';
 
@@ -17,6 +18,7 @@ import { superadminGuard } from './appstore.guard';
  *
  * View → role gate (mirrors snapdragon-admin-bff-api appstore controllers):
  *   ''            AppstoreConsole      — shell + nav (gated to SUPERADMIN by the children)
+ *   add           AppstoreAddService   — provision a deployment via one of the 4 sources (superadminGuard)
  *   curation      AppstoreCuration     — per-domain offered catalog (superadminGuard)
  *   profiles      AppstoreProfiles     — app_profile deploy-template CRUD (superadminGuard)
  *   deployments   AppstoreDeployments  — service_deployment accounting (superadminGuard)
@@ -31,7 +33,8 @@ export const APPSTORE_ROUTES: Routes = [
     path: '',
     component: AppstoreConsoleComponent,
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'curation' },
+      { path: '', pathMatch: 'full', redirectTo: 'add' },
+      { path: 'add', component: AppstoreAddServiceComponent, canActivate: [superadminGuard] },
       { path: 'curation', component: AppstoreCurationComponent, canActivate: [superadminGuard] },
       { path: 'profiles', component: AppstoreProfilesComponent, canActivate: [superadminGuard] },
       { path: 'deployments', component: AppstoreDeploymentsComponent, canActivate: [superadminGuard] },

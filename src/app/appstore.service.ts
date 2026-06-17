@@ -69,6 +69,56 @@ export interface CreateDeployment {
   enforceActions?: string | null;
 }
 
+/**
+ * The FOUR App-Store service SOURCES a deployment can be provisioned FROM — the
+ * `ServiceSource.Kind` enum the admin-bff effector (PR #67,
+ * `appstore/ServiceSource.java`) parses from `sourceKind` (case-insensitive;
+ * null/blank → SELECT). All four converge on the SAME deploy path (per-service
+ * Casdoor role → route-access rule → ArgoCD Application), but two need an image
+ * BUILT first:
+ *
+ *   SELECT     — a curated catalog tile referencing a PRE-BUILT image. Deploys today.
+ *   GIT        — a git/GitLab repo that builds its own image (its own CI). Deploys today.
+ *   DOCKERFILE — a dropped Dockerfile that must be BUILT in-cluster first. DEPENDS on
+ *                the Kaniko builder (generator) — guarded with a 400 until it exists.
+ *   ZIP        — an uploaded zip-as-repo that must be BUILT in-cluster first. DEPENDS
+ *                on the Kaniko builder — guarded with a 400 until it exists.
+ *
+ * `requiresBuilder(kind)` mirrors `ServiceSource.Kind.requiresBuilder()`: DOCKERFILE
+ * + ZIP need the in-cluster builder, so the UI presents them disabled+helptext (the
+ * SHIPS-DARK degrade) and the bff is the authoritative 400 if one is forced through.
+ */
+export type ServiceSourceKind = 'SELECT' | 'GIT' | 'DOCKERFILE' | 'ZIP';
+
+/** The four source kinds, in console display order (SELECT/GIT live, then the two
+ *  builder-gated). */
+export const SERVICE_SOURCE_KINDS: readonly ServiceSourceKind[] = [
+  'SELECT',
+  'GIT',
+  'DOCKERFILE',
+  'ZIP',
+] as const;
+
+/** Mirrors `ServiceSource.Kind.requiresBuilder()` — DOCKERFILE/ZIP need the
+ *  in-cluster Kaniko builder (the generator leg) before an image exists. */
+export function requiresBuilder(kind: ServiceSourceKind): boolean {
+  return kind === 'DOCKERFILE' || kind === 'ZIP';
+}
+
+/**
+ * Body for provision — POST .../{domain}/deployments/{id}/provision. Mirrors the
+ * admin-bff `ProvisionServiceRequest` record (PR #67): `sourceKind` is one of the
+ * four kinds (case-insensitive at the bff); `repoUrl` is the descriptor/GitOps repo
+ * ArgoCD watches and is REQUIRED (`@NotBlank`); `path` (null → ".") and
+ * `targetRevision` (null → HEAD) are optional.
+ */
+export interface ProvisionService {
+  sourceKind: ServiceSourceKind;
+  repoUrl: string;
+  path?: string | null;
+  targetRevision?: string | null;
+}
+
 /** A typed error the service raises so components can surface the EXACT failure
  *  the bff returned — in particular the 403 the SUPERADMIN gate returns (the
  *  canonical default-deny signal), the 404 (a profile/deployment that is gone),
@@ -93,6 +143,13 @@ export class AppstoreApiError extends Error {
   /** A 409 — a duplicate app_profile name on create. */
   get isConflict(): boolean {
     return this.status === 409;
+  }
+  /** A 400 — a bad request: in the App-Store this is the AddServiceEffector
+   *  guard (a DOCKERFILE/ZIP source forced through before the in-cluster Kaniko
+   *  builder exists, or a missing/blank repoUrl). The server `message` carries the
+   *  reason, which the UI surfaces verbatim. */
+  get isBadRequest(): boolean {
+    return this.status === 400;
   }
 }
 
@@ -255,6 +312,25 @@ export class AppstoreService {
     return this.req<ServiceDeployment>(
       'POST',
       `/bff/superadmin/service-store/${encodeURIComponent(domain)}/deployments/${encodeURIComponent(id)}/end`,
+    );
+  }
+
+  /** POST /bff/superadmin/service-store/{domain}/deployments/{id}/provision
+   *  {sourceKind, repoUrl, path?, targetRevision?} → ServiceDeployment — drive an
+   *  EXISTING service_deployment row through the AddServiceEffector (PR #67):
+   *  per-service Casdoor role → route-access rule → ArgoCD Application.
+   *
+   *  SELECT/GIT provision (the effector itself SHIPS DARK — the default NoopArgoCdClient
+   *  makes no real ArgoCD mutation — but the call still returns 200). DOCKERFILE/ZIP are
+   *  rejected by the bff with a 400 "requires the in-cluster builder (Kaniko)" until the
+   *  generator's builder exists, so the UI guards them (disabled+helptext) AND surfaces
+   *  that 400 gracefully if one is forced through. A missing/blank repoUrl is also a 400
+   *  at the bff (@NotBlank). The {domain} is the explicit PATH target. */
+  provisionDeployment(domain: string, id: string, body: ProvisionService): Promise<ServiceDeployment> {
+    return this.req<ServiceDeployment>(
+      'POST',
+      `/bff/superadmin/service-store/${encodeURIComponent(domain)}/deployments/${encodeURIComponent(id)}/provision`,
+      body,
     );
   }
 
