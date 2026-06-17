@@ -81,7 +81,21 @@ in-remote target.)
 | `GET` | `/bff/superadmin/service-store/{domain}/deployments` | — | SUPERADMIN |
 | `POST` | `/bff/superadmin/service-store/{domain}/deployments` | `{serviceKey, profileRef?, endingAt?, enforceActions?}` | SUPERADMIN |
 | `POST` | `/bff/superadmin/service-store/{domain}/deployments/{id}/end` | — | SUPERADMIN |
+| `POST` | `/bff/superadmin/service-store/{domain}/deployments/{id}/provision` | `{sourceKind, repoUrl, path?, targetRevision?}` | SUPERADMIN |
 | `GET` | `/bff/admin/service-store` | — | ADMIN \| SUPERADMIN |
+
+The `/provision` row is the **App-Store effector** (snapdragon-admin-bff-api PR #67,
+`feat/superadmin-appstore-effector`, merged): it drives an existing
+`service_deployment` row from accounting-only into a real provisioned service
+(per-service Casdoor role → route-access rule → ArgoCD `Application`). `sourceKind`
+is one of the **four App-Store sources** — `SELECT` / `GIT` / `DOCKERFILE` / `ZIP`
+(case-insensitive; null/blank → `SELECT`). `SELECT` (a catalog tile) and `GIT` (a
+prebuilt repo) provision today; `DOCKERFILE` and `ZIP` need an image **built first**
+by the in-cluster **Kaniko** builder (the generator leg), which does not exist yet,
+so the bff rejects them with a `400` ("requires the in-cluster builder"). The effector
+itself **ships dark** by default (the bff `NoopArgoCdClient` makes no real ArgoCD
+mutation) — the call still returns `200`; the role + route-access leg is wired and the
+real ArgoCD apply lands when the effector is enabled.
 
 The `{domain}` is always the explicit **path** target (never a body field) — the
 infra control plane picks the brand. The two-tier admin read resolves the domain
@@ -89,6 +103,16 @@ from the validated JWT issuer, never the request.
 
 ## The console
 
+- **Add a service** — the headline flow: type/select a domain, load its recorded
+  deployments (its app profile), pick one, then choose one of the **four sources** —
+  **Catalog (SELECT)**, **Git / GitLab (GIT)**, **Dockerfile (DOCKERFILE)** or **Zip
+  repo (ZIP)** — and **Provision** it (`POST .../deployments/{id}/provision`). SELECT
+  and GIT provision today; DOCKERFILE and ZIP are presented as **disabled** radio
+  options with a "needs builder" badge + help text (they need the in-cluster Kaniko
+  builder, which is not available yet — the ships-dark degrade). The submit is guarded
+  defence-in-depth, and the bff's authoritative `400` is surfaced verbatim. `repoUrl`
+  is required (the bff `@NotBlank`); `path`/`targetRevision` are optional. The
+  `{domain}` and `{id}` are the explicit PATH targets.
 - **Curation** — type/select a domain, load its offered catalog, and offer or
   withdraw a `service_key` for it. Shows the current offered set per domain.
 - **App profiles** — CRUD the global deploy-template library (a name + a JSON
