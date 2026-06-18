@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-import { AppstoreService, AppProfile, AppstoreApiError } from './appstore.service';
+import { ServiceCatalogService, AppProfile, ServiceCatalogApiError } from './service-catalog.service';
 
 type Mode = 'create' | 'edit';
 
@@ -22,14 +22,14 @@ type Mode = 'create' | 'edit';
  * states; a 403/404/409 each surfaces a clear message.
  */
 @Component({
-  selector: 'snap-appstore-profiles',
+  selector: 'snap-service-catalog-profiles',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './appstore-profiles.component.html',
-  styleUrl: './appstore-profiles.component.scss',
+  templateUrl: './service-catalog-profiles.component.html',
+  styleUrl: './service-catalog-profiles.component.scss',
 })
-export class AppstoreProfilesComponent implements OnInit {
-  private readonly appstore = inject(AppstoreService);
+export class ServiceCatalogProfilesComponent implements OnInit {
+  private readonly serviceCatalog = inject(ServiceCatalogService);
 
   // ── list ──
   readonly profiles = signal<AppProfile[] | null>(null);
@@ -77,10 +77,10 @@ export class AppstoreProfilesComponent implements OnInit {
     this.listLoading.set(true);
     this.listError.set('');
     try {
-      this.profiles.set(await this.appstore.listProfiles());
+      this.profiles.set(await this.serviceCatalog.listProfiles());
     } catch (e) {
       this.profiles.set(null);
-      if (e instanceof AppstoreApiError && (e.isForbidden || e.isNotFound)) {
+      if (e instanceof ServiceCatalogApiError && (e.isForbidden || e.isNotFound)) {
         this.profiles.set([]);
       } else {
         this.listError.set('Could not load the app profiles. Please try again.');
@@ -117,11 +117,11 @@ export class AppstoreProfilesComponent implements OnInit {
     const json = this.profileJson().trim() || '{}';
     try {
       if (this.mode() === 'create') {
-        const created = await this.appstore.createProfile(this.name().trim(), json);
+        const created = await this.serviceCatalog.createProfile(this.name().trim(), json);
         this.newProfile(); // reset the form first (it clears the notice)…
         this.notice.set(`Created profile “${created.name}”.`); // …then announce success
       } else {
-        const updated = await this.appstore.updateProfile(this.name().trim(), json);
+        const updated = await this.serviceCatalog.updateProfile(this.name().trim(), json);
         this.notice.set(`Updated profile “${updated.name}”.`);
       }
       await this.reload();
@@ -137,7 +137,7 @@ export class AppstoreProfilesComponent implements OnInit {
     this.formError.set('');
     this.notice.set('');
     try {
-      await this.appstore.deleteProfile(p.name);
+      await this.serviceCatalog.deleteProfile(p.name);
       if (this.mode() === 'edit' && this.name() === p.name) this.newProfile();
       this.notice.set(`Deleted profile “${p.name}”.`);
       await this.reload();
@@ -149,7 +149,7 @@ export class AppstoreProfilesComponent implements OnInit {
   }
 
   private message(e: unknown): string {
-    if (e instanceof AppstoreApiError) {
+    if (e instanceof ServiceCatalogApiError) {
       if (e.isForbidden) return 'The server denied this action — superadmin is required to manage profiles.';
       if (e.isConflict) return 'A profile with that name already exists. Choose a different name.';
       if (e.isNotFound) return 'That profile no longer exists.';

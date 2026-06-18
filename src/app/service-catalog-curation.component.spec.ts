@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AppstoreCurationComponent } from './appstore-curation.component';
-import { AppstoreService, ServiceCuration, AppstoreApiError } from './appstore.service';
+import { ServiceCatalogCurationComponent } from './service-catalog-curation.component';
+import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from './service-catalog.service';
 import { accessibleName } from './accessible-name';
 
 function cur(key: string, state = 'offered'): ServiceCuration {
@@ -11,24 +11,24 @@ function cur(key: string, state = 'offered'): ServiceCuration {
   };
 }
 
-describe('AppstoreCurationComponent (per-domain offered catalog)', () => {
-  let fixture: ComponentFixture<AppstoreCurationComponent>;
-  let component: AppstoreCurationComponent;
-  let appstore: jasmine.SpyObj<
-    Pick<AppstoreService, 'listCuration' | 'offer' | 'withdraw'>
+describe('ServiceCatalogCurationComponent (per-domain offered catalog)', () => {
+  let fixture: ComponentFixture<ServiceCatalogCurationComponent>;
+  let component: ServiceCatalogCurationComponent;
+  let serviceCatalog: jasmine.SpyObj<
+    Pick<ServiceCatalogService, 'listCuration' | 'offer' | 'withdraw'>
   >;
 
   beforeEach(async () => {
-    appstore = jasmine.createSpyObj('AppstoreService', ['listCuration', 'offer', 'withdraw']);
-    appstore.listCuration.and.resolveTo([]);
-    appstore.offer.and.resolveTo(cur('owncast'));
-    appstore.withdraw.and.resolveTo(cur('owncast', 'withdrawn'));
+    serviceCatalog = jasmine.createSpyObj('ServiceCatalogService', ['listCuration', 'offer', 'withdraw']);
+    serviceCatalog.listCuration.and.resolveTo([]);
+    serviceCatalog.offer.and.resolveTo(cur('owncast'));
+    serviceCatalog.withdraw.and.resolveTo(cur('owncast', 'withdrawn'));
 
     await TestBed.configureTestingModule({
-      imports: [AppstoreCurationComponent],
-      providers: [{ provide: AppstoreService, useValue: appstore }],
+      imports: [ServiceCatalogCurationComponent],
+      providers: [{ provide: ServiceCatalogService, useValue: serviceCatalog }],
     }).compileComponents();
-    fixture = TestBed.createComponent(AppstoreCurationComponent);
+    fixture = TestBed.createComponent(ServiceCatalogCurationComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
@@ -43,21 +43,21 @@ describe('AppstoreCurationComponent (per-domain offered catalog)', () => {
   }
 
   it('loadDomain calls listCuration with the typed {domain} (the PATH segment)', async () => {
-    appstore.listCuration.and.resolveTo([cur('owncast')]);
+    serviceCatalog.listCuration.and.resolveTo([cur('owncast')]);
     await loadDomain('acme.test');
-    expect(appstore.listCuration).toHaveBeenCalledWith('acme.test');
+    expect(serviceCatalog.listCuration).toHaveBeenCalledWith('acme.test');
   });
 
   it('shows the EMPTY state when the domain has no offered services', async () => {
-    appstore.listCuration.and.resolveTo([]);
+    serviceCatalog.listCuration.and.resolveTo([]);
     await loadDomain();
-    expect(el().querySelector('[data-testid="appstore-curation-empty"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-curation-empty"]')).not.toBeNull();
   });
 
   it('lists only the OFFERED rows (withdrawn filtered out)', async () => {
-    appstore.listCuration.and.resolveTo([cur('owncast', 'offered'), cur('forum', 'withdrawn')]);
+    serviceCatalog.listCuration.and.resolveTo([cur('owncast', 'offered'), cur('forum', 'withdrawn')]);
     await loadDomain();
-    const list = el().querySelector('[data-testid="appstore-curation-list"]')!;
+    const list = el().querySelector('[data-testid="service-catalog-curation-list"]')!;
     expect(list).not.toBeNull();
     expect(list.textContent).toContain('owncast');
     expect(list.textContent).not.toContain('forum');
@@ -68,53 +68,53 @@ describe('AppstoreCurationComponent (per-domain offered catalog)', () => {
     component.serviceKey.set('owncast');
     await component.offer();
     fixture.detectChanges();
-    expect(appstore.offer).toHaveBeenCalledWith('acme.test', 'owncast');
+    expect(serviceCatalog.offer).toHaveBeenCalledWith('acme.test', 'owncast');
     // and reloads the catalog after the write
-    expect(appstore.listCuration).toHaveBeenCalledTimes(2);
-    expect(el().querySelector('[data-testid="appstore-curation-notice"]')).not.toBeNull();
+    expect(serviceCatalog.listCuration).toHaveBeenCalledTimes(2);
+    expect(el().querySelector('[data-testid="service-catalog-curation-notice"]')).not.toBeNull();
   });
 
   it('withdraw (from a row) posts the right {domain} + serviceKey', async () => {
-    appstore.listCuration.and.resolveTo([cur('owncast')]);
+    serviceCatalog.listCuration.and.resolveTo([cur('owncast')]);
     await loadDomain('acme.test');
     await component.withdraw('owncast');
     fixture.detectChanges();
-    expect(appstore.withdraw).toHaveBeenCalledWith('acme.test', 'owncast');
+    expect(serviceCatalog.withdraw).toHaveBeenCalledWith('acme.test', 'owncast');
   });
 
   it('does NOT offer when the service key is blank (form invalid)', async () => {
     await loadDomain('acme.test');
     component.serviceKey.set('   ');
     await component.offer();
-    expect(appstore.offer).not.toHaveBeenCalled();
+    expect(serviceCatalog.offer).not.toHaveBeenCalled();
   });
 
   it('surfaces a 403 from offer as a clear action error', async () => {
     await loadDomain('acme.test');
     component.serviceKey.set('owncast');
-    appstore.offer.and.rejectWith(new AppstoreApiError(403, 'forbidden'));
+    serviceCatalog.offer.and.rejectWith(new ServiceCatalogApiError(403, 'forbidden'));
     await component.offer();
     fixture.detectChanges();
-    const err = el().querySelector('[data-testid="appstore-curation-action-error"]')!;
+    const err = el().querySelector('[data-testid="service-catalog-curation-action-error"]')!;
     expect(err).not.toBeNull();
     expect(err.textContent).toContain('superadmin');
   });
 
   it('degrades a 403 on the catalog LOAD to the empty state (graceful)', async () => {
-    appstore.listCuration.and.rejectWith(new AppstoreApiError(403, 'forbidden'));
+    serviceCatalog.listCuration.and.rejectWith(new ServiceCatalogApiError(403, 'forbidden'));
     await loadDomain('acme.test');
-    expect(el().querySelector('[data-testid="appstore-curation-empty"]')).not.toBeNull();
-    expect(el().querySelector('[data-testid="appstore-curation-error"]')).toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-curation-empty"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-curation-error"]')).toBeNull();
   });
 
   it('shows the ERROR state on a non-auth load failure', async () => {
-    appstore.listCuration.and.rejectWith(new AppstoreApiError(500, 'boom'));
+    serviceCatalog.listCuration.and.rejectWith(new ServiceCatalogApiError(500, 'boom'));
     await loadDomain('acme.test');
-    expect(el().querySelector('[data-testid="appstore-curation-error"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-curation-error"]')).not.toBeNull();
   });
 
   it('every form control + row action has an accessible name (a11y)', async () => {
-    appstore.listCuration.and.resolveTo([cur('owncast')]);
+    serviceCatalog.listCuration.and.resolveTo([cur('owncast')]);
     await loadDomain('acme.test');
     const controls = Array.from(
       el().querySelectorAll('input, button'),

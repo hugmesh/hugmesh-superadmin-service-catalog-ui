@@ -3,17 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import {
-  AppstoreService,
+  ServiceCatalogService,
   ServiceDeployment,
   AppProfile,
   ProvisionService,
   ServiceSourceKind,
   SERVICE_SOURCE_KINDS,
   requiresBuilder,
-  AppstoreApiError,
-} from './appstore.service';
+  ServiceCatalogApiError,
+} from './service-catalog.service';
 
-/** A source-kind option rendered in the radio group: the four App-Store sources
+/** A source-kind option rendered in the radio group: the four Service Catalog sources
  *  with their copy + the builder-gated flag (DOCKERFILE/ZIP). */
 interface SourceOption {
   kind: ServiceSourceKind;
@@ -33,7 +33,7 @@ interface SourceOption {
  *   POST /bff/superadmin/service-store/{domain}/deployments/{id}/provision
  *        {sourceKind, repoUrl, path?, targetRevision?}
  *
- * The EFFECTOR converges the FOUR App-Store sources on the same deploy path
+ * The EFFECTOR converges the FOUR Service Catalog sources on the same deploy path
  * (per-service Casdoor role → route-access rule → ArgoCD Application):
  *
  *   SELECT     — a curated catalog tile referencing a PRE-BUILT image. Provisions today.
@@ -58,14 +58,14 @@ interface SourceOption {
  * loading / empty / error states; a 403/404/400 each degrade gracefully.
  */
 @Component({
-  selector: 'snap-appstore-add-service',
+  selector: 'snap-service-catalog-add-service',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './appstore-add-service.component.html',
-  styleUrl: './appstore-add-service.component.scss',
+  templateUrl: './service-catalog-add-service.component.html',
+  styleUrl: './service-catalog-add-service.component.scss',
 })
-export class AppstoreAddServiceComponent {
-  private readonly appstore = inject(AppstoreService);
+export class ServiceCatalogAddServiceComponent {
+  private readonly serviceCatalog = inject(ServiceCatalogService);
 
   // ── domain selector ──
   readonly domain = signal('');
@@ -141,13 +141,13 @@ export class AppstoreAddServiceComponent {
     this.listError.set('');
     void this.loadProfiles();
     try {
-      const res = await this.appstore.listDeployments(d);
+      const res = await this.serviceCatalog.listDeployments(d);
       this.rows.set(res);
       this.loadedDomain.set(d);
     } catch (e) {
       this.rows.set(null);
       this.loadedDomain.set(d);
-      if (e instanceof AppstoreApiError && (e.isForbidden || e.isNotFound)) {
+      if (e instanceof ServiceCatalogApiError && (e.isForbidden || e.isNotFound)) {
         this.rows.set([]); // degrade to the empty state, not a scary error
       } else {
         this.listError.set(`Could not load services for ${d}. Please try again.`);
@@ -159,7 +159,7 @@ export class AppstoreAddServiceComponent {
 
   private async loadProfiles(): Promise<void> {
     try {
-      this.profiles.set(await this.appstore.listProfiles());
+      this.profiles.set(await this.serviceCatalog.listProfiles());
     } catch {
       this.profiles.set([]);
     }
@@ -205,7 +205,7 @@ export class AppstoreAddServiceComponent {
     };
     this.busy.set(true);
     try {
-      await this.appstore.provisionDeployment(domain, id, body);
+      await this.serviceCatalog.provisionDeployment(domain, id, body);
       this.notice.set(
         `Provisioned “${row?.serviceKey ?? id}” in ${domain} from its ${body.sourceKind} source. ` +
           `The per-service role and route-access rule are wired; the ArgoCD apply lands when the ` +
@@ -223,7 +223,7 @@ export class AppstoreAddServiceComponent {
   }
 
   private message(e: unknown): string {
-    if (e instanceof AppstoreApiError) {
+    if (e instanceof ServiceCatalogApiError) {
       if (e.isForbidden) {
         return 'The server denied this action — superadmin is required to provision a service.';
       }

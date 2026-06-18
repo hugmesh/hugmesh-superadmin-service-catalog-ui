@@ -1,10 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SessionService } from './session.service';
-import { AppstoreService, ServiceCuration, AppstoreApiError } from './appstore.service';
+import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from './service-catalog.service';
 
 /**
- * The within-App-Store privilege-boundary screen. Reached when the superadminGuard
+ * The within-Service Catalog privilege-boundary screen. Reached when the superadminGuard
  * denies activation — an admin / mod / user hitting the SUPERADMIN-only console.
  * NOT an auth failure — the host already authgated the user in — so this explains
  * the MISSING role rather than bouncing to /login.
@@ -19,15 +19,15 @@ import { AppstoreService, ServiceCuration, AppstoreApiError } from './appstore.s
  * empty / error states), instead of a dead end. A mod/user sees only the message.
  */
 @Component({
-  selector: 'snap-appstore-forbidden',
+  selector: 'snap-service-catalog-forbidden',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './appstore-forbidden.component.html',
-  styleUrl: './appstore-forbidden.component.scss',
+  templateUrl: './service-catalog-forbidden.component.html',
+  styleUrl: './service-catalog-forbidden.component.scss',
 })
-export class AppstoreForbiddenComponent implements OnInit {
+export class ServiceCatalogForbiddenComponent implements OnInit {
   private readonly session = inject(SessionService);
-  private readonly appstore = inject(AppstoreService);
+  private readonly serviceCatalog = inject(ServiceCatalogService);
 
   /** Whether to attempt the read-only two-tier catalog (admin|superadmin). */
   readonly canReadOwnCatalog = this.session.canReadOwnCatalog;
@@ -46,11 +46,11 @@ export class AppstoreForbiddenComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
     try {
-      const rows = await this.appstore.myDomainCatalog();
+      const rows = await this.serviceCatalog.myDomainCatalog();
       this.catalog.set(rows.filter((r) => r.state === 'offered'));
     } catch (e) {
       this.catalog.set(null);
-      if (e instanceof AppstoreApiError && (e.isForbidden || e.isNotFound)) {
+      if (e instanceof ServiceCatalogApiError && (e.isForbidden || e.isNotFound)) {
         // 403/404 degrade gracefully — show nothing rather than a scary error.
         this.catalog.set([]);
       } else {

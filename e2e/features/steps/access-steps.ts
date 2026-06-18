@@ -9,36 +9,36 @@ import {
   expectForbidden,
   sessionRoles,
   SeedUser,
-  APPSTORE_FORBIDDEN_PATH,
+  SERVICE_CATALOG_FORBIDDEN_PATH,
 } from '../../tests/helpers/roles';
 import { pageRegistry } from './_registry';
 
-Given('{string} opens the appstore at {string}', async ({ page, user }, username: string, route: string) => {
+Given('{string} opens the service-catalog at {string}', async ({ page, user }, username: string, route: string) => {
   const u: SeedUser = user(username);
   await loginAs(page, u, route);
   pageRegistry.set(u.username, page);
 });
 
-Then('the appstore console nav is visible', async ({ page }) => {
-  await expect(page.locator('nav.appstore-nav[role="menubar"]')).toBeVisible({ timeout: 15_000 });
+Then('the service-catalog console nav is visible', async ({ page }) => {
+  await expect(page.locator('nav.service-catalog-nav[role="menubar"]')).toBeVisible({ timeout: 15_000 });
 });
 
-Then('the appstore console nav is not visible', async ({ page }) => {
-  await expect(page.locator('nav.appstore-nav[role="menubar"]')).toHaveCount(0);
+Then('the service-catalog console nav is not visible', async ({ page }) => {
+  await expect(page.locator('nav.service-catalog-nav[role="menubar"]')).toHaveCount(0);
 });
 
 Then('the {string} view is shown', async ({ page }, view: string) => {
   // Each view's first panel carries a stable data-testid or heading id; the URL
   // ending in the view slug is the load-bearing signal the guard let us through.
-  await page.waitForURL((url) => url.pathname.endsWith(`/appstore/${view}`), { timeout: 15_000 });
-  await expect(page.locator('.appstore-head h1')).toHaveText(/Superadmin App-Store/i, { timeout: 10_000 });
+  await page.waitForURL((url) => url.pathname.endsWith(`/service-catalog/${view}`), { timeout: 15_000 });
+  await expect(page.locator('.service-catalog-head h1')).toHaveText(/Superadmin Service Catalog/i, { timeout: 10_000 });
 });
 
-Then('the appstore forbidden screen is not shown', async ({ page }) => {
-  await expect(page).not.toHaveURL(new RegExp(`${APPSTORE_FORBIDDEN_PATH}$`));
+Then('the service-catalog forbidden screen is not shown', async ({ page }) => {
+  await expect(page).not.toHaveURL(new RegExp(`${SERVICE_CATALOG_FORBIDDEN_PATH}$`));
 });
 
-Then('the appstore forbidden screen is shown at {string}', async ({ page }, path: string) => {
+Then('the service-catalog forbidden screen is shown at {string}', async ({ page }, path: string) => {
   await page.waitForURL((url) => url.pathname.endsWith(path), { timeout: 20_000 });
   await expectForbidden(page);
 });
@@ -59,7 +59,7 @@ Then('the loaded domain is {string}', async ({ page }, domain: string) => {
 });
 
 Then('the {string} rows are not shown', async ({ page }, needle: string) => {
-  await expect(page.locator('[data-testid="appstore-add-list"]')).not.toContainText(needle);
+  await expect(page.locator('[data-testid="service-catalog-add-list"]')).not.toContainText(needle);
 });
 
 Then('the session domain is {string}', async ({ page }, domain: string) => {

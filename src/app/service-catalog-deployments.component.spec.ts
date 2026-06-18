@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AppstoreDeploymentsComponent } from './appstore-deployments.component';
-import { AppstoreService, ServiceDeployment, AppstoreApiError } from './appstore.service';
+import { ServiceCatalogDeploymentsComponent } from './service-catalog-deployments.component';
+import { ServiceCatalogService, ServiceDeployment, ServiceCatalogApiError } from './service-catalog.service';
 import { accessibleName } from './accessible-name';
 
 function dep(over: Partial<ServiceDeployment> = {}): ServiceDeployment {
@@ -13,27 +13,27 @@ function dep(over: Partial<ServiceDeployment> = {}): ServiceDeployment {
   };
 }
 
-describe('AppstoreDeploymentsComponent (lifecycle accounting)', () => {
-  let fixture: ComponentFixture<AppstoreDeploymentsComponent>;
-  let component: AppstoreDeploymentsComponent;
-  let appstore: jasmine.SpyObj<
-    Pick<AppstoreService, 'listDeployments' | 'createDeployment' | 'endDeployment' | 'listProfiles'>
+describe('ServiceCatalogDeploymentsComponent (lifecycle accounting)', () => {
+  let fixture: ComponentFixture<ServiceCatalogDeploymentsComponent>;
+  let component: ServiceCatalogDeploymentsComponent;
+  let serviceCatalog: jasmine.SpyObj<
+    Pick<ServiceCatalogService, 'listDeployments' | 'createDeployment' | 'endDeployment' | 'listProfiles'>
   >;
 
   beforeEach(async () => {
-    appstore = jasmine.createSpyObj('AppstoreService', [
+    serviceCatalog = jasmine.createSpyObj('ServiceCatalogService', [
       'listDeployments', 'createDeployment', 'endDeployment', 'listProfiles',
     ]);
-    appstore.listDeployments.and.resolveTo([]);
-    appstore.listProfiles.and.resolveTo([]);
-    appstore.createDeployment.and.resolveTo(dep());
-    appstore.endDeployment.and.resolveTo(dep({ state: 'ended' }));
+    serviceCatalog.listDeployments.and.resolveTo([]);
+    serviceCatalog.listProfiles.and.resolveTo([]);
+    serviceCatalog.createDeployment.and.resolveTo(dep());
+    serviceCatalog.endDeployment.and.resolveTo(dep({ state: 'ended' }));
 
     await TestBed.configureTestingModule({
-      imports: [AppstoreDeploymentsComponent],
-      providers: [{ provide: AppstoreService, useValue: appstore }],
+      imports: [ServiceCatalogDeploymentsComponent],
+      providers: [{ provide: ServiceCatalogService, useValue: serviceCatalog }],
     }).compileComponents();
-    fixture = TestBed.createComponent(AppstoreDeploymentsComponent);
+    fixture = TestBed.createComponent(ServiceCatalogDeploymentsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
@@ -48,29 +48,29 @@ describe('AppstoreDeploymentsComponent (lifecycle accounting)', () => {
   }
 
   it('always shows the SHIPS-DARK note (the actual provision is a later increment)', () => {
-    const note = el().querySelector('[data-testid="appstore-deployments-dark-note"]')!;
+    const note = el().querySelector('[data-testid="service-catalog-deployments-dark-note"]')!;
     expect(note).not.toBeNull();
     expect(note.textContent).toContain('later increment');
   });
 
   it('loadDomain calls listDeployments with the typed {domain}', async () => {
-    appstore.listDeployments.and.resolveTo([dep()]);
+    serviceCatalog.listDeployments.and.resolveTo([dep()]);
     await loadDomain('acme.test');
-    expect(appstore.listDeployments).toHaveBeenCalledWith('acme.test');
+    expect(serviceCatalog.listDeployments).toHaveBeenCalledWith('acme.test');
   });
 
   it('shows the EMPTY state when no deployments exist for the domain', async () => {
-    appstore.listDeployments.and.resolveTo([]);
+    serviceCatalog.listDeployments.and.resolveTo([]);
     await loadDomain();
-    expect(el().querySelector('[data-testid="appstore-deployments-empty"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-deployments-empty"]')).not.toBeNull();
   });
 
   it('renders the accounting table with state / created / ending / enforce / propagation', async () => {
-    appstore.listDeployments.and.resolveTo([
+    serviceCatalog.listDeployments.and.resolveTo([
       dep({ serviceKey: 'owncast', endingAt: '2030-01-01T00:00:00Z', enforceActions: 'teardown,alert' }),
     ]);
     await loadDomain();
-    const table = el().querySelector('[data-testid="appstore-deployments-list"]')!;
+    const table = el().querySelector('[data-testid="service-catalog-deployments-list"]')!;
     expect(table).not.toBeNull();
     expect(table.textContent).toContain('owncast');
     expect(table.textContent).toContain('active');
@@ -87,8 +87,8 @@ describe('AppstoreDeploymentsComponent (lifecycle accounting)', () => {
     await component.record();
     fixture.detectChanges();
 
-    expect(appstore.createDeployment).toHaveBeenCalled();
-    const [domainArg, body] = appstore.createDeployment.calls.mostRecent().args;
+    expect(serviceCatalog.createDeployment).toHaveBeenCalled();
+    const [domainArg, body] = serviceCatalog.createDeployment.calls.mostRecent().args;
     expect(domainArg).toBe('acme.test');
     expect(body.serviceKey).toBe('owncast');
     expect(body.profileRef).toBe('small-postgres');
@@ -97,8 +97,8 @@ describe('AppstoreDeploymentsComponent (lifecycle accounting)', () => {
     expect(typeof body.endingAt).toBe('string');
     expect(Number.isNaN(Date.parse(body.endingAt as string))).toBeFalse();
     // reloads after the write
-    expect(appstore.listDeployments).toHaveBeenCalledTimes(2);
-    expect(el().querySelector('[data-testid="appstore-deployments-notice"]')).not.toBeNull();
+    expect(serviceCatalog.listDeployments).toHaveBeenCalledTimes(2);
+    expect(el().querySelector('[data-testid="service-catalog-deployments-notice"]')).not.toBeNull();
   });
 
   it('records a PERMANENT deployment with endingAt = null when the clock is blank', async () => {
@@ -106,7 +106,7 @@ describe('AppstoreDeploymentsComponent (lifecycle accounting)', () => {
     component.serviceKey.set('forum');
     component.endingAtLocal.set('');
     await component.record();
-    const [, body] = appstore.createDeployment.calls.mostRecent().args;
+    const [, body] = serviceCatalog.createDeployment.calls.mostRecent().args;
     expect(body.endingAt).toBeNull();
   });
 
@@ -114,41 +114,41 @@ describe('AppstoreDeploymentsComponent (lifecycle accounting)', () => {
     await loadDomain('acme.test');
     component.serviceKey.set('  ');
     await component.record();
-    expect(appstore.createDeployment).not.toHaveBeenCalled();
+    expect(serviceCatalog.createDeployment).not.toHaveBeenCalled();
   });
 
   it('end calls endDeployment with the {domain} + row id', async () => {
-    appstore.listDeployments.and.resolveTo([dep({ id: 'dep-9' })]);
+    serviceCatalog.listDeployments.and.resolveTo([dep({ id: 'dep-9' })]);
     await loadDomain('acme.test');
     await component.end(dep({ id: 'dep-9' }));
-    expect(appstore.endDeployment).toHaveBeenCalledWith('acme.test', 'dep-9');
+    expect(serviceCatalog.endDeployment).toHaveBeenCalledWith('acme.test', 'dep-9');
   });
 
   it('surfaces a 403 on record clearly', async () => {
     await loadDomain('acme.test');
     component.serviceKey.set('owncast');
-    appstore.createDeployment.and.rejectWith(new AppstoreApiError(403, 'forbidden'));
+    serviceCatalog.createDeployment.and.rejectWith(new ServiceCatalogApiError(403, 'forbidden'));
     await component.record();
     fixture.detectChanges();
-    const err = el().querySelector('[data-testid="appstore-deployments-form-error"]')!;
+    const err = el().querySelector('[data-testid="service-catalog-deployments-form-error"]')!;
     expect(err.textContent).toContain('superadmin');
   });
 
   it('degrades a 403 on the LOAD to the empty state (graceful)', async () => {
-    appstore.listDeployments.and.rejectWith(new AppstoreApiError(403, 'forbidden'));
+    serviceCatalog.listDeployments.and.rejectWith(new ServiceCatalogApiError(403, 'forbidden'));
     await loadDomain('acme.test');
-    expect(el().querySelector('[data-testid="appstore-deployments-empty"]')).not.toBeNull();
-    expect(el().querySelector('[data-testid="appstore-deployments-error"]')).toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-deployments-empty"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-deployments-error"]')).toBeNull();
   });
 
   it('shows the ERROR state on a non-auth load failure', async () => {
-    appstore.listDeployments.and.rejectWith(new AppstoreApiError(500, 'boom'));
+    serviceCatalog.listDeployments.and.rejectWith(new ServiceCatalogApiError(500, 'boom'));
     await loadDomain('acme.test');
-    expect(el().querySelector('[data-testid="appstore-deployments-error"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-deployments-error"]')).not.toBeNull();
   });
 
   it('every form control + row action has an accessible name (a11y)', async () => {
-    appstore.listDeployments.and.resolveTo([dep()]);
+    serviceCatalog.listDeployments.and.resolveTo([dep()]);
     await loadDomain('acme.test');
     const controls = Array.from(el().querySelectorAll('input, select, button')) as HTMLElement[];
     for (const c of controls) {

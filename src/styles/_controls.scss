@@ -1,24 +1,24 @@
-// Shared app-store control styles (buttons, helper text, status colours) the
+// Shared service catalog control styles (buttons, helper text, status colours) the
 // per-component sidecar SCSS pull in via `@use 'controls'`. Centralised so the
 // console's affordances stay visually consistent and the WCAG palette tokens
 // are read from ONE place. (src/styles is on the sass includePaths.)
 
-.appstore-btn {
+.service-catalog-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0.5rem 1rem;
-  border-radius: var(--appstore-radius);
-  background: var(--appstore-accent);
+  border-radius: var(--service-catalog-radius);
+  background: var(--service-catalog-accent);
   color: #ffffff;
-  border: 1px solid var(--appstore-accent);
+  border: 1px solid var(--service-catalog-accent);
   text-decoration: none;
   font-weight: 600;
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
-    background: var(--appstore-accent-soft);
+    background: var(--service-catalog-accent-soft);
     color: #0a0a12;
   }
 
@@ -28,56 +28,56 @@
   }
 }
 
-.appstore-btn--secondary {
+.service-catalog-btn--secondary {
   background: transparent;
-  color: var(--appstore-text);
+  color: var(--service-catalog-text);
 
   &:hover,
   &:focus-visible {
-    background: var(--appstore-surface);
-    color: var(--appstore-text);
-    border-color: var(--appstore-accent-soft);
+    background: var(--service-catalog-surface);
+    color: var(--service-catalog-text);
+    border-color: var(--service-catalog-accent-soft);
   }
 }
 
-.appstore-btn--danger {
+.service-catalog-btn--danger {
   background: transparent;
-  color: var(--appstore-error);
-  border-color: var(--appstore-error);
+  color: var(--service-catalog-error);
+  border-color: var(--service-catalog-error);
 
   &:hover,
   &:focus-visible {
-    background: var(--appstore-error);
+    background: var(--service-catalog-error);
     color: #0a0a12;
   }
 }
 
-.appstore-muted {
-  color: var(--appstore-text-muted);
+.service-catalog-muted {
+  color: var(--service-catalog-text-muted);
 }
 
-.appstore-error {
-  color: var(--appstore-error);
+.service-catalog-error {
+  color: var(--service-catalog-error);
   font-weight: 600;
 }
 
-.appstore-success {
-  color: var(--appstore-success);
+.service-catalog-success {
+  color: var(--service-catalog-success);
   font-weight: 600;
 }
 
-.appstore-warning {
-  color: var(--appstore-warning);
+.service-catalog-warning {
+  color: var(--service-catalog-warning);
   font-weight: 600;
 }
 
-.appstore-field {
+.service-catalog-field {
   display: grid;
   gap: 0.35rem;
   margin-bottom: 1rem;
 
   > label,
-  > .appstore-field__label {
+  > .service-catalog-field__label {
     font-weight: 600;
   }
 
@@ -86,14 +86,14 @@
   select {
     width: 100%;
     padding: 0.5rem 0.65rem;
-    background: var(--appstore-bg);
-    color: var(--appstore-text);
-    border: 1px solid var(--appstore-border);
-    border-radius: var(--appstore-radius);
+    background: var(--service-catalog-bg);
+    color: var(--service-catalog-text);
+    border: 1px solid var(--service-catalog-border);
+    border-radius: var(--service-catalog-radius);
     font: inherit;
 
     &[aria-invalid='true'] {
-      border-color: var(--appstore-error);
+      border-color: var(--service-catalog-error);
     }
 
     &:disabled {
@@ -103,14 +103,14 @@
   }
 
   &__help {
-    color: var(--appstore-text-muted);
+    color: var(--service-catalog-text-muted);
     font-size: 0.9rem;
   }
 }
 
-.appstore-panel {
-  background: var(--appstore-surface);
-  border: 1px solid var(--appstore-border);
-  border-radius: var(--appstore-radius);
+.service-catalog-panel {
+  background: var(--service-catalog-surface);
+  border: 1px solid var(--service-catalog-border);
+  border-radius: var(--service-catalog-radius);
   padding: 1.25rem 1.5rem;
 }

@@ -9,17 +9,17 @@
 # {domain}/{id} path).
 #
 # The offline contract — the GET re-scopes to the new {domain} and selectedId is
-# cleared — is asserted in src/app/appstore-add-service.e2e.spec.ts (the
+# cleared — is asserted in src/app/service-catalog-add-service.e2e.spec.ts (the
 # "switching the domain re-scopes the app profile" scenario). This BDD layer is
 # the through-the-browser view of the same isolation boundary.
 @cluster
-Feature: Cross-tenant isolation on the App-Store add view
+Feature: Cross-tenant isolation on the Service Catalog add view
   As a superadmin who operates across brands
   I must only ever see and act on the domain I have loaded
   So one brand's recorded deployments never leak into another's view or provision
 
   Scenario: switching the domain re-scopes the list and clears the prior selection
-    Given "superadmin" opens the appstore at "/appstore/add"
+    Given "superadmin" opens the service-catalog at "/service-catalog/add"
     And the domain "acme.test" is loaded with recorded deployments
     When the superadmin chooses the first recorded deployment
     And the domain "beta.test" is loaded with recorded deployments
@@ -28,7 +28,7 @@ Feature: Cross-tenant isolation on the App-Store add view
     And the "acme.test" rows are not shown
 
   Scenario: a denied admin's forbidden catalog is scoped to their OWN domain only
-    Given "admin" opens the appstore at "/appstore/curation"
-    Then the appstore forbidden screen is shown at "/appstore/forbidden"
+    Given "admin" opens the service-catalog at "/service-catalog/curation"
+    Then the service-catalog forbidden screen is shown at "/service-catalog/forbidden"
     And the read-only own-domain catalog section is shown
     And the session domain is "acme.test"

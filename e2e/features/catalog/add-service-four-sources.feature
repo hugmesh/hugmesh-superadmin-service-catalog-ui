@@ -1,5 +1,5 @@
-# The App-Store headline flow: a SUPERADMIN adds a service to a domain via one
-# of the FOUR sources (src/app/appstore-add-service.component.ts).
+# The Service Catalog headline flow: a SUPERADMIN adds a service to a domain via one
+# of the FOUR sources (src/app/service-catalog-add-service.component.ts).
 #
 #   SELECT     — a curated catalog tile (pre-built image). Deploys today.
 #   GIT        — a git/GitLab repo that builds its own image. Deploys today.
@@ -18,7 +18,7 @@
 # @cluster: needs the built remote + a real admin-bff
 # /bff/superadmin/service-store endpoint, so these are SKIPPED at runtime unless
 # E2E_CLUSTER=1 (see features/support/fixtures.ts). The exact path/body contract
-# is already proven offline by src/app/appstore-add-service.e2e.spec.ts (karma,
+# is already proven offline by src/app/service-catalog-add-service.e2e.spec.ts (karma,
 # fetch-stubbed); this BDD layer is the through-the-browser presentation. bddgen
 # + `playwright test --list` discover these regardless.
 @cluster
@@ -28,8 +28,8 @@ Feature: Superadmin adds a service via the four sources
   So the per-service role + route-access rule are wired and ArgoCD picks it up
 
   Background:
-    Given "superadmin" opens the appstore at "/appstore/add"
-    And the appstore console nav is visible
+    Given "superadmin" opens the service-catalog at "/service-catalog/add"
+    And the service-catalog console nav is visible
 
   Scenario: the add view explains the ships-dark effector before any provision
     Then the ships-dark effector note is shown

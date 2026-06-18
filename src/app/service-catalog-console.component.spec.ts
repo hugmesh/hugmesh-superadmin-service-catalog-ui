@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
 
-import { AppstoreConsoleComponent } from './appstore-console.component';
+import { ServiceCatalogConsoleComponent } from './service-catalog-console.component';
 import { SessionService } from './session.service';
 import { accessibleName } from './accessible-name';
 
@@ -16,24 +16,24 @@ function sessionStub() {
   };
 }
 
-describe('AppstoreConsoleComponent (SUPERADMIN-gated nav)', () => {
-  let fixture: ComponentFixture<AppstoreConsoleComponent>;
+describe('ServiceCatalogConsoleComponent (SUPERADMIN-gated nav)', () => {
+  let fixture: ComponentFixture<ServiceCatalogConsoleComponent>;
   let session: ReturnType<typeof sessionStub>;
 
   beforeEach(async () => {
     session = sessionStub();
     await TestBed.configureTestingModule({
-      imports: [AppstoreConsoleComponent],
+      imports: [ServiceCatalogConsoleComponent],
       providers: [provideRouter([]), { provide: SessionService, useValue: session }],
     }).compileComponents();
-    fixture = TestBed.createComponent(AppstoreConsoleComponent);
+    fixture = TestBed.createComponent(ServiceCatalogConsoleComponent);
   });
 
   function el(): HTMLElement {
     return fixture.nativeElement as HTMLElement;
   }
   function navTestIds(): string[] {
-    return Array.from(el().querySelectorAll('[data-testid^="appstore-nav-"]')).map(
+    return Array.from(el().querySelectorAll('[data-testid^="service-catalog-nav-"]')).map(
       (n) => n.getAttribute('data-testid')!,
     );
   }
@@ -48,10 +48,10 @@ describe('AppstoreConsoleComponent (SUPERADMIN-gated nav)', () => {
     session.canManageStore.set(true);
     fixture.detectChanges();
     expect(navTestIds()).toEqual([
-      'appstore-nav-add',
-      'appstore-nav-curation',
-      'appstore-nav-profiles',
-      'appstore-nav-deployments',
+      'service-catalog-nav-add',
+      'service-catalog-nav-curation',
+      'service-catalog-nav-profiles',
+      'service-catalog-nav-deployments',
     ]);
   });
 

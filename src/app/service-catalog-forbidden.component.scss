@@ -1,6 +1,6 @@
 @use 'controls';
 
-.appstore-forbidden {
+.service-catalog-forbidden {
   max-width: 44rem;
 
   h2 {
@@ -8,7 +8,7 @@
   }
 
   p {
-    color: var(--appstore-text-muted);
+    color: var(--service-catalog-text-muted);
   }
 
   &__catalog {
@@ -17,7 +17,7 @@
   }
 }
 
-.appstore-list {
+.service-catalog-list {
   list-style: none;
   margin: 0.5rem 0 0;
   padding: 0;
@@ -25,14 +25,14 @@
   gap: 0.35rem;
 }
 
-.appstore-row {
+.service-catalog-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: baseline;
   padding: 0.5rem 0.65rem;
-  border: 1px solid var(--appstore-border);
-  border-radius: var(--appstore-radius);
+  border: 1px solid var(--service-catalog-border);
+  border-radius: var(--service-catalog-radius);
 
   &__key {
     font-weight: 600;

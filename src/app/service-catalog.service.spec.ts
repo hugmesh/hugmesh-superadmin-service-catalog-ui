@@ -1,17 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import {
-  AppstoreService,
-  AppstoreApiError,
-  APPSTORE_BASE_URL,
+  ServiceCatalogService,
+  ServiceCatalogApiError,
+  SERVICE_CATALOG_BASE_URL,
   ServiceCuration,
   AppProfile,
   ServiceDeployment,
-} from './appstore.service';
+} from './service-catalog.service';
 
 /**
  * The service layer is the thing that makes the PR1 data layer usable, so the
- * spec asserts it calls the EXACT snapdragon-admin-bff-api appstore paths (URL +
- * method + body), branch feat/superadmin-appstore-data-layer (PR #56):
+ * spec asserts it calls the EXACT snapdragon-admin-bff-api serviceCatalog paths (URL +
+ * method + body), branch feat/superadmin-service-catalog-data-layer (PR #56):
  *
  *   GET    /bff/superadmin/service-store/{domain}
  *   POST   /bff/superadmin/service-store/{domain}/offer        {serviceKey}
@@ -30,8 +30,8 @@ import {
  * fetch is stubbed; each test asserts the URL the service hit + the JSON body it
  * sent + that the Bearer from snap.session is attached.
  */
-describe('AppstoreService (exact PR1 bff paths)', () => {
-  let service: AppstoreService;
+describe('ServiceCatalogService (exact PR1 bff paths)', () => {
+  let service: ServiceCatalogService;
   let fetchSpy: jasmine.Spy;
 
   /** The captured (url, init) of the LAST fetch call. */
@@ -83,9 +83,9 @@ describe('AppstoreService (exact PR1 bff paths)', () => {
     localStorage.clear();
     localStorage.setItem('snap.session', JSON.stringify({ bffToken: 'tok-abc' }));
     TestBed.configureTestingModule({
-      providers: [AppstoreService, { provide: APPSTORE_BASE_URL, useValue: '' }],
+      providers: [ServiceCatalogService, { provide: SERVICE_CATALOG_BASE_URL, useValue: '' }],
     });
-    service = TestBed.inject(AppstoreService);
+    service = TestBed.inject(ServiceCatalogService);
     fetchSpy = spyOn(globalThis, 'fetch');
   });
 
@@ -248,7 +248,7 @@ describe('AppstoreService (exact PR1 bff paths)', () => {
     expect(sentHeaders()['Authorization']).toBe('Bearer tok-abc');
   });
 
-  it('surfaces a 403 as AppstoreApiError.isForbidden (the server-authoritative deny)', async () => {
+  it('surfaces a 403 as ServiceCatalogApiError.isForbidden (the server-authoritative deny)', async () => {
     failWith(403, { error: 'forbidden' });
     let caught: unknown;
     try {
@@ -256,11 +256,11 @@ describe('AppstoreService (exact PR1 bff paths)', () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught instanceof AppstoreApiError).toBeTrue();
-    expect((caught as AppstoreApiError).isForbidden).toBeTrue();
+    expect(caught instanceof ServiceCatalogApiError).toBeTrue();
+    expect((caught as ServiceCatalogApiError).isForbidden).toBeTrue();
   });
 
-  it('surfaces a 409 as AppstoreApiError.isConflict (a duplicate profile name)', async () => {
+  it('surfaces a 409 as ServiceCatalogApiError.isConflict (a duplicate profile name)', async () => {
     failWith(409, { error: 'duplicate' });
     let caught: unknown;
     try {
@@ -268,11 +268,11 @@ describe('AppstoreService (exact PR1 bff paths)', () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught instanceof AppstoreApiError).toBeTrue();
-    expect((caught as AppstoreApiError).isConflict).toBeTrue();
+    expect(caught instanceof ServiceCatalogApiError).toBeTrue();
+    expect((caught as ServiceCatalogApiError).isConflict).toBeTrue();
   });
 
-  it('surfaces a 400 (the Kaniko-builder guard) as AppstoreApiError.isBadRequest with the server message', async () => {
+  it('surfaces a 400 (the Kaniko-builder guard) as ServiceCatalogApiError.isBadRequest with the server message', async () => {
     failWith(400, {
       message:
         'service source DOCKERFILE requires the in-cluster image builder (Kaniko) which is not yet available',
@@ -286,8 +286,8 @@ describe('AppstoreService (exact PR1 bff paths)', () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught instanceof AppstoreApiError).toBeTrue();
-    expect((caught as AppstoreApiError).isBadRequest).toBeTrue();
-    expect((caught as AppstoreApiError).message).toContain('Kaniko');
+    expect(caught instanceof ServiceCatalogApiError).toBeTrue();
+    expect((caught as ServiceCatalogApiError).isBadRequest).toBeTrue();
+    expect((caught as ServiceCatalogApiError).message).toContain('Kaniko');
   });
 });

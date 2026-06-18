@@ -1,15 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AppstoreAddServiceComponent } from './appstore-add-service.component';
-import { AppstoreService, APPSTORE_BASE_URL, ServiceDeployment } from './appstore.service';
+import { ServiceCatalogAddServiceComponent } from './service-catalog-add-service.component';
+import { ServiceCatalogService, SERVICE_CATALOG_BASE_URL, ServiceDeployment } from './service-catalog.service';
 
 /**
- * Gherkin-readable END-TO-END for the App-Store headline flow:
+ * Gherkin-readable END-TO-END for the Service Catalog headline flow:
  *
  *   FEATURE: A superadmin adds a service to a domain via each of the four sources
  *            and sees it reflected in the domain's app profile (its deployment rows).
  *
- * This drives the REAL AppstoreAddServiceComponent through the REAL AppstoreService,
+ * This drives the REAL ServiceCatalogAddServiceComponent through the REAL ServiceCatalogService,
  * with ONLY `fetch` stubbed at the network edge — so the whole stack below the view
  * (view → service → exact bff path/body) is exercised against the admin-bff effector
  * PR #67 contract, not a mocked service:
@@ -19,12 +19,12 @@ import { AppstoreService, APPSTORE_BASE_URL, ServiceDeployment } from './appstor
  * A backing in-memory "bff" flips a row's propagation_state pending→applied on provision,
  * so "see it in the app profile" is a real observable effect, end to end.
  *
- * (The SUPERADMIN route gating + the in-remote /appstore/forbidden bounce are proven
- *  end-to-end in appstore.guard.spec.ts; this feature spec is the service-add flow.)
+ * (The SUPERADMIN route gating + the in-remote /service-catalog/forbidden bounce are proven
+ *  end-to-end in serviceCatalog.guard.spec.ts; this feature spec is the service-add flow.)
  */
 describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => {
-  let fixture: ComponentFixture<AppstoreAddServiceComponent>;
-  let component: AppstoreAddServiceComponent;
+  let fixture: ComponentFixture<ServiceCatalogAddServiceComponent>;
+  let component: ServiceCatalogAddServiceComponent;
   let fetchSpy: jasmine.Spy;
 
   /** The in-memory app-profile (deployment rows) the fake bff serves + mutates. */
@@ -83,16 +83,16 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
 
   /** GIVEN a superadmin loads a domain's app profile (its recorded deployments). The
    *  domain field is filled, then the real loadDomain() drives the real GET through
-   *  the real AppstoreService to the stubbed fetch. */
+   *  the real ServiceCatalogService to the stubbed fetch. */
   async function givenLoadedDomain(domain = 'acme.test'): Promise<void> {
-    setInput('appstore-add-domain', domain);
+    setInput('service-catalog-add-domain', domain);
     component.domain.set(domain); // ensure the signal is set deterministically
     await component.loadDomain();
     fixture.detectChanges();
   }
   /** WHEN they choose the Nth recorded deployment to provision. */
   function whenChooseRow(index: number): void {
-    const buttons = el().querySelectorAll('[data-testid="appstore-add-list"] tbody tr button');
+    const buttons = el().querySelectorAll('[data-testid="service-catalog-add-list"] tbody tr button');
     click(buttons[index]);
   }
   async function whenProvision(): Promise<void> {
@@ -121,10 +121,10 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
     installFakeBff();
 
     await TestBed.configureTestingModule({
-      imports: [AppstoreAddServiceComponent],
-      providers: [AppstoreService, { provide: APPSTORE_BASE_URL, useValue: '' }],
+      imports: [ServiceCatalogAddServiceComponent],
+      providers: [ServiceCatalogService, { provide: SERVICE_CATALOG_BASE_URL, useValue: '' }],
     }).compileComponents();
-    fixture = TestBed.createComponent(AppstoreAddServiceComponent);
+    fixture = TestBed.createComponent(ServiceCatalogAddServiceComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
@@ -134,13 +134,13 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
   it('SCENARIO: add a service via the SELECT source and see it APPLIED in the app profile', async () => {
     // GIVEN the domain's app profile is loaded (real GET hits the bff path)
     await givenLoadedDomain('acme.test');
-    expect(el().querySelector('[data-testid="appstore-add-list"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-add-list"]')).not.toBeNull();
     expect(el().textContent).toContain('owncast');
 
     // WHEN the superadmin chooses owncast and provisions it from the SELECT (catalog) source
     whenChooseRow(0);
-    expect(el().querySelector('[data-testid="appstore-source-SELECT"]')).not.toBeNull();
-    setInput('appstore-source-repo', 'https://git.acme.test/catalog/owncast.git');
+    expect(el().querySelector('[data-testid="service-catalog-source-SELECT"]')).not.toBeNull();
+    setInput('service-catalog-source-repo', 'https://git.acme.test/catalog/owncast.git');
     component.repoUrl.set('https://git.acme.test/catalog/owncast.git');
     await whenProvision();
 
@@ -151,10 +151,10 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
     expect(select.body.repoUrl).toBe('https://git.acme.test/catalog/owncast.git');
 
     // AND a success notice is shown
-    expect(el().querySelector('[data-testid="appstore-add-notice"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-add-notice"]')).not.toBeNull();
     // AND the app profile now reflects the row APPLIED (the real observable effect)
     expect(bffRows.find((r) => r.id === 'dep-1')!.propagationState).toBe('applied');
-    expect(el().querySelector('[data-testid="appstore-add-list"]')!.textContent).toContain('applied');
+    expect(el().querySelector('[data-testid="service-catalog-add-list"]')!.textContent).toContain('applied');
   });
 
   it('SCENARIO: add a service via the GIT source with path + revision', async () => {
@@ -163,13 +163,13 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
     whenChooseRow(1); // dep-2 phpbb
 
     // WHEN they pick the GIT source and fill the GitOps coordinates
-    click(el().querySelector('[data-testid="appstore-source-GIT"] input[type="radio"]'));
+    click(el().querySelector('[data-testid="service-catalog-source-GIT"] input[type="radio"]'));
     component.sourceKind.set('GIT');
-    setInput('appstore-source-repo', 'https://gitlab.acme.test/svc/phpbb.git');
+    setInput('service-catalog-source-repo', 'https://gitlab.acme.test/svc/phpbb.git');
     component.repoUrl.set('https://gitlab.acme.test/svc/phpbb.git');
-    setInput('appstore-source-path', 'deploy/');
+    setInput('service-catalog-source-path', 'deploy/');
     component.path.set('deploy/');
-    setInput('appstore-source-rev', 'main');
+    setInput('service-catalog-source-rev', 'main');
     component.targetRevision.set('main');
     await whenProvision();
 
@@ -187,11 +187,11 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
     whenChooseRow(0);
 
     // THEN all four sources are present; the two builder-gated ones are disabled and badged
-    const dockerfile = el().querySelector('[data-testid="appstore-source-DOCKERFILE"] input') as HTMLInputElement;
-    const zip = el().querySelector('[data-testid="appstore-source-ZIP"] input') as HTMLInputElement;
+    const dockerfile = el().querySelector('[data-testid="service-catalog-source-DOCKERFILE"] input') as HTMLInputElement;
+    const zip = el().querySelector('[data-testid="service-catalog-source-ZIP"] input') as HTMLInputElement;
     expect(dockerfile.disabled).toBeTrue();
     expect(zip.disabled).toBeTrue();
-    expect(el().querySelectorAll('[data-testid="appstore-source-gated-badge"]').length).toBe(2);
+    expect(el().querySelectorAll('[data-testid="service-catalog-source-gated-badge"]').length).toBe(2);
     // AND no provision POST has been issued
     expect(fetchSpy.calls.all().some((c) => /\/provision$/.test(c.args[0] as string))).toBeFalse();
   });

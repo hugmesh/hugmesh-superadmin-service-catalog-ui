@@ -1,0 +1,113 @@
+<section class="service-catalog-panel" aria-labelledby="service-catalog-profiles-title">
+  <h2 id="service-catalog-profiles-title">App profiles</h2>
+  <p class="service-catalog-muted">
+    Reusable deploy templates — a name plus a JSON document of resource, role, cert
+    and exposure defaults. A deployment can reference a profile by name. Profiles are
+    global (shared across domains).
+  </p>
+
+  @if (notice()) {
+    <p class="service-catalog-success" role="status" data-testid="service-catalog-profiles-notice">{{ notice() }}</p>
+  }
+
+  <form class="service-catalog-profile-form" (ngSubmit)="submit()">
+    <h3 id="service-catalog-profile-editor-title">
+      {{ mode() === 'create' ? 'New profile' : 'Edit profile' }}
+    </h3>
+
+    <div class="service-catalog-field">
+      <label for="service-catalog-profile-name">Name</label>
+      <input
+        id="service-catalog-profile-name"
+        name="name"
+        type="text"
+        autocomplete="off"
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+        [disabled]="mode() === 'edit'"
+        [attr.aria-invalid]="nameInvalid() ? 'true' : null"
+        aria-describedby="service-catalog-profile-name-help"
+        placeholder="small-postgres"
+      />
+      <span id="service-catalog-profile-name-help" class="service-catalog-field__help">
+        The unique template name. It can’t be changed when editing — the path name identifies the row.
+      </span>
+      @if (nameInvalid()) {
+        <span class="service-catalog-error" role="alert">A profile name is required.</span>
+      }
+    </div>
+
+    <div class="service-catalog-field">
+      <label for="service-catalog-profile-json">Deploy-template JSON</label>
+      <textarea
+        id="service-catalog-profile-json"
+        name="profileJson"
+        rows="8"
+        spellcheck="false"
+        [ngModel]="profileJson()"
+        (ngModelChange)="profileJson.set($event)"
+        [attr.aria-invalid]="jsonInvalid() ? 'true' : null"
+        aria-describedby="service-catalog-profile-json-help"
+      ></textarea>
+      <span id="service-catalog-profile-json-help" class="service-catalog-field__help">
+        Resource / role / cert / exposure defaults as a JSON document. Validated as JSON before saving;
+        the values are not parsed yet (a later effector resolves them).
+      </span>
+      @if (jsonInvalid()) {
+        <span class="service-catalog-error" role="alert" data-testid="service-catalog-profile-json-error">
+          The template is not valid JSON.
+        </span>
+      }
+    </div>
+
+    @if (formError()) {
+      <p class="service-catalog-error" role="alert" data-testid="service-catalog-profiles-form-error">{{ formError() }}</p>
+    }
+
+    <div class="service-catalog-profile-form__actions">
+      <button type="submit" class="service-catalog-btn" [disabled]="busy()">
+        {{ mode() === 'create' ? 'Create profile' : 'Save changes' }}
+      </button>
+      @if (mode() === 'edit') {
+        <button type="button" class="service-catalog-btn service-catalog-btn--secondary" (click)="newProfile()">
+          Cancel edit
+        </button>
+      }
+    </div>
+  </form>
+</section>
+
+<section class="service-catalog-panel" aria-labelledby="service-catalog-profiles-list-title">
+  <h3 id="service-catalog-profiles-list-title">Existing profiles</h3>
+
+  @if (listLoading()) {
+    <p role="status" data-testid="service-catalog-profiles-loading">Loading profiles…</p>
+  } @else if (listError()) {
+    <p class="service-catalog-error" role="alert" data-testid="service-catalog-profiles-error">{{ listError() }}</p>
+    <button type="button" class="service-catalog-btn service-catalog-btn--secondary" (click)="reload()">Retry</button>
+  } @else if (profiles() && profiles()!.length === 0) {
+    <p class="service-catalog-muted" data-testid="service-catalog-profiles-empty">No app profiles yet. Create one above.</p>
+  } @else if (profiles()) {
+    <ul class="service-catalog-list" data-testid="service-catalog-profiles-list">
+      @for (p of profiles()!; track trackId($index, p)) {
+        <li class="service-catalog-row">
+          <span class="service-catalog-row__key">{{ p.name }}</span>
+          <button
+            type="button"
+            class="service-catalog-btn service-catalog-btn--secondary"
+            [disabled]="busy()"
+            [attr.aria-label]="'Edit profile ' + p.name"
+            (click)="editProfile(p)"
+          >Edit</button>
+          <button
+            type="button"
+            class="service-catalog-btn service-catalog-btn--danger"
+            [disabled]="busy()"
+            [attr.aria-label]="'Delete profile ' + p.name"
+            (click)="deleteProfile(p)"
+          >Delete</button>
+        </li>
+      }
+    </ul>
+  }
+</section>

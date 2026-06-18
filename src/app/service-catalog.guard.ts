@@ -3,7 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { SessionService } from './session.service';
 
 /**
- * Route guard for the Superadmin App-Store console — the UI half of the App-Store
+ * Route guard for the Superadmin Service Catalog console — the UI half of the Service Catalog
  * role model. It mirrors the snapdragon-admin-bff-api gates (defence-in-depth; the
  * bff is authoritative):
  *
@@ -15,8 +15,8 @@ import { SessionService } from './session.service';
  *                     so an admin/mod/user is DENIED here too.
  *
  * A denied activation routes to the IN-REMOTE mount-path forbidden screen —
- * router.parseUrl('/appstore/forbidden') — NOT '/forbidden' and NOT '/login'.
- * The host already authgated the user in (route-access /appstore=superadmin), so a
+ * router.parseUrl('/service-catalog/forbidden') — NOT '/forbidden' and NOT '/login'.
+ * The host already authgated the user in (route-access /service-catalog=superadmin), so a
  * denial here is a WITHIN-SERVICE privilege boundary, not an auth failure.
  * (Shipping the bare '/forbidden' was a real wiki-ui bug — the mount-prefixed path
  * is the correct in-remote target.) The forbidden screen explains the missing role
@@ -25,12 +25,12 @@ import { SessionService } from './session.service';
  * degrade), since an admin can read but cannot manage the store.
  */
 
-/** The in-remote forbidden screen, at the host mount path /appstore. A DENY MUST
+/** The in-remote forbidden screen, at the host mount path /service-catalog. A DENY MUST
  *  route here (NOT '/forbidden', NOT '/login'). */
-export const APPSTORE_FORBIDDEN = '/appstore/forbidden';
+export const SERVICE_CATALOG_FORBIDDEN = '/service-catalog/forbidden';
 
 export const superadminGuard: CanActivateFn = () => {
   const session = inject(SessionService);
   const router = inject(Router);
-  return session.canManageStore() ? true : router.parseUrl(APPSTORE_FORBIDDEN);
+  return session.canManageStore() ? true : router.parseUrl(SERVICE_CATALOG_FORBIDDEN);
 };

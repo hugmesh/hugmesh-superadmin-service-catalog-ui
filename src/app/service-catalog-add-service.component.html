@@ -1,56 +1,56 @@
-<section class="appstore-panel" aria-labelledby="appstore-add-title">
-  <h2 id="appstore-add-title">Add a service</h2>
-  <p class="appstore-muted">
-    Provision a recorded deployment into a real service through the App-Store effector — a per-service
+<section class="service-catalog-panel" aria-labelledby="service-catalog-add-title">
+  <h2 id="service-catalog-add-title">Add a service</h2>
+  <p class="service-catalog-muted">
+    Provision a recorded deployment into a real service through the Service Catalog effector — a per-service
     role, a route-access rule, and an ArgoCD application. Pick the domain, pick the deployment, then
     choose one of the four sources.
   </p>
-  <p class="appstore-warning" role="note" data-testid="appstore-add-dark-note">
+  <p class="service-catalog-warning" role="note" data-testid="service-catalog-add-dark-note">
     The effector ships dark by default — provisioning wires the per-service role and route-access rule
     and records the source; the real ArgoCD apply lands when the effector is enabled. Record a
     deployment first in the Deployments view.
   </p>
 
-  <form class="appstore-domain-form" (ngSubmit)="loadDomain()">
-    <div class="appstore-field">
-      <label for="appstore-add-domain">Domain</label>
+  <form class="service-catalog-domain-form" (ngSubmit)="loadDomain()">
+    <div class="service-catalog-field">
+      <label for="service-catalog-add-domain">Domain</label>
       <input
-        id="appstore-add-domain"
+        id="service-catalog-add-domain"
         name="domain"
         type="text"
         autocomplete="off"
         [ngModel]="domain()"
         (ngModelChange)="domain.set($event)"
-        aria-describedby="appstore-add-domain-help"
+        aria-describedby="service-catalog-add-domain-help"
         placeholder="acme.test"
       />
-      <span id="appstore-add-domain-help" class="appstore-field__help">
+      <span id="service-catalog-add-domain-help" class="service-catalog-field__help">
         The brand/domain whose recorded deployments you want to provision.
       </span>
     </div>
-    <button type="submit" class="appstore-btn" [disabled]="domain().trim().length === 0 || listLoading()">
+    <button type="submit" class="service-catalog-btn" [disabled]="domain().trim().length === 0 || listLoading()">
       Load services
     </button>
   </form>
 </section>
 
 @if (loadedDomain()) {
-  <section class="appstore-panel" aria-labelledby="appstore-add-list-title">
-    <h3 id="appstore-add-list-title">Recorded services for {{ loadedDomain() }}</h3>
+  <section class="service-catalog-panel" aria-labelledby="service-catalog-add-list-title">
+    <h3 id="service-catalog-add-list-title">Recorded services for {{ loadedDomain() }}</h3>
 
     @if (listLoading()) {
-      <p role="status" data-testid="appstore-add-loading">Loading services…</p>
+      <p role="status" data-testid="service-catalog-add-loading">Loading services…</p>
     } @else if (listError()) {
-      <p class="appstore-error" role="alert" data-testid="appstore-add-list-error">{{ listError() }}</p>
-      <button type="button" class="appstore-btn appstore-btn--secondary" (click)="loadDomain()">Retry</button>
+      <p class="service-catalog-error" role="alert" data-testid="service-catalog-add-list-error">{{ listError() }}</p>
+      <button type="button" class="service-catalog-btn service-catalog-btn--secondary" (click)="loadDomain()">Retry</button>
     } @else if (rows() && rows()!.length === 0) {
-      <p class="appstore-muted" data-testid="appstore-add-empty">
+      <p class="service-catalog-muted" data-testid="service-catalog-add-empty">
         No recorded deployments for {{ loadedDomain() }}. Record one in the Deployments view first, then
         return here to provision it.
       </p>
     } @else if (rows()) {
-      <div class="appstore-table-wrap">
-        <table class="appstore-table" data-testid="appstore-add-list">
+      <div class="service-catalog-table-wrap">
+        <table class="service-catalog-table" data-testid="service-catalog-add-list">
           <caption class="sr">Recorded services for {{ loadedDomain() }} — choose one to provision</caption>
           <thead>
             <tr>
@@ -62,11 +62,11 @@
           </thead>
           <tbody>
             @for (row of rows()!; track trackId($index, row)) {
-              <tr [class.appstore-row--selected]="row.id === selectedId()">
+              <tr [class.service-catalog-row--selected]="row.id === selectedId()">
                 <td>
                   <button
                     type="button"
-                    class="appstore-btn appstore-btn--secondary"
+                    class="service-catalog-btn service-catalog-btn--secondary"
                     [attr.aria-pressed]="row.id === selectedId()"
                     [attr.aria-label]="'Choose ' + row.serviceKey + ' to provision'"
                     (click)="select(row)"
@@ -84,28 +84,28 @@
   </section>
 
   @if (selectedRow(); as row) {
-    <section class="appstore-panel" aria-labelledby="appstore-source-title">
-      <h3 id="appstore-source-title">Provision {{ row.serviceKey }} in {{ loadedDomain() }}</h3>
+    <section class="service-catalog-panel" aria-labelledby="service-catalog-source-title">
+      <h3 id="service-catalog-source-title">Provision {{ row.serviceKey }} in {{ loadedDomain() }}</h3>
 
       @if (notice()) {
-        <p class="appstore-success" role="status" data-testid="appstore-add-notice">{{ notice() }}</p>
+        <p class="service-catalog-success" role="status" data-testid="service-catalog-add-notice">{{ notice() }}</p>
       }
       @if (formError()) {
-        <p class="appstore-error" role="alert" data-testid="appstore-add-form-error">{{ formError() }}</p>
+        <p class="service-catalog-error" role="alert" data-testid="service-catalog-add-form-error">{{ formError() }}</p>
       }
 
-      <form class="appstore-source-form" (ngSubmit)="provision()">
-        <fieldset class="appstore-sources">
+      <form class="service-catalog-source-form" (ngSubmit)="provision()">
+        <fieldset class="service-catalog-sources">
           <legend>Source</legend>
-          <p id="appstore-source-help" class="appstore-field__help">
+          <p id="service-catalog-source-help" class="service-catalog-field__help">
             Where the service image comes from. Two sources need the in-cluster image builder, which is
             not available yet, so they are disabled.
           </p>
           @for (opt of sourceOptions; track trackKind($index, opt)) {
             <label
-              class="appstore-source-option"
-              [class.appstore-source-option--disabled]="opt.builderGated"
-              [attr.data-testid]="'appstore-source-' + opt.kind"
+              class="service-catalog-source-option"
+              [class.service-catalog-source-option--disabled]="opt.builderGated"
+              [attr.data-testid]="'service-catalog-source-' + opt.kind"
             >
               <input
                 type="radio"
@@ -113,77 +113,77 @@
                 [value]="opt.kind"
                 [checked]="sourceKind() === opt.kind"
                 [disabled]="opt.builderGated"
-                [attr.aria-describedby]="'appstore-source-blurb-' + opt.kind"
+                [attr.aria-describedby]="'service-catalog-source-blurb-' + opt.kind"
                 (change)="chooseSource(opt.kind)"
               />
-              <span class="appstore-source-option__label">
+              <span class="service-catalog-source-option__label">
                 {{ opt.label }}
                 @if (opt.builderGated) {
-                  <span class="appstore-badge" data-testid="appstore-source-gated-badge">needs builder</span>
+                  <span class="service-catalog-badge" data-testid="service-catalog-source-gated-badge">needs builder</span>
                 }
               </span>
-              <span [id]="'appstore-source-blurb-' + opt.kind" class="appstore-field__help">{{ opt.blurb }}</span>
+              <span [id]="'service-catalog-source-blurb-' + opt.kind" class="service-catalog-field__help">{{ opt.blurb }}</span>
             </label>
           }
         </fieldset>
 
-        <div class="appstore-field">
-          <label for="appstore-source-repo">Repository URL</label>
+        <div class="service-catalog-field">
+          <label for="service-catalog-source-repo">Repository URL</label>
           <input
-            id="appstore-source-repo"
+            id="service-catalog-source-repo"
             name="repoUrl"
             type="text"
             autocomplete="off"
             [ngModel]="repoUrl()"
             (ngModelChange)="repoUrl.set($event)"
             [attr.aria-invalid]="repoUrlInvalid() ? 'true' : null"
-            aria-describedby="appstore-source-repo-help"
+            aria-describedby="service-catalog-source-repo-help"
             placeholder="https://gitlab.acme.test/services/owncast.git"
           />
-          <span id="appstore-source-repo-help" class="appstore-field__help">
+          <span id="service-catalog-source-repo-help" class="service-catalog-field__help">
             The descriptor / GitOps repo ArgoCD watches (required).
           </span>
           @if (repoUrlInvalid()) {
-            <span class="appstore-error" role="alert">A repository URL is required.</span>
+            <span class="service-catalog-error" role="alert">A repository URL is required.</span>
           }
         </div>
 
-        <div class="appstore-field">
-          <label for="appstore-source-path">Path in repo (optional)</label>
+        <div class="service-catalog-field">
+          <label for="service-catalog-source-path">Path in repo (optional)</label>
           <input
-            id="appstore-source-path"
+            id="service-catalog-source-path"
             name="path"
             type="text"
             autocomplete="off"
             [ngModel]="path()"
             (ngModelChange)="path.set($event)"
-            aria-describedby="appstore-source-path-help"
+            aria-describedby="service-catalog-source-path-help"
             placeholder="deploy/"
           />
-          <span id="appstore-source-path-help" class="appstore-field__help">
+          <span id="service-catalog-source-path-help" class="service-catalog-field__help">
             The path within the repo ArgoCD syncs. Leave blank for the repo root.
           </span>
         </div>
 
-        <div class="appstore-field">
-          <label for="appstore-source-rev">Target revision (optional)</label>
+        <div class="service-catalog-field">
+          <label for="service-catalog-source-rev">Target revision (optional)</label>
           <input
-            id="appstore-source-rev"
+            id="service-catalog-source-rev"
             name="targetRevision"
             type="text"
             autocomplete="off"
             [ngModel]="targetRevision()"
             (ngModelChange)="targetRevision.set($event)"
-            aria-describedby="appstore-source-rev-help"
+            aria-describedby="service-catalog-source-rev-help"
             placeholder="main"
           />
-          <span id="appstore-source-rev-help" class="appstore-field__help">
+          <span id="service-catalog-source-rev-help" class="service-catalog-field__help">
             The branch, tag or commit. Leave blank for HEAD.
           </span>
         </div>
 
         @if (sourceBuilderGated()) {
-          <p class="appstore-warning" role="status" data-testid="appstore-source-gated-notice">
+          <p class="service-catalog-warning" role="status" data-testid="service-catalog-source-gated-notice">
             This source needs the in-cluster image builder (Kaniko), which is not available yet. Choose
             a catalog or git source to provision now.
           </p>
@@ -191,12 +191,12 @@
 
         <button
           type="submit"
-          class="appstore-btn"
+          class="service-catalog-btn"
           [disabled]="!canProvision()"
-          [attr.aria-describedby]="!canProvision() ? 'appstore-provision-help' : null"
+          [attr.aria-describedby]="!canProvision() ? 'service-catalog-provision-help' : null"
         >Provision service</button>
         @if (!canProvision()) {
-          <span id="appstore-provision-help" class="appstore-field__help">
+          <span id="service-catalog-provision-help" class="service-catalog-field__help">
             Choose a deployment, a non-builder source, and enter a repository URL to provision.
           </span>
         }

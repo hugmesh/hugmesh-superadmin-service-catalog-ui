@@ -5,18 +5,18 @@
   gap: 1rem;
 }
 
-.appstore-domain-form,
-.appstore-record-form {
+.service-catalog-domain-form,
+.service-catalog-record-form {
   display: grid;
   gap: 0.5rem;
 }
 
-.appstore-table-wrap {
+.service-catalog-table-wrap {
   overflow-x: auto;
   margin-top: 0.75rem;
 }
 
-.appstore-table {
+.service-catalog-table {
   width: 100%;
   border-collapse: collapse;
 
@@ -24,12 +24,12 @@
   td {
     text-align: left;
     padding: 0.5rem 0.65rem;
-    border-bottom: 1px solid var(--appstore-border);
+    border-bottom: 1px solid var(--service-catalog-border);
     vertical-align: top;
   }
 
   th {
-    color: var(--appstore-text-muted);
+    color: var(--service-catalog-text-muted);
     font-weight: 700;
   }
 }

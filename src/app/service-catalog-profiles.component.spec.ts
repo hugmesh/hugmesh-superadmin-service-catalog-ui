@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AppstoreProfilesComponent } from './appstore-profiles.component';
-import { AppstoreService, AppProfile, AppstoreApiError } from './appstore.service';
+import { ServiceCatalogProfilesComponent } from './service-catalog-profiles.component';
+import { ServiceCatalogService, AppProfile, ServiceCatalogApiError } from './service-catalog.service';
 import { accessibleName } from './accessible-name';
 
 function prof(name: string): AppProfile {
@@ -11,19 +11,19 @@ function prof(name: string): AppProfile {
   };
 }
 
-describe('AppstoreProfilesComponent (app_profile CRUD)', () => {
-  let fixture: ComponentFixture<AppstoreProfilesComponent>;
-  let component: AppstoreProfilesComponent;
-  let appstore: jasmine.SpyObj<
-    Pick<AppstoreService, 'listProfiles' | 'createProfile' | 'updateProfile' | 'deleteProfile'>
+describe('ServiceCatalogProfilesComponent (app_profile CRUD)', () => {
+  let fixture: ComponentFixture<ServiceCatalogProfilesComponent>;
+  let component: ServiceCatalogProfilesComponent;
+  let serviceCatalog: jasmine.SpyObj<
+    Pick<ServiceCatalogService, 'listProfiles' | 'createProfile' | 'updateProfile' | 'deleteProfile'>
   >;
 
   async function build(): Promise<void> {
     await TestBed.configureTestingModule({
-      imports: [AppstoreProfilesComponent],
-      providers: [{ provide: AppstoreService, useValue: appstore }],
+      imports: [ServiceCatalogProfilesComponent],
+      providers: [{ provide: ServiceCatalogService, useValue: serviceCatalog }],
     }).compileComponents();
-    fixture = TestBed.createComponent(AppstoreProfilesComponent);
+    fixture = TestBed.createComponent(ServiceCatalogProfilesComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     await fixture.whenStable();
@@ -31,13 +31,13 @@ describe('AppstoreProfilesComponent (app_profile CRUD)', () => {
   }
 
   beforeEach(() => {
-    appstore = jasmine.createSpyObj('AppstoreService', [
+    serviceCatalog = jasmine.createSpyObj('ServiceCatalogService', [
       'listProfiles', 'createProfile', 'updateProfile', 'deleteProfile',
     ]);
-    appstore.listProfiles.and.resolveTo([]);
-    appstore.createProfile.and.resolveTo(prof('small-postgres'));
-    appstore.updateProfile.and.resolveTo(prof('small-postgres'));
-    appstore.deleteProfile.and.resolveTo(undefined);
+    serviceCatalog.listProfiles.and.resolveTo([]);
+    serviceCatalog.createProfile.and.resolveTo(prof('small-postgres'));
+    serviceCatalog.updateProfile.and.resolveTo(prof('small-postgres'));
+    serviceCatalog.deleteProfile.and.resolveTo(undefined);
   });
 
   function el(): HTMLElement {
@@ -45,16 +45,16 @@ describe('AppstoreProfilesComponent (app_profile CRUD)', () => {
   }
 
   it('loads + shows the EMPTY state when there are no profiles', async () => {
-    appstore.listProfiles.and.resolveTo([]);
+    serviceCatalog.listProfiles.and.resolveTo([]);
     await build();
-    expect(appstore.listProfiles).toHaveBeenCalled();
-    expect(el().querySelector('[data-testid="appstore-profiles-empty"]')).not.toBeNull();
+    expect(serviceCatalog.listProfiles).toHaveBeenCalled();
+    expect(el().querySelector('[data-testid="service-catalog-profiles-empty"]')).not.toBeNull();
   });
 
   it('lists existing profiles', async () => {
-    appstore.listProfiles.and.resolveTo([prof('small-postgres'), prof('big-gpu')]);
+    serviceCatalog.listProfiles.and.resolveTo([prof('small-postgres'), prof('big-gpu')]);
     await build();
-    const list = el().querySelector('[data-testid="appstore-profiles-list"]')!;
+    const list = el().querySelector('[data-testid="service-catalog-profiles-list"]')!;
     expect(list.textContent).toContain('small-postgres');
     expect(list.textContent).toContain('big-gpu');
   });
@@ -65,9 +65,9 @@ describe('AppstoreProfilesComponent (app_profile CRUD)', () => {
     component.profileJson.set('{"cpu":"500m"}');
     await component.submit();
     fixture.detectChanges();
-    expect(appstore.createProfile).toHaveBeenCalledWith('small-postgres', '{"cpu":"500m"}');
-    expect(appstore.listProfiles).toHaveBeenCalledTimes(2);
-    expect(el().querySelector('[data-testid="appstore-profiles-notice"]')).not.toBeNull();
+    expect(serviceCatalog.createProfile).toHaveBeenCalledWith('small-postgres', '{"cpu":"500m"}');
+    expect(serviceCatalog.listProfiles).toHaveBeenCalledTimes(2);
+    expect(el().querySelector('[data-testid="service-catalog-profiles-notice"]')).not.toBeNull();
   });
 
   it('blocks a create when the JSON is malformed (UI-side validation, no round-trip)', async () => {
@@ -76,8 +76,8 @@ describe('AppstoreProfilesComponent (app_profile CRUD)', () => {
     component.profileJson.set('{not json');
     await component.submit();
     fixture.detectChanges();
-    expect(appstore.createProfile).not.toHaveBeenCalled();
-    expect(el().querySelector('[data-testid="appstore-profile-json-error"]')).not.toBeNull();
+    expect(serviceCatalog.createProfile).not.toHaveBeenCalled();
+    expect(el().querySelector('[data-testid="service-catalog-profile-json-error"]')).not.toBeNull();
   });
 
   it('blocks a create when the name is blank', async () => {
@@ -85,53 +85,53 @@ describe('AppstoreProfilesComponent (app_profile CRUD)', () => {
     component.name.set('   ');
     component.profileJson.set('{}');
     await component.submit();
-    expect(appstore.createProfile).not.toHaveBeenCalled();
+    expect(serviceCatalog.createProfile).not.toHaveBeenCalled();
   });
 
   it('edit switches to update mode and PUTs by the existing name', async () => {
-    appstore.listProfiles.and.resolveTo([prof('small-postgres')]);
+    serviceCatalog.listProfiles.and.resolveTo([prof('small-postgres')]);
     await build();
     component.editProfile(prof('small-postgres'));
     fixture.detectChanges();
     expect(component.mode()).toBe('edit');
     component.profileJson.set('{"cpu":"1"}');
     await component.submit();
-    expect(appstore.updateProfile).toHaveBeenCalledWith('small-postgres', '{"cpu":"1"}');
+    expect(serviceCatalog.updateProfile).toHaveBeenCalledWith('small-postgres', '{"cpu":"1"}');
   });
 
   it('delete calls deleteProfile and reloads', async () => {
-    appstore.listProfiles.and.resolveTo([prof('small-postgres')]);
+    serviceCatalog.listProfiles.and.resolveTo([prof('small-postgres')]);
     await build();
     await component.deleteProfile(prof('small-postgres'));
-    expect(appstore.deleteProfile).toHaveBeenCalledWith('small-postgres');
+    expect(serviceCatalog.deleteProfile).toHaveBeenCalledWith('small-postgres');
   });
 
   it('surfaces a 409 (duplicate name) clearly', async () => {
     await build();
     component.name.set('dup');
     component.profileJson.set('{}');
-    appstore.createProfile.and.rejectWith(new AppstoreApiError(409, 'dup'));
+    serviceCatalog.createProfile.and.rejectWith(new ServiceCatalogApiError(409, 'dup'));
     await component.submit();
     fixture.detectChanges();
-    const err = el().querySelector('[data-testid="appstore-profiles-form-error"]')!;
+    const err = el().querySelector('[data-testid="service-catalog-profiles-form-error"]')!;
     expect(err.textContent).toContain('already exists');
   });
 
   it('shows the ERROR state on a non-auth list failure', async () => {
-    appstore.listProfiles.and.rejectWith(new AppstoreApiError(500, 'boom'));
+    serviceCatalog.listProfiles.and.rejectWith(new ServiceCatalogApiError(500, 'boom'));
     await build();
-    expect(el().querySelector('[data-testid="appstore-profiles-error"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-profiles-error"]')).not.toBeNull();
   });
 
   it('degrades a 403 on the list to the empty state (graceful)', async () => {
-    appstore.listProfiles.and.rejectWith(new AppstoreApiError(403, 'forbidden'));
+    serviceCatalog.listProfiles.and.rejectWith(new ServiceCatalogApiError(403, 'forbidden'));
     await build();
-    expect(el().querySelector('[data-testid="appstore-profiles-empty"]')).not.toBeNull();
-    expect(el().querySelector('[data-testid="appstore-profiles-error"]')).toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-profiles-empty"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-profiles-error"]')).toBeNull();
   });
 
   it('every form control + row action has an accessible name (a11y)', async () => {
-    appstore.listProfiles.and.resolveTo([prof('small-postgres')]);
+    serviceCatalog.listProfiles.and.resolveTo([prof('small-postgres')]);
     await build();
     const controls = Array.from(el().querySelectorAll('input, textarea, button')) as HTMLElement[];
     for (const c of controls) {

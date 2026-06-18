@@ -3,11 +3,11 @@
 	"version": 1,
 	"newProjectRoot": "projects",
 	"projects": {
-		"appstore": {
+		"service-catalog": {
 			"projectType": "application",
 			"root": ".",
 			"sourceRoot": "src",
-			"prefix": "snap-appstore",
+			"prefix": "snap-service-catalog",
 			"architect": {
 				"build": {
 					"builder": "@angular-architects/native-federation:build",
@@ -15,14 +15,14 @@
 						"entryPoints": [
 							"src/main.ts"
 						],
-						"projectName": "appstore"
+						"projectName": "service-catalog"
 					},
 					"configurations": {
 						"production": {
-							"target": "appstore:esbuild:production"
+							"target": "service-catalog:esbuild:production"
 						},
 						"development": {
-							"target": "appstore:esbuild:development",
+							"target": "service-catalog:esbuild:development",
 							"dev": true
 						}
 					},
@@ -31,20 +31,20 @@
 				"serve": {
 					"builder": "@angular-architects/native-federation:build",
 					"options": {
-						"target": "appstore:serve-original:development",
+						"target": "service-catalog:serve-original:development",
 						"rebuildDelay": 0,
 						"dev": true,
 						"port": 0,
 						"entryPoints": [
 							"src/main.ts"
 						],
-						"projectName": "appstore"
+						"projectName": "service-catalog"
 					}
 				},
 				"esbuild": {
 					"builder": "@angular-devkit/build-angular:application",
 					"options": {
-						"outputPath": "dist/appstore",
+						"outputPath": "dist/service-catalog",
 						"index": "src/index.html",
 						"browser": "src/main.ts",
 						"polyfills": [
@@ -79,7 +79,7 @@
 				"serve-original": {
 					"builder": "@angular-devkit/build-angular:dev-server",
 					"options": {
-						"buildTarget": "appstore:build",
+						"buildTarget": "service-catalog:build",
 						"port": 4216
 					}
 				},

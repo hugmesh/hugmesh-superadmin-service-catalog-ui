@@ -1,4 +1,4 @@
-// Karma configuration for the snapdragon-superadmin-appstore-ui native-federation remote.
+// Karma configuration for the snapdragon-superadmin-service-catalog-ui native-federation remote.
 // Mirrors the org-wide host template: Jasmine specs run on Chrome headless via
 // the ChromeHeadlessCI launcher (--no-sandbox --disable-dev-shm-usage) in CI.
 module.exports = function (config) {
@@ -18,7 +18,7 @@ module.exports = function (config) {
       clearContext: false,
     },
     coverageReporter: {
-      dir: require('path').join(__dirname, './coverage/appstore'),
+      dir: require('path').join(__dirname, './coverage/service-catalog'),
       subdir: '.',
       reporters: [{ type: 'html' }, { type: 'lcovonly' }, { type: 'text-summary' }],
     },

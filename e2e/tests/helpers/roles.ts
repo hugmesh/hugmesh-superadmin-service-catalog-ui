@@ -1,7 +1,7 @@
 import { Browser, BrowserContext, Page, expect } from '@playwright/test';
 
 /**
- * Role catalogue for the Superadmin App-Store console.
+ * Role catalogue for the Superadmin Service Catalog console.
  *
  * Unlike the games host (which drives a federated Casdoor login form), this
  * remote derives its role flags purely from `localStorage['snap.session']`:
@@ -14,12 +14,12 @@ import { Browser, BrowserContext, Page, expect } from '@playwright/test';
  *
  * The `kind` tag drives which gating assertions run:
  *  - `superadmin` — canManageStore() true: sees the full nav (Add / Curation /
- *                   App profiles / Deployments) and reaches /appstore/add.
+ *                   App profiles / Deployments) and reaches /service-catalog/add.
  *  - `admin`      — canManageStore() false, canReadOwnCatalog() true: bounced to
- *                   /appstore/forbidden, but the read-only "my domain's offered
+ *                   /service-catalog/forbidden, but the read-only "my domain's offered
  *                   catalog" degrade section renders.
- *  - `mod`        — bounced to /appstore/forbidden, NO catalog degrade.
- *  - `user`       — bounced to /appstore/forbidden, NO catalog degrade.
+ *  - `mod`        — bounced to /service-catalog/forbidden, NO catalog degrade.
+ *  - `user`       — bounced to /service-catalog/forbidden, NO catalog degrade.
  */
 export interface SeedUser {
   username: string;
@@ -55,8 +55,8 @@ export const SEED_USERS: SeedUser[] = [
 export const SESSION_KEY = 'snap.session';
 
 /** The in-remote forbidden mount path a DENY routes to (NOT '/forbidden', NOT
- *  '/login'). Mirrors APPSTORE_FORBIDDEN in src/app/appstore.guard.ts. */
-export const APPSTORE_FORBIDDEN_PATH = '/appstore/forbidden';
+ *  '/login'). Mirrors SERVICE_CATALOG_FORBIDDEN in src/app/service-catalog.guard.ts. */
+export const SERVICE_CATALOG_FORBIDDEN_PATH = '/service-catalog/forbidden';
 
 export function resolveUser(username: string): SeedUser {
   const found = SEED_USERS.find((u) => u.username === username);
@@ -70,8 +70,8 @@ export function resolveUser(username: string): SeedUser {
 
 /**
  * Build the SnapSession blob the SessionService expects (src/app/session.service.ts
- * SnapSession). Only the fields the App-Store console reads are load-bearing —
- * `roles` (the gating) and `bffToken` (the AppstoreService Authorization header).
+ * SnapSession). Only the fields the Service Catalog console reads are load-bearing —
+ * `roles` (the gating) and `bffToken` (the ServiceCatalogService Authorization header).
  */
 export function sessionFor(user: SeedUser): Record<string, unknown> {
   return {
@@ -109,7 +109,7 @@ export async function newE2eContext(browser: Browser): Promise<BrowserContext> {
  * Returns after the requested route has settled (the console shell renders, or
  * the guard has bounced to the forbidden mount path — the caller asserts which).
  */
-export async function loginAs(page: Page, user: SeedUser, route = '/appstore/add'): Promise<void> {
+export async function loginAs(page: Page, user: SeedUser, route = '/service-catalog/add'): Promise<void> {
   const blob = JSON.stringify(sessionFor(user));
   await page.addInitScript(
     ([key, value]) => {
@@ -141,6 +141,6 @@ export async function sessionRoles(page: Page): Promise<string[]> {
 
 /** Assert the current URL path is the in-remote forbidden mount path. */
 export async function expectForbidden(page: Page): Promise<void> {
-  await page.waitForURL((url) => url.pathname.endsWith(APPSTORE_FORBIDDEN_PATH), { timeout: 20_000 });
+  await page.waitForURL((url) => url.pathname.endsWith(SERVICE_CATALOG_FORBIDDEN_PATH), { timeout: 20_000 });
   await expect(page.getByRole('heading', { name: /don.t have access/i })).toBeVisible({ timeout: 10_000 });
 }

@@ -5,18 +5,18 @@
   gap: 1rem;
 }
 
-.appstore-domain-form,
-.appstore-source-form {
+.service-catalog-domain-form,
+.service-catalog-source-form {
   display: grid;
   gap: 0.5rem;
 }
 
-.appstore-table-wrap {
+.service-catalog-table-wrap {
   overflow-x: auto;
   margin-top: 0.75rem;
 }
 
-.appstore-table {
+.service-catalog-table {
   width: 100%;
   border-collapse: collapse;
 
@@ -24,25 +24,25 @@
   td {
     text-align: left;
     padding: 0.5rem 0.65rem;
-    border-bottom: 1px solid var(--appstore-border);
+    border-bottom: 1px solid var(--service-catalog-border);
     vertical-align: top;
   }
 
   th {
-    color: var(--appstore-text-muted);
+    color: var(--service-catalog-text-muted);
     font-weight: 700;
   }
 }
 
-.appstore-row--selected {
-  background: var(--appstore-bg);
+.service-catalog-row--selected {
+  background: var(--service-catalog-bg);
 }
 
-.appstore-sources {
+.service-catalog-sources {
   display: grid;
   gap: 0.75rem;
-  border: 1px solid var(--appstore-border);
-  border-radius: var(--appstore-radius);
+  border: 1px solid var(--service-catalog-border);
+  border-radius: var(--service-catalog-radius);
   padding: 0.75rem 1rem 1rem;
 
   > legend {
@@ -51,7 +51,7 @@
   }
 }
 
-.appstore-source-option {
+.service-catalog-source-option {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.15rem 0.6rem;
@@ -74,13 +74,13 @@
   }
 }
 
-.appstore-badge {
+.service-catalog-badge {
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   padding: 0.1rem 0.4rem;
-  border-radius: var(--appstore-radius);
-  border: 1px solid var(--appstore-warning);
-  color: var(--appstore-warning);
+  border-radius: var(--service-catalog-radius);
+  border: 1px solid var(--service-catalog-warning);
+  color: var(--service-catalog-warning);
 }

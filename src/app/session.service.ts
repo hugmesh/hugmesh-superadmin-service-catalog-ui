@@ -12,7 +12,7 @@ export interface SnapSession {
 }
 
 /** Holds the logged-in session (persisted to localStorage) and derives the
- *  Casdoor-style role flags the App-Store console gates its views on.
+ *  Casdoor-style role flags the Service Catalog console gates its views on.
  *
  *  This is the canonical Snapdragon SessionService (copied from snapdragon-owncast-ui /
  *  snapdragon-wiki-ui / snapdragon-admin-ui, the references with the full role-tier
@@ -21,7 +21,7 @@ export interface SnapSession {
  *  The reserved-prefix ROLE_/DOMAIN_ has already been stripped upstream (the gateway /
  *  BFF converter), so the role strings here are the bare lowercase tokens.
  *
- *  ── The App-Store role model (mirrors snapdragon-admin-bff-api SecurityConfig +
+ *  ── The Service Catalog role model (mirrors snapdragon-admin-bff-api SecurityConfig +
  *     ServiceCurationController / AppProfileController / ServiceDeploymentController /
  *     AdminServiceStoreController) ──
  *  SUPERADMIN  = the WHOLE infra control plane. Every /bff/superadmin/service-store +
@@ -60,20 +60,20 @@ export class SessionService {
   readonly isSuperadmin = computed(() => this.roles().includes('superadmin'));
 
   /** MOD tier: a Casdoor 'mod' OR 'admin' role (the platform-wide defence-in-depth
-   *  hasAnyRole('MOD','ADMIN')). The App-Store console grants a mod NOTHING — it
+   *  hasAnyRole('MOD','ADMIN')). The Service Catalog console grants a mod NOTHING — it
    *  exists only so the forbidden screen can describe the missing role. */
   readonly isMod = computed(() => {
     const r = this.roles();
     return r.includes('mod') || r.includes('admin');
   });
 
-  // ── App-Store role composites (mirror the admin-bff path gates + the
-  //    @PreAuthorize composites on each appstore controller) ──
+  // ── Service Catalog role composites (mirror the admin-bff path gates + the
+  //    @PreAuthorize composites on each serviceCatalog controller) ──
 
   /** SUPERADMIN — gates the WHOLE console (curation write, app-profile CRUD,
    *  deployment list/create/end). Every /bff/superadmin/service-store +
    *  /bff/superadmin/app-profiles endpoint is hasRole('SUPERADMIN') at the bff, so
-   *  the superadminGuard sends a non-superadmin (admin|mod|user) to /appstore/forbidden. */
+   *  the superadminGuard sends a non-superadmin (admin|mod|user) to /service-catalog/forbidden. */
   readonly canManageStore = computed(() => this.isSuperadmin());
 
   /** ADMIN | SUPERADMIN — the two-tier READ of /bff/admin/service-store (the

@@ -1,34 +1,34 @@
-# snapdragon-superadmin-appstore-ui
+# snapdragon-superadmin-service-catalog-ui
 
-The **Superadmin App-Store console** — an Angular **native-federation remote** that
-the `snapdragon.systems` host mounts at the apex path **`/appstore`**. It is the
-SUPERADMIN console that makes the `snapdragon-admin-bff-api` App-Store **data
-layer** (PR #56, `feat/superadmin-appstore-data-layer`) usable: per-domain service
+The **Superadmin Service Catalog console** — an Angular **native-federation remote** that
+the `snapdragon.systems` host mounts at the apex path **`/service-catalog`**. It is the
+SUPERADMIN console that makes the `snapdragon-admin-bff-api` Service Catalog **data
+layer** (PR #56, `feat/superadmin-service-catalog-data-layer`) usable: per-domain service
 **curation**, **app-profile** deploy-template CRUD, and **service-deployment**
 lifecycle **accounting**.
 
 ## Federation contract
 
-The federation-api appstore module row points at this remote:
+The federation-api service-catalog module row points at this remote:
 
 | field | value |
 | --- | --- |
-| `remote_entry_url` | `http://snapdragon-superadmin-appstore-ui:8080/remoteEntry.json` |
-| `metadata.mountAt` | `/appstore` |
+| `remote_entry_url` | `http://snapdragon-superadmin-service-catalog-ui:8080/remoteEntry.json` |
+| `metadata.mountAt` | `/service-catalog` |
 | `metadata.requiresRole` | `superadmin` |
 | `kind` | `remote-shell` |
 | `visibility` | `internal` |
 
 So this remote:
 
-- exposes **`./Appstore`** (→ `src/app/appstore.routes.ts`, `APPSTORE_ROUTES`) in
+- exposes **`./ServiceCatalog`** (→ `src/app/service-catalog.routes.ts`, `SERVICE_CATALOG_ROUTES`) in
   `federation.config.js` — the module key the host's
-  `loadRemoteModule('appstore', './Appstore')` consumes;
+  `loadRemoteModule('service-catalog', './ServiceCatalog')` consumes;
 - is served on **port 8080** (see `Dockerfile` + `nginx.conf`,
   `nginxinc/nginx-unprivileged`) so the emitted `remoteEntry.json` is reachable
   at the registered URL;
 - is **internal** — the SUPERADMIN infra control plane, reachable only behind the
-  gateway's `/appstore=superadmin` route-access gate and the Tailscale-VPN-only
+  gateway's `/service-catalog=superadmin` route-access gate and the Tailscale-VPN-only
   superadmin surface. It is **not** a public UI.
 
 `federation-base.js` is **byte-identical** to the `snapdragon.systems` host (the
@@ -37,7 +37,7 @@ remote can't drift from the host or the other Snapdragon remotes.
 
 ## Role model
 
-Mirrors `snapdragon-admin-bff-api` (the App-Store controllers + `SecurityConfig`
+Mirrors `snapdragon-admin-bff-api` (the Service Catalog controllers + `SecurityConfig`
 path gates). The UI gating is defence-in-depth convenience; the bff
 `@PreAuthorize` is authoritative — every call surfaces a 403 gracefully.
 
@@ -56,17 +56,17 @@ read of their own issuer-derived domain's offered catalog.
 
 ### Forbidden redirect (critical)
 
-A denied child guard routes to **`router.parseUrl('/appstore/forbidden')`** — the
+A denied child guard routes to **`router.parseUrl('/service-catalog/forbidden')`** — the
 IN-REMOTE mount-path screen, **NOT** `'/forbidden'` and **NOT** `'/login'`. The
-host already authgated the user in (route-access `/appstore=superadmin`); a denial
+host already authgated the user in (route-access `/service-catalog=superadmin`); a denial
 here is a **within-service privilege boundary**, not an auth failure. (Shipping the
 bare `/forbidden` was a real wiki-ui bug — the mount-prefixed path is the correct
 in-remote target.)
 
 ## BFF contract (the exact PR #56 surface this console wires)
 
-`src/app/appstore.service.ts` calls these EXACT paths (asserted in
-`appstore.service.spec.ts`):
+`src/app/service-catalog.service.ts` calls these EXACT paths (asserted in
+`service-catalog.service.spec.ts`):
 
 | method | path | body | role |
 | --- | --- | --- | --- |
@@ -84,11 +84,11 @@ in-remote target.)
 | `POST` | `/bff/superadmin/service-store/{domain}/deployments/{id}/provision` | `{sourceKind, repoUrl, path?, targetRevision?}` | SUPERADMIN |
 | `GET` | `/bff/admin/service-store` | — | ADMIN \| SUPERADMIN |
 
-The `/provision` row is the **App-Store effector** (snapdragon-admin-bff-api PR #67,
-`feat/superadmin-appstore-effector`, merged): it drives an existing
+The `/provision` row is the **Service Catalog effector** (snapdragon-admin-bff-api PR #67,
+`feat/superadmin-service-catalog-effector`, merged): it drives an existing
 `service_deployment` row from accounting-only into a real provisioned service
 (per-service Casdoor role → route-access rule → ArgoCD `Application`). `sourceKind`
-is one of the **four App-Store sources** — `SELECT` / `GIT` / `DOCKERFILE` / `ZIP`
+is one of the **four Service Catalog sources** — `SELECT` / `GIT` / `DOCKERFILE` / `ZIP`
 (case-insensitive; null/blank → `SELECT`). `SELECT` (a catalog tile) and `GIT` (a
 prebuilt repo) provision today; `DOCKERFILE` and `ZIP` need an image **built first**
 by the in-cluster **Kaniko** builder (the generator leg), which does not exist yet,
@@ -133,7 +133,7 @@ Every view has loading / empty / error states; a 403/404 degrades gracefully.
 ## Typed API client
 
 `ng-openapi-gen.json` is wired (`npm run gen:fetch`) to regenerate `src/app/api/`
-from the bff `/v3/api-docs` once captured, at which point `appstore.service.ts`
+from the bff `/v3/api-docs` once captured, at which point `service-catalog.service.ts`
 becomes the thin wrapper over the generated client — the public method signatures
 here are the stable contract.
 
@@ -141,8 +141,8 @@ here are the stable contract.
 
 ```bash
 npm ci
-npm start          # ng serve appstore — standalone dev shell at /appstore
-npm run build      # ng build appstore — dist/appstore/browser (remoteEntry.json exposes ./Appstore)
+npm start          # ng serve service-catalog — standalone dev shell at /service-catalog
+npm run build      # ng build service-catalog — dist/service-catalog/browser (remoteEntry.json exposes ./ServiceCatalog)
 npm test           # headless karma (ChromeHeadlessCI)
 ```
 

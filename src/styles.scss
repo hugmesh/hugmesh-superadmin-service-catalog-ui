@@ -1,19 +1,19 @@
 @use 'styles/tokens' as t;
 
-/* Global styles + a11y baseline for the snapdragon-superadmin-appstore-ui native-federation
+/* Global styles + a11y baseline for the snapdragon-superadmin-service-catalog-ui native-federation
  * remote. These rules are the cross-repo Snapdragon accessibility standard
  * (copied from the snapdragon-wiki-ui peer / the snapdragon.systems host's
  * styles.scss): they make the remote accessible when served standalone
- * (`ng serve appstore`) AND keep it consistent when federated into the host at
- * /appstore.
+ * (`ng serve service-catalog`) AND keep it consistent when federated into the host at
+ * /service-catalog.
  */
 
 /* Snapdragon WCAG-AA/AAA palette — centralised as runtime :root custom
  * properties (mirrors the host + the wiki-ui peer). Each token carries its
  * contrast ratio against #0a0a12 (the darkest shell background) in the comment
  * so a future contrast regression is obvious at the source. These --sd-* vars
- * are the cross-repo Snapdragon contract; --appstore-* are the appstore-local
- * aliases the app-store components read so a per-brand override can retint without
+ * are the cross-repo Snapdragon contract; --service-catalog-* are the service-catalog-local
+ * aliases the service catalog components read so a per-brand override can retint without
  * touching the platform tokens. */
 :root {
   --sd-bg-0:        #0a0a12; /* shell + backdrop */
@@ -28,19 +28,19 @@
   --sd-warning:     #ffb74d;
   --sd-error:       #ff6b6b;
 
-  /* App-Store-local aliases (default = the platform tokens). */
-  --appstore-bg:          var(--sd-bg-0);
-  --appstore-surface:     var(--sd-bg-1);
-  --appstore-border:      var(--sd-border);
-  --appstore-text:        var(--sd-text);
-  --appstore-text-muted:  var(--sd-text-muted);
-  --appstore-accent:      var(--sd-accent);
-  --appstore-accent-soft: var(--sd-accent-soft);
-  --appstore-success:     var(--sd-success);
-  --appstore-warning:     var(--sd-warning);
-  --appstore-error:       var(--sd-error);
-  --appstore-radius:      #{t.$radius-md};
-  --appstore-gap:         0.75rem;
+  /* Service Catalog-local aliases (default = the platform tokens). */
+  --service-catalog-bg:          var(--sd-bg-0);
+  --service-catalog-surface:     var(--sd-bg-1);
+  --service-catalog-border:      var(--sd-border);
+  --service-catalog-text:        var(--sd-text);
+  --service-catalog-text-muted:  var(--sd-text-muted);
+  --service-catalog-accent:      var(--sd-accent);
+  --service-catalog-accent-soft: var(--sd-accent-soft);
+  --service-catalog-success:     var(--sd-success);
+  --service-catalog-warning:     var(--sd-warning);
+  --service-catalog-error:       var(--sd-error);
+  --service-catalog-radius:      #{t.$radius-md};
+  --service-catalog-gap:         0.75rem;
 }
 
 html,
@@ -48,8 +48,8 @@ body {
   max-width: 100%;
   overflow-wrap: anywhere;
   margin: 0;
-  background: var(--appstore-bg);
-  color: var(--appstore-text);
+  background: var(--service-catalog-bg);
+  color: var(--service-catalog-text);
   font-family: t.$font-sans;
 }
 
@@ -89,7 +89,7 @@ h3 {
     height: auto;
     padding: 0.6rem 1.2rem;
     background: t.$charcoal;
-    color: var(--appstore-text);
+    color: var(--service-catalog-text);
     font-size: 1rem;
     font-weight: 700;
     border: 2px solid t.$neon;
@@ -113,7 +113,7 @@ h3 {
 // WCAG 1.4.1 — links must be distinguishable beyond colour: underline by
 // default, thicker on hover/focus.
 a {
-  color: var(--appstore-accent-soft);
+  color: var(--service-catalog-accent-soft);
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
@@ -164,9 +164,9 @@ a {
 }
 
 @media (prefers-contrast: more) {
-  .appstore-card,
-  .appstore-row,
-  .appstore-panel {
+  .service-catalog-card,
+  .service-catalog-row,
+  .service-catalog-panel {
     border: 2px solid t.$offwhite !important;
   }
 

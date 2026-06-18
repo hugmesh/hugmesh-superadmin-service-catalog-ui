@@ -39,7 +39,7 @@ let stepCounter = 0;
 
 // ─── Cluster-dependent skip gate ───────────────────────────────────
 // Every scenario here is tagged `@cluster`: it needs the built remote served at
-// a baseURL (the snapdragon.systems host shell, or `ng serve appstore`) plus a
+// a baseURL (the snapdragon.systems host shell, or `ng serve service-catalog`) plus a
 // real admin-bff /bff/superadmin/service-store. That stack is NOT present
 // offline / in CI, so we SKIP `@cluster` scenarios at runtime unless
 // `E2E_CLUSTER=1` is exported (the cluster-e2e job sets it).

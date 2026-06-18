@@ -5,7 +5,7 @@ import { SessionService, SnapSession } from './session.service';
  *  the Casdoor roles in snap.session. Each tier (superadmin / admin / mod / plain
  *  user) is exercised against canManageStore (the whole-console SUPERADMIN gate)
  *  and canReadOwnCatalog (the two-tier ADMIN|SUPERADMIN read) — mirroring the
- *  admin-bff appstore role model. */
+ *  admin-bff serviceCatalog role model. */
 function sessionFor(roles: string[]): SnapSession {
   return {
     id: 'google:x@y.com',
@@ -19,7 +19,7 @@ function sessionFor(roles: string[]): SnapSession {
   };
 }
 
-describe('SessionService (appstore role composites)', () => {
+describe('SessionService (serviceCatalog role composites)', () => {
   let service: SessionService;
 
   beforeEach(() => {
@@ -40,13 +40,13 @@ describe('SessionService (appstore role composites)', () => {
     expect(service.canReadOwnCatalog()).toBeFalse();
   });
 
-  it('a plain USER can do NONE of the App-Store views', () => {
+  it('a plain USER can do NONE of the Service Catalog views', () => {
     withRoles(['user']);
     expect(service.canManageStore()).withContext('console is superadmin-only').toBeFalse();
     expect(service.canReadOwnCatalog()).withContext('read floor is admin|superadmin').toBeFalse();
   });
 
-  it('a MOD can do NONE of the App-Store views', () => {
+  it('a MOD can do NONE of the Service Catalog views', () => {
     withRoles(['user', 'mod']);
     expect(service.isMod()).toBeTrue();
     expect(service.canManageStore()).toBeFalse();

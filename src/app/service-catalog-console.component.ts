@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { SessionService } from './session.service';
 
-interface AppstoreNavItem {
+interface ServiceCatalogNavItem {
   path: string;
   label: string;
   /** accessibleName — the screen-reader announce for the link. */
@@ -14,14 +14,14 @@ interface AppstoreNavItem {
 }
 
 /**
- * The Superadmin App-Store console shell — a role-aware menubar (roving tabindex,
+ * The Superadmin Service Catalog console shell — a role-aware menubar (roving tabindex,
  * WAI-ARIA APG) over the SUPERADMIN-gated child views, plus the swappable content
  * outlet.
  *
  * The WHOLE console is SUPERADMIN (the infra control plane): all four nav items
  * are shown only to canManageStore (SUPERADMIN). A non-superadmin who reaches the
  * bundle sees an EMPTY menubar and the default route's superadminGuard sends them
- * to /appstore/forbidden.
+ * to /service-catalog/forbidden.
  *   Add a service (add)         — provision a deployment via one of the 4 sources (effector PR #67).
  *   Curation     (curation)    — per-domain offered catalog (offer/withdraw a service_key).
  *   App profiles (profiles)    — app_profile deploy-template CRUD.
@@ -32,13 +32,13 @@ interface AppstoreNavItem {
  * link carries an accessibleName + an aria-describedby help hint.
  */
 @Component({
-  selector: 'snap-appstore-console',
+  selector: 'snap-service-catalog-console',
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
-  templateUrl: './appstore-console.component.html',
-  styleUrl: './appstore-console.component.scss',
+  templateUrl: './service-catalog-console.component.html',
+  styleUrl: './service-catalog-console.component.scss',
 })
-export class AppstoreConsoleComponent {
+export class ServiceCatalogConsoleComponent {
   private readonly session = inject(SessionService);
 
   @ViewChildren('navlink') navLinks!: QueryList<ElementRef<HTMLAnchorElement>>;
@@ -46,7 +46,7 @@ export class AppstoreConsoleComponent {
   /** Index of the roving-tabindex'd item that currently holds tabindex=0. */
   active = 0;
 
-  readonly items: AppstoreNavItem[] = [
+  readonly items: ServiceCatalogNavItem[] = [
     {
       path: 'add',
       label: 'Add a service',
@@ -78,7 +78,7 @@ export class AppstoreConsoleComponent {
   ];
 
   /** The items actually rendered for this role. */
-  visibleItems(): AppstoreNavItem[] {
+  visibleItems(): ServiceCatalogNavItem[] {
     return this.items.filter((i) => i.show());
   }
 

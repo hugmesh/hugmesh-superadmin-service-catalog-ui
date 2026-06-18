@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 
-import { AppstoreForbiddenComponent } from './appstore-forbidden.component';
+import { ServiceCatalogForbiddenComponent } from './service-catalog-forbidden.component';
 import { SessionService } from './session.service';
-import { AppstoreService, ServiceCuration, AppstoreApiError } from './appstore.service';
+import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from './service-catalog.service';
 
 const offered: ServiceCuration = {
   id: 'c1', domain: 'acme.test', serviceKey: 'owncast', state: 'offered',
@@ -11,19 +11,19 @@ const offered: ServiceCuration = {
 };
 const withdrawn: ServiceCuration = { ...offered, id: 'c2', serviceKey: 'forum', state: 'withdrawn' };
 
-describe('AppstoreForbiddenComponent', () => {
+describe('ServiceCatalogForbiddenComponent', () => {
   const canReadOwnCatalog = signal(false);
-  let appstore: jasmine.SpyObj<Pick<AppstoreService, 'myDomainCatalog'>>;
+  let serviceCatalog: jasmine.SpyObj<Pick<ServiceCatalogService, 'myDomainCatalog'>>;
 
-  async function setup(): Promise<ComponentFixture<AppstoreForbiddenComponent>> {
+  async function setup(): Promise<ComponentFixture<ServiceCatalogForbiddenComponent>> {
     await TestBed.configureTestingModule({
-      imports: [AppstoreForbiddenComponent],
+      imports: [ServiceCatalogForbiddenComponent],
       providers: [
         { provide: SessionService, useValue: { canReadOwnCatalog } },
-        { provide: AppstoreService, useValue: appstore },
+        { provide: ServiceCatalogService, useValue: serviceCatalog },
       ],
     }).compileComponents();
-    const fixture = TestBed.createComponent(AppstoreForbiddenComponent);
+    const fixture = TestBed.createComponent(ServiceCatalogForbiddenComponent);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -31,7 +31,7 @@ describe('AppstoreForbiddenComponent', () => {
   }
 
   beforeEach(() => {
-    appstore = jasmine.createSpyObj('AppstoreService', ['myDomainCatalog']);
+    serviceCatalog = jasmine.createSpyObj('ServiceCatalogService', ['myDomainCatalog']);
   });
 
   it('announces the denial in a role="alert" and explains the missing superadmin role', async () => {
@@ -48,17 +48,17 @@ describe('AppstoreForbiddenComponent', () => {
     canReadOwnCatalog.set(false);
     TestBed.resetTestingModule();
     await setup();
-    expect(appstore.myDomainCatalog).not.toHaveBeenCalled();
+    expect(serviceCatalog.myDomainCatalog).not.toHaveBeenCalled();
   });
 
   it('an ADMIN sees the read-only catalog of OFFERED rows (withdrawn filtered out)', async () => {
     canReadOwnCatalog.set(true);
-    appstore.myDomainCatalog.and.resolveTo([offered, withdrawn]);
+    serviceCatalog.myDomainCatalog.and.resolveTo([offered, withdrawn]);
     TestBed.resetTestingModule();
     const fixture = await setup();
     const el = fixture.nativeElement as HTMLElement;
-    expect(appstore.myDomainCatalog).toHaveBeenCalled();
-    const list = el.querySelector('[data-testid="appstore-mycatalog-list"]')!;
+    expect(serviceCatalog.myDomainCatalog).toHaveBeenCalled();
+    const list = el.querySelector('[data-testid="service-catalog-mycatalog-list"]')!;
     expect(list).not.toBeNull();
     expect(list.textContent).toContain('owncast');
     expect(list.textContent).not.toContain('forum');
@@ -66,29 +66,29 @@ describe('AppstoreForbiddenComponent', () => {
 
   it('shows the EMPTY state when no services are offered to the admin’s domain', async () => {
     canReadOwnCatalog.set(true);
-    appstore.myDomainCatalog.and.resolveTo([]);
+    serviceCatalog.myDomainCatalog.and.resolveTo([]);
     TestBed.resetTestingModule();
     const fixture = await setup();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('[data-testid="appstore-mycatalog-empty"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="service-catalog-mycatalog-empty"]')).not.toBeNull();
   });
 
   it('degrades a 403 on the two-tier read to an empty catalog (graceful)', async () => {
     canReadOwnCatalog.set(true);
-    appstore.myDomainCatalog.and.rejectWith(new AppstoreApiError(403, 'forbidden'));
+    serviceCatalog.myDomainCatalog.and.rejectWith(new ServiceCatalogApiError(403, 'forbidden'));
     TestBed.resetTestingModule();
     const fixture = await setup();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('[data-testid="appstore-mycatalog-empty"]')).not.toBeNull();
-    expect(el.querySelector('[data-testid="appstore-mycatalog-error"]')).toBeNull();
+    expect(el.querySelector('[data-testid="service-catalog-mycatalog-empty"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="service-catalog-mycatalog-error"]')).toBeNull();
   });
 
   it('shows the ERROR state on a non-auth failure', async () => {
     canReadOwnCatalog.set(true);
-    appstore.myDomainCatalog.and.rejectWith(new AppstoreApiError(500, 'boom'));
+    serviceCatalog.myDomainCatalog.and.rejectWith(new ServiceCatalogApiError(500, 'boom'));
     TestBed.resetTestingModule();
     const fixture = await setup();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('[data-testid="appstore-mycatalog-error"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="service-catalog-mycatalog-error"]')).not.toBeNull();
   });
 });

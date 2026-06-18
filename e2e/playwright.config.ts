@@ -1,10 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 import { defineBddConfig } from 'playwright-bdd';
 
-// The Superadmin App-Store remote is browsable standalone under /appstore
-// (`ng serve appstore` mounts APPSTORE_ROUTES at /appstore — see src/app/app.routes.ts)
+// The Superadmin Service Catalog remote is browsable standalone under /service-catalog
+// (`ng serve service-catalog` mounts SERVICE_CATALOG_ROUTES at /service-catalog — see src/app/app.routes.ts)
 // so the e2e harness drives the SAME mount path the host uses, which makes the
-// in-remote guard redirect to /appstore/forbidden resolve identically here and
+// in-remote guard redirect to /service-catalog/forbidden resolve identically here and
 // under the snapdragon.systems host.
 const baseURL = process.env.E2E_BASE_URL ?? 'https://host.docker.internal:8443';
 
@@ -28,7 +28,7 @@ const bddTestDir = defineBddConfig({
   // (the offline-discoverable contract this harness validates on) but never
   // execute. Every feature here is `@skip @cluster` because each needs the
   // built remote served + a real admin-bff; the offline service-layer contract
-  // is already proven by src/app/appstore-add-service.e2e.spec.ts.
+  // is already proven by src/app/service-catalog-add-service.e2e.spec.ts.
 });
 
 export default defineConfig({

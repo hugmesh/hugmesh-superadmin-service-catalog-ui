@@ -1,7 +1,7 @@
 {
-  "name": "snapdragon-superadmin-appstore-ui-e2e",
+  "name": "snapdragon-superadmin-service-catalog-ui-e2e",
   "private": true,
-  "description": "Playwright + playwright-bdd e2e harness for the Superadmin App-Store console. Ships dark: cluster-dependent scenarios are @skip; the offline-runnable contract is exercised by bddgen + playwright test --list. Same harness shape as the snapdragon.games/e2e + admin-ui leg (workers:1, screenshot/video on, html reporter, per-step PNG AfterStep hook).",
+  "description": "Playwright + playwright-bdd e2e harness for the Superadmin Service Catalog console. Ships dark: cluster-dependent scenarios are @skip; the offline-runnable contract is exercised by bddgen + playwright test --list. Same harness shape as the snapdragon.games/e2e + admin-ui leg (workers:1, screenshot/video on, html reporter, per-step PNG AfterStep hook).",
   "scripts": {
     "test": "playwright test",
     "bdd:gen": "bddgen",

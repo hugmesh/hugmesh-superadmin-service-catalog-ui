@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AppstoreAddServiceComponent } from './appstore-add-service.component';
-import { AppstoreService, ServiceDeployment, AppstoreApiError } from './appstore.service';
+import { ServiceCatalogAddServiceComponent } from './service-catalog-add-service.component';
+import { ServiceCatalogService, ServiceDeployment, ServiceCatalogApiError } from './service-catalog.service';
 import { accessibleName } from './accessible-name';
 
 /**
@@ -36,28 +36,28 @@ function dep(id: string, key: string, state = 'active', propagationState = 'pend
   };
 }
 
-describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)', () => {
-  let fixture: ComponentFixture<AppstoreAddServiceComponent>;
-  let component: AppstoreAddServiceComponent;
-  let appstore: jasmine.SpyObj<
-    Pick<AppstoreService, 'listDeployments' | 'listProfiles' | 'provisionDeployment'>
+describe('ServiceCatalogAddServiceComponent (4-source provision over effector PR #67)', () => {
+  let fixture: ComponentFixture<ServiceCatalogAddServiceComponent>;
+  let component: ServiceCatalogAddServiceComponent;
+  let serviceCatalog: jasmine.SpyObj<
+    Pick<ServiceCatalogService, 'listDeployments' | 'listProfiles' | 'provisionDeployment'>
   >;
 
   beforeEach(async () => {
-    appstore = jasmine.createSpyObj('AppstoreService', [
+    serviceCatalog = jasmine.createSpyObj('ServiceCatalogService', [
       'listDeployments',
       'listProfiles',
       'provisionDeployment',
     ]);
-    appstore.listDeployments.and.resolveTo([dep('dep-1', 'owncast')]);
-    appstore.listProfiles.and.resolveTo([]);
-    appstore.provisionDeployment.and.resolveTo(dep('dep-1', 'owncast', 'active', 'applied'));
+    serviceCatalog.listDeployments.and.resolveTo([dep('dep-1', 'owncast')]);
+    serviceCatalog.listProfiles.and.resolveTo([]);
+    serviceCatalog.provisionDeployment.and.resolveTo(dep('dep-1', 'owncast', 'active', 'applied'));
 
     await TestBed.configureTestingModule({
-      imports: [AppstoreAddServiceComponent],
-      providers: [{ provide: AppstoreService, useValue: appstore }],
+      imports: [ServiceCatalogAddServiceComponent],
+      providers: [{ provide: ServiceCatalogService, useValue: serviceCatalog }],
     }).compileComponents();
-    fixture = TestBed.createComponent(AppstoreAddServiceComponent);
+    fixture = TestBed.createComponent(ServiceCatalogAddServiceComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
@@ -79,14 +79,14 @@ describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)'
 
   it('loadDomain lists the domain deployments by the explicit {domain} PATH', async () => {
     await loadDomain('acme.test');
-    expect(appstore.listDeployments).toHaveBeenCalledWith('acme.test');
-    expect(el().querySelector('[data-testid="appstore-add-list"]')).not.toBeNull();
+    expect(serviceCatalog.listDeployments).toHaveBeenCalledWith('acme.test');
+    expect(el().querySelector('[data-testid="service-catalog-add-list"]')).not.toBeNull();
   });
 
   it('shows the EMPTY state (record one first) when the domain has no deployments', async () => {
-    appstore.listDeployments.and.resolveTo([]);
+    serviceCatalog.listDeployments.and.resolveTo([]);
     await loadDomain();
-    expect(el().querySelector('[data-testid="appstore-add-empty"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-add-empty"]')).not.toBeNull();
   });
 
   // ── the four source options ─────────────────────────────────────────────────
@@ -108,7 +108,7 @@ describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)'
   it('shows the "needs builder" badge on the two gated sources', async () => {
     await loadDomain();
     selectFirst();
-    const badges = el().querySelectorAll('[data-testid="appstore-source-gated-badge"]');
+    const badges = el().querySelectorAll('[data-testid="service-catalog-source-gated-badge"]');
     expect(badges.length).toBe(2);
   });
 
@@ -121,13 +121,13 @@ describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)'
     component.repoUrl.set('https://git.acme.test/catalog/owncast.git');
     await component.provision();
     fixture.detectChanges();
-    expect(appstore.provisionDeployment).toHaveBeenCalledWith('acme.test', 'dep-1', {
+    expect(serviceCatalog.provisionDeployment).toHaveBeenCalledWith('acme.test', 'dep-1', {
       sourceKind: 'SELECT',
       repoUrl: 'https://git.acme.test/catalog/owncast.git',
       path: null,
       targetRevision: null,
     });
-    expect(el().querySelector('[data-testid="appstore-add-notice"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-add-notice"]')).not.toBeNull();
   });
 
   it('provisions a GIT source with optional path + targetRevision', async () => {
@@ -138,7 +138,7 @@ describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)'
     component.path.set('deploy/');
     component.targetRevision.set('main');
     await component.provision();
-    expect(appstore.provisionDeployment).toHaveBeenCalledWith('acme.test', 'dep-1', {
+    expect(serviceCatalog.provisionDeployment).toHaveBeenCalledWith('acme.test', 'dep-1', {
       sourceKind: 'GIT',
       repoUrl: 'https://gitlab.acme.test/svc/owncast.git',
       path: 'deploy/',
@@ -150,9 +150,9 @@ describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)'
     await loadDomain('acme.test');
     selectFirst();
     component.repoUrl.set('r');
-    appstore.listDeployments.calls.reset();
+    serviceCatalog.listDeployments.calls.reset();
     await component.provision();
-    expect(appstore.listDeployments).toHaveBeenCalledWith('acme.test');
+    expect(serviceCatalog.listDeployments).toHaveBeenCalledWith('acme.test');
   });
 
   it('does NOT provision when the repoUrl is blank (the @NotBlank contract)', async () => {
@@ -160,7 +160,7 @@ describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)'
     selectFirst();
     component.repoUrl.set('   ');
     await component.provision();
-    expect(appstore.provisionDeployment).not.toHaveBeenCalled();
+    expect(serviceCatalog.provisionDeployment).not.toHaveBeenCalled();
   });
 
   // ── SHIPS-DARK degrade: the builder-gated sources ─────────────────────────────
@@ -182,8 +182,8 @@ describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)'
     component.repoUrl.set('r');
     await component.provision();
     fixture.detectChanges();
-    expect(appstore.provisionDeployment).not.toHaveBeenCalled();
-    const err = el().querySelector('[data-testid="appstore-add-form-error"]')!;
+    expect(serviceCatalog.provisionDeployment).not.toHaveBeenCalled();
+    const err = el().querySelector('[data-testid="service-catalog-add-form-error"]')!;
     expect(err).not.toBeNull();
     expect(err.textContent).toContain('Kaniko');
   });
@@ -193,7 +193,7 @@ describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)'
     selectFirst();
     component.sourceKind.set('ZIP');
     fixture.detectChanges();
-    expect(el().querySelector('[data-testid="appstore-source-gated-notice"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-source-gated-notice"]')).not.toBeNull();
   });
 
   it('surfaces the bff 400 (the server-authoritative Kaniko guard) VERBATIM', async () => {
@@ -201,15 +201,15 @@ describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)'
     selectFirst();
     component.sourceKind.set('GIT'); // a live source the UI allows
     component.repoUrl.set('r');
-    appstore.provisionDeployment.and.rejectWith(
-      new AppstoreApiError(
+    serviceCatalog.provisionDeployment.and.rejectWith(
+      new ServiceCatalogApiError(
         400,
         'service source DOCKERFILE requires the in-cluster image builder (Kaniko) which is not yet available',
       ),
     );
     await component.provision();
     fixture.detectChanges();
-    const err = el().querySelector('[data-testid="appstore-add-form-error"]')!;
+    const err = el().querySelector('[data-testid="service-catalog-add-form-error"]')!;
     expect(err.textContent).toContain('Kaniko');
   });
 
@@ -220,17 +220,17 @@ describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)'
     selectFirst();
     component.repoUrl.set('r');
     await component.provision();
-    const [domainArg, , body] = appstore.provisionDeployment.calls.mostRecent().args;
+    const [domainArg, , body] = serviceCatalog.provisionDeployment.calls.mostRecent().args;
     expect(domainArg).toBe('beta.test');
     expect((body as unknown as Record<string, unknown>)['domain']).toBeUndefined();
   });
 
   it('switching the domain re-scopes the row list (no leak across domains)', async () => {
     await loadDomain('acme.test');
-    expect(appstore.listDeployments).toHaveBeenCalledWith('acme.test');
-    appstore.listDeployments.and.resolveTo([dep('dep-9', 'forum')]);
+    expect(serviceCatalog.listDeployments).toHaveBeenCalledWith('acme.test');
+    serviceCatalog.listDeployments.and.resolveTo([dep('dep-9', 'forum')]);
     await loadDomain('beta.test');
-    expect(appstore.listDeployments).toHaveBeenCalledWith('beta.test');
+    expect(serviceCatalog.listDeployments).toHaveBeenCalledWith('beta.test');
     expect(component.selectedId()).withContext('selection cleared on domain switch').toBe('');
     expect(component.rows()![0].serviceKey).toBe('forum');
   });
@@ -241,36 +241,36 @@ describe('AppstoreAddServiceComponent (4-source provision over effector PR #67)'
     await loadDomain('acme.test');
     selectFirst();
     component.repoUrl.set('r');
-    appstore.provisionDeployment.and.rejectWith(new AppstoreApiError(404, 'no deployment'));
+    serviceCatalog.provisionDeployment.and.rejectWith(new ServiceCatalogApiError(404, 'no deployment'));
     await component.provision();
     fixture.detectChanges();
-    const err = el().querySelector('[data-testid="appstore-add-form-error"]')!;
+    const err = el().querySelector('[data-testid="service-catalog-add-form-error"]')!;
     expect(err.textContent).toContain('reload');
   });
 
   // ── graceful auth degrade on the LOAD ─────────────────────────────────────────
 
   it('degrades a 403 on the row LOAD to the empty state (graceful, not a scary error)', async () => {
-    appstore.listDeployments.and.rejectWith(new AppstoreApiError(403, 'forbidden'));
+    serviceCatalog.listDeployments.and.rejectWith(new ServiceCatalogApiError(403, 'forbidden'));
     await loadDomain('acme.test');
-    expect(el().querySelector('[data-testid="appstore-add-empty"]')).not.toBeNull();
-    expect(el().querySelector('[data-testid="appstore-add-list-error"]')).toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-add-empty"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-add-list-error"]')).toBeNull();
   });
 
   it('shows the ERROR state on a non-auth load failure (with a Retry)', async () => {
-    appstore.listDeployments.and.rejectWith(new AppstoreApiError(500, 'boom'));
+    serviceCatalog.listDeployments.and.rejectWith(new ServiceCatalogApiError(500, 'boom'));
     await loadDomain('acme.test');
-    expect(el().querySelector('[data-testid="appstore-add-list-error"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-add-list-error"]')).not.toBeNull();
   });
 
   it('surfaces a 403 on PROVISION as a clear superadmin-required action error', async () => {
     await loadDomain('acme.test');
     selectFirst();
     component.repoUrl.set('r');
-    appstore.provisionDeployment.and.rejectWith(new AppstoreApiError(403, 'forbidden'));
+    serviceCatalog.provisionDeployment.and.rejectWith(new ServiceCatalogApiError(403, 'forbidden'));
     await component.provision();
     fixture.detectChanges();
-    const err = el().querySelector('[data-testid="appstore-add-form-error"]')!;
+    const err = el().querySelector('[data-testid="service-catalog-add-form-error"]')!;
     expect(err.textContent).toContain('superadmin');
   });
 

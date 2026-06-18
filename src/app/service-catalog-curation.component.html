@@ -1,0 +1,105 @@
+<section class="service-catalog-panel" aria-labelledby="service-catalog-curation-title">
+  <h2 id="service-catalog-curation-title">Curation</h2>
+  <p class="service-catalog-muted">
+    Offer or withdraw services for a specific domain. The domain is the explicit target —
+    pick it, load its catalog, then offer a service to it or withdraw one.
+  </p>
+
+  <form class="service-catalog-domain-form" (ngSubmit)="loadDomain()">
+    <div class="service-catalog-field">
+      <label for="service-catalog-curation-domain">Domain</label>
+      <input
+        id="service-catalog-curation-domain"
+        name="domain"
+        type="text"
+        autocomplete="off"
+        [ngModel]="domain()"
+        (ngModelChange)="domain.set($event)"
+        [attr.aria-invalid]="domainInvalid() ? 'true' : null"
+        aria-describedby="service-catalog-curation-domain-help"
+        placeholder="acme.test"
+      />
+      <span id="service-catalog-curation-domain-help" class="service-catalog-field__help">
+        The brand/domain whose offered catalog you are curating, e.g. acme.test.
+      </span>
+      @if (domainInvalid()) {
+        <span class="service-catalog-error" role="alert">A domain is required.</span>
+      }
+    </div>
+    <button type="submit" class="service-catalog-btn" [disabled]="domain().trim().length === 0 || listLoading()">
+      Load catalog
+    </button>
+  </form>
+</section>
+
+@if (loadedDomain()) {
+  <section class="service-catalog-panel" aria-labelledby="service-catalog-offered-title">
+    <h3 id="service-catalog-offered-title">Offered services for {{ loadedDomain() }}</h3>
+
+    @if (notice()) {
+      <p class="service-catalog-success" role="status" data-testid="service-catalog-curation-notice">{{ notice() }}</p>
+    }
+    @if (actionError()) {
+      <p class="service-catalog-error" role="alert" data-testid="service-catalog-curation-action-error">{{ actionError() }}</p>
+    }
+
+    <form class="service-catalog-offer-form" (ngSubmit)="offer()">
+      <div class="service-catalog-field">
+        <label for="service-catalog-curation-key">Service key</label>
+        <input
+          id="service-catalog-curation-key"
+          name="serviceKey"
+          type="text"
+          autocomplete="off"
+          [ngModel]="serviceKey()"
+          (ngModelChange)="serviceKey.set($event)"
+          [attr.aria-invalid]="serviceKeyInvalid() ? 'true' : null"
+          aria-describedby="service-catalog-curation-key-help"
+          placeholder="owncast"
+        />
+        <span id="service-catalog-curation-key-help" class="service-catalog-field__help">
+          The service to offer to {{ loadedDomain() }}, e.g. owncast, forum, tube.
+        </span>
+        @if (serviceKeyInvalid()) {
+          <span class="service-catalog-error" role="alert">A service key is required.</span>
+        }
+      </div>
+      <div class="service-catalog-offer-form__actions">
+        <button type="submit" class="service-catalog-btn" [disabled]="!canAct()">Offer service</button>
+        <button
+          type="button"
+          class="service-catalog-btn service-catalog-btn--secondary"
+          [disabled]="!canAct()"
+          (click)="withdraw()"
+        >Withdraw service</button>
+      </div>
+    </form>
+
+    @if (listLoading()) {
+      <p role="status" data-testid="service-catalog-curation-loading">Loading the catalog…</p>
+    } @else if (listError()) {
+      <p class="service-catalog-error" role="alert" data-testid="service-catalog-curation-error">{{ listError() }}</p>
+      <button type="button" class="service-catalog-btn service-catalog-btn--secondary" (click)="loadDomain()">Retry</button>
+    } @else if (offeredRows().length === 0) {
+      <p class="service-catalog-muted" data-testid="service-catalog-curation-empty">
+        No services are currently offered to {{ loadedDomain() }}.
+      </p>
+    } @else {
+      <ul class="service-catalog-list" data-testid="service-catalog-curation-list">
+        @for (row of offeredRows(); track trackId($index, row)) {
+          <li class="service-catalog-row">
+            <span class="service-catalog-row__key">{{ row.serviceKey }}</span>
+            <span class="service-catalog-success">offered</span>
+            <button
+              type="button"
+              class="service-catalog-btn service-catalog-btn--danger"
+              [disabled]="busy()"
+              [attr.aria-label]="'Withdraw ' + row.serviceKey + ' from ' + loadedDomain()"
+              (click)="withdraw(row.serviceKey)"
+            >Withdraw</button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

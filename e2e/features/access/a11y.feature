@@ -7,14 +7,14 @@
 # runtime unless E2E_CLUSTER=1 (see features/support/fixtures.ts) — bddgen +
 # `playwright test --list` discover them regardless.
 @cluster
-Feature: App-Store console accessibility
+Feature: Service Catalog console accessibility
   As a keyboard / screen-reader user with the superadmin role
   I want the console's regions, nav, and controls to be properly named
   So I can operate the four-source add flow without a mouse
 
   Background:
-    Given "superadmin" opens the appstore at "/appstore/add"
-    And the appstore console nav is visible
+    Given "superadmin" opens the service-catalog at "/service-catalog/add"
+    And the service-catalog console nav is visible
 
   Scenario: the console nav is an aria-labelled menubar
     Then the console nav has role "menubar"
@@ -41,6 +41,6 @@ Feature: App-Store console accessibility
     And each source option has a describing blurb
 
   Scenario: the forbidden screen is announced as an alert
-    Given "user" opens the appstore at "/appstore/add"
-    Then the appstore forbidden screen is shown at "/appstore/forbidden"
+    Given "user" opens the service-catalog at "/service-catalog/add"
+    Then the service-catalog forbidden screen is shown at "/service-catalog/forbidden"
     And the forbidden screen has role "alert"

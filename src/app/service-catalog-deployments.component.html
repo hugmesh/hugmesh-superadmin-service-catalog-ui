@@ -1,0 +1,183 @@
+<section class="service-catalog-panel" aria-labelledby="service-catalog-deployments-title">
+  <h2 id="service-catalog-deployments-title">Deployments</h2>
+  <p class="service-catalog-muted">
+    The service deployment accounting for a domain — what was deployed, when, the expiry clock,
+    and the enforce actions recorded for end-of-lease.
+  </p>
+  <p class="service-catalog-warning" role="note" data-testid="service-catalog-deployments-dark-note">
+    This console records the catalog, accounting and lifecycle the platform supports today. The actual
+    provision and teardown is a later increment — recording a deployment here does not yet provision a service.
+  </p>
+
+  <form class="service-catalog-domain-form" (ngSubmit)="loadDomain()">
+    <div class="service-catalog-field">
+      <label for="service-catalog-deployments-domain">Domain</label>
+      <input
+        id="service-catalog-deployments-domain"
+        name="domain"
+        type="text"
+        autocomplete="off"
+        [ngModel]="domain()"
+        (ngModelChange)="domain.set($event)"
+        aria-describedby="service-catalog-deployments-domain-help"
+        placeholder="acme.test"
+      />
+      <span id="service-catalog-deployments-domain-help" class="service-catalog-field__help">
+        The brand/domain whose deployment accounting you are viewing.
+      </span>
+    </div>
+    <button type="submit" class="service-catalog-btn" [disabled]="domain().trim().length === 0 || listLoading()">
+      Load deployments
+    </button>
+  </form>
+</section>
+
+@if (loadedDomain()) {
+  <section class="service-catalog-panel" aria-labelledby="service-catalog-record-title">
+    <h3 id="service-catalog-record-title">Record a deployment in {{ loadedDomain() }}</h3>
+
+    @if (notice()) {
+      <p class="service-catalog-success" role="status" data-testid="service-catalog-deployments-notice">{{ notice() }}</p>
+    }
+    @if (formError()) {
+      <p class="service-catalog-error" role="alert" data-testid="service-catalog-deployments-form-error">{{ formError() }}</p>
+    }
+
+    <form class="service-catalog-record-form" (ngSubmit)="record()">
+      <div class="service-catalog-field">
+        <label for="service-catalog-record-key">Service key</label>
+        <input
+          id="service-catalog-record-key"
+          name="serviceKey"
+          type="text"
+          autocomplete="off"
+          [ngModel]="serviceKey()"
+          (ngModelChange)="serviceKey.set($event)"
+          [attr.aria-invalid]="serviceKeyInvalid() ? 'true' : null"
+          aria-describedby="service-catalog-record-key-help"
+          placeholder="owncast"
+        />
+        <span id="service-catalog-record-key-help" class="service-catalog-field__help">The service being deployed (required).</span>
+        @if (serviceKeyInvalid()) {
+          <span class="service-catalog-error" role="alert">A service key is required.</span>
+        }
+      </div>
+
+      <div class="service-catalog-field">
+        <label for="service-catalog-record-profile">App profile (optional)</label>
+        <select
+          id="service-catalog-record-profile"
+          name="profileRef"
+          [ngModel]="profileRef()"
+          (ngModelChange)="profileRef.set($event)"
+          aria-describedby="service-catalog-record-profile-help"
+        >
+          <option value="">— none —</option>
+          @for (p of profiles(); track p.id) {
+            <option [value]="p.name">{{ p.name }}</option>
+          }
+        </select>
+        <span id="service-catalog-record-profile-help" class="service-catalog-field__help">
+          The deploy template to stamp onto this deployment, by name.
+        </span>
+      </div>
+
+      <div class="service-catalog-field">
+        <label for="service-catalog-record-ending">Ending at (optional)</label>
+        <input
+          id="service-catalog-record-ending"
+          name="endingAt"
+          type="datetime-local"
+          [ngModel]="endingAtLocal()"
+          (ngModelChange)="endingAtLocal.set($event)"
+          [attr.aria-invalid]="endingAtInvalid() ? 'true' : null"
+          aria-describedby="service-catalog-record-ending-help"
+        />
+        <span id="service-catalog-record-ending-help" class="service-catalog-field__help">
+          The single expiry clock. Leave blank for a permanent deployment.
+        </span>
+        @if (endingAtInvalid()) {
+          <span class="service-catalog-error" role="alert">That is not a valid date/time.</span>
+        }
+      </div>
+
+      <div class="service-catalog-field">
+        <label for="service-catalog-record-enforce">Enforce actions (optional)</label>
+        <input
+          id="service-catalog-record-enforce"
+          name="enforceActions"
+          type="text"
+          autocomplete="off"
+          [ngModel]="enforceActions()"
+          (ngModelChange)="enforceActions.set($event)"
+          aria-describedby="service-catalog-record-enforce-help"
+          placeholder="teardown,revoke-roles,revoke-certs,alert"
+        />
+        <span id="service-catalog-record-enforce-help" class="service-catalog-field__help">
+          The effects to emit at end-of-lease (recorded intent; ships dark for now).
+        </span>
+      </div>
+
+      <button type="submit" class="service-catalog-btn" [disabled]="!canRecord()">Record deployment</button>
+    </form>
+  </section>
+
+  <section class="service-catalog-panel" aria-labelledby="service-catalog-deployments-list-title">
+    <h3 id="service-catalog-deployments-list-title">Deployment accounting for {{ loadedDomain() }}</h3>
+
+    @if (listLoading()) {
+      <p role="status" data-testid="service-catalog-deployments-loading">Loading deployments…</p>
+    } @else if (listError()) {
+      <p class="service-catalog-error" role="alert" data-testid="service-catalog-deployments-error">{{ listError() }}</p>
+      <button type="button" class="service-catalog-btn service-catalog-btn--secondary" (click)="loadDomain()">Retry</button>
+    } @else if (sortedRows() && sortedRows()!.length === 0) {
+      <p class="service-catalog-muted" data-testid="service-catalog-deployments-empty">No deployments recorded for {{ loadedDomain() }}.</p>
+    } @else if (sortedRows()) {
+      <div class="service-catalog-table-wrap">
+        <table class="service-catalog-table" data-testid="service-catalog-deployments-list">
+          <caption class="sr">Service deployments for {{ loadedDomain() }}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Service</th>
+              <th scope="col">State</th>
+              <th scope="col">Created</th>
+              <th scope="col">Ending</th>
+              <th scope="col">Enforce</th>
+              <th scope="col">Propagation</th>
+              <th scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of sortedRows()!; track trackId($index, row)) {
+              <tr>
+                <td>{{ row.serviceKey }}</td>
+                <td>
+                  <span [class.service-catalog-success]="row.state === 'active'" [class.service-catalog-muted]="row.state !== 'active'">
+                    {{ row.state }}
+                  </span>
+                </td>
+                <td>{{ row.createdAt }}</td>
+                <td>{{ row.endingAt ?? '—' }}</td>
+                <td>{{ row.enforceActions ?? '—' }}</td>
+                <td>{{ row.propagationState }}</td>
+                <td>
+                  @if (row.state === 'active') {
+                    <button
+                      type="button"
+                      class="service-catalog-btn service-catalog-btn--danger"
+                      [disabled]="busy()"
+                      [attr.aria-label]="'End the deployment of ' + row.serviceKey"
+                      (click)="end(row)"
+                    >End</button>
+                  } @else {
+                    <span class="service-catalog-muted">ended</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+}

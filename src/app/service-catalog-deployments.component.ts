@@ -2,7 +2,7 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-import { AppstoreService, ServiceDeployment, AppProfile, AppstoreApiError } from './appstore.service';
+import { ServiceCatalogService, ServiceDeployment, AppProfile, ServiceCatalogApiError } from './service-catalog.service';
 
 /**
  * The DEPLOYMENTS (accounting) view — the SUPERADMIN list / record / end of the
@@ -24,14 +24,14 @@ import { AppstoreService, ServiceDeployment, AppProfile, AppstoreApiError } from
  * loading / empty / error states; a 403/404 degrades gracefully.
  */
 @Component({
-  selector: 'snap-appstore-deployments',
+  selector: 'snap-service-catalog-deployments',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './appstore-deployments.component.html',
-  styleUrl: './appstore-deployments.component.scss',
+  templateUrl: './service-catalog-deployments.component.html',
+  styleUrl: './service-catalog-deployments.component.scss',
 })
-export class AppstoreDeploymentsComponent {
-  private readonly appstore = inject(AppstoreService);
+export class ServiceCatalogDeploymentsComponent {
+  private readonly serviceCatalog = inject(ServiceCatalogService);
 
   // ── domain selector ──
   readonly domain = signal('');
@@ -102,13 +102,13 @@ export class AppstoreDeploymentsComponent {
     // Load the deployments + (best-effort) the profile options for the dropdown.
     void this.loadProfiles();
     try {
-      const res = await this.appstore.listDeployments(d);
+      const res = await this.serviceCatalog.listDeployments(d);
       this.rows.set(res);
       this.loadedDomain.set(d);
     } catch (e) {
       this.rows.set(null);
       this.loadedDomain.set(d);
-      if (e instanceof AppstoreApiError && (e.isForbidden || e.isNotFound)) {
+      if (e instanceof ServiceCatalogApiError && (e.isForbidden || e.isNotFound)) {
         this.rows.set([]);
       } else {
         this.listError.set(`Could not load deployments for ${d}. Please try again.`);
@@ -120,7 +120,7 @@ export class AppstoreDeploymentsComponent {
 
   private async loadProfiles(): Promise<void> {
     try {
-      this.profiles.set(await this.appstore.listProfiles());
+      this.profiles.set(await this.serviceCatalog.listProfiles());
     } catch {
       this.profiles.set([]); // the dropdown just stays empty; not fatal
     }
@@ -137,7 +137,7 @@ export class AppstoreDeploymentsComponent {
       ? new Date(this.endingAtLocal()).toISOString()
       : null;
     try {
-      const created = await this.appstore.createDeployment(domain, {
+      const created = await this.serviceCatalog.createDeployment(domain, {
         serviceKey: this.serviceKey().trim(),
         profileRef: this.profileRef().trim() || null,
         endingAt,
@@ -164,7 +164,7 @@ export class AppstoreDeploymentsComponent {
     this.formError.set('');
     this.notice.set('');
     try {
-      await this.appstore.endDeployment(this.loadedDomain().trim(), row.id);
+      await this.serviceCatalog.endDeployment(this.loadedDomain().trim(), row.id);
       this.notice.set(`Ended the deployment of “${row.serviceKey}”.`);
       await this.fetchDeployments(); // refresh WITHOUT clearing the success notice
     } catch (e) {
@@ -175,7 +175,7 @@ export class AppstoreDeploymentsComponent {
   }
 
   private message(e: unknown, kind: 'record' | 'end'): string {
-    if (e instanceof AppstoreApiError && e.isForbidden) {
+    if (e instanceof ServiceCatalogApiError && e.isForbidden) {
       return 'The server denied this action — superadmin is required to manage deployments.';
     }
     return kind === 'record'

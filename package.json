@@ -1,16 +1,16 @@
 {
-  "name": "snapdragon-superadmin-appstore-ui",
+  "name": "snapdragon-superadmin-service-catalog-ui",
   "version": "0.1.0",
-  "description": "Superadmin App-Store console — native-federation remote (exposes ./Appstore at remoteEntry.json on :8080), SUPERADMIN-only console over snapdragon-admin-bff-api /bff/superadmin/service-store + /bff/superadmin/app-profiles (per-domain service curation, app-profile deploy templates, service-deployment lifecycle accounting); mounted by the snapdragon.systems host at /appstore.",
+  "description": "Superadmin Service Catalog console — native-federation remote (exposes ./ServiceCatalog at remoteEntry.json on :8080), SUPERADMIN-only console over snapdragon-admin-bff-api /bff/superadmin/service-store + /bff/superadmin/app-profiles (per-domain service curation, app-profile deploy templates, service-deployment lifecycle accounting); mounted by the snapdragon.systems host at /service-catalog.",
   "license": "MIT",
   "private": true,
   "scripts": {
     "ng": "ng",
-    "start": "ng serve appstore",
-    "build": "ng build appstore",
-    "build:appstore": "ng build appstore",
-    "test": "ng test appstore --watch=false --browsers=ChromeHeadlessCI",
-    "test:watch": "ng test appstore",
+    "start": "ng serve service-catalog",
+    "build": "ng build service-catalog",
+    "build:service-catalog": "ng build service-catalog",
+    "test": "ng test service-catalog --watch=false --browsers=ChromeHeadlessCI",
+    "test:watch": "ng test service-catalog",
     "gen": "ng-openapi-gen",
     "gen:fetch": "curl -fsS http://localhost:8080/v3/api-docs -o openapi.json && npm run gen"
   },

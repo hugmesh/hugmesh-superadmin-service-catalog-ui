@@ -1,29 +1,29 @@
-<header class="appstore-head">
-  <h1>Superadmin App-Store</h1>
-  <p class="appstore-head__sub" id="appstore-console-help">
+<header class="service-catalog-head">
+  <h1>Superadmin Service Catalog</h1>
+  <p class="service-catalog-head__sub" id="service-catalog-console-help">
     The infra control plane: curate which services each domain is offered, manage reusable deploy templates,
     and record the deployment lifecycle accounting.
   </p>
 
   @if (visibleItems().length > 0) {
-    <nav class="appstore-nav" role="menubar" aria-label="App-Store console" aria-describedby="appstore-console-help">
+    <nav class="service-catalog-nav" role="menubar" aria-label="Service Catalog console" aria-describedby="service-catalog-console-help">
       @for (item of visibleItems(); track item.path; let i = $index) {
         <a
           #navlink
           role="menuitem"
-          class="appstore-nav__item"
+          class="service-catalog-nav__item"
           [routerLink]="['./', item.path]"
-          routerLinkActive="appstore-nav__item--active"
+          routerLinkActive="service-catalog-nav__item--active"
           ariaCurrentWhenActive="page"
           [attr.aria-label]="item.aria"
-          [attr.aria-describedby]="'appstore-nav-help-' + item.path"
+          [attr.aria-describedby]="'service-catalog-nav-help-' + item.path"
           [attr.tabindex]="tabindexFor(i)"
           (keydown)="onKey($event, i)"
-          [attr.data-testid]="'appstore-nav-' + item.path"
+          [attr.data-testid]="'service-catalog-nav-' + item.path"
         >
           {{ item.label }}
         </a>
-        <span class="sr" [id]="'appstore-nav-help-' + item.path">{{ item.help }}</span>
+        <span class="sr" [id]="'service-catalog-nav-help-' + item.path">{{ item.help }}</span>
       }
     </nav>
   }

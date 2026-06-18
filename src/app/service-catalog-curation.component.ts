@@ -2,7 +2,7 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-import { AppstoreService, ServiceCuration, AppstoreApiError } from './appstore.service';
+import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from './service-catalog.service';
 
 /**
  * The CURATION view — the SUPERADMIN's per-domain offered catalog over
@@ -20,14 +20,14 @@ import { AppstoreService, ServiceCuration, AppstoreApiError } from './appstore.s
  * aria-describedby help; the offered list announces its state.
  */
 @Component({
-  selector: 'snap-appstore-curation',
+  selector: 'snap-service-catalog-curation',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './appstore-curation.component.html',
-  styleUrl: './appstore-curation.component.scss',
+  templateUrl: './service-catalog-curation.component.html',
+  styleUrl: './service-catalog-curation.component.scss',
 })
-export class AppstoreCurationComponent {
-  private readonly appstore = inject(AppstoreService);
+export class ServiceCatalogCurationComponent {
+  private readonly serviceCatalog = inject(ServiceCatalogService);
 
   // ── domain selector ──
   readonly domain = signal('');
@@ -78,13 +78,13 @@ export class AppstoreCurationComponent {
     this.listLoading.set(true);
     this.listError.set('');
     try {
-      const res = await this.appstore.listCuration(d);
+      const res = await this.serviceCatalog.listCuration(d);
       this.rows.set(res);
       this.loadedDomain.set(d);
     } catch (e) {
       this.rows.set(null);
       this.loadedDomain.set(d);
-      if (e instanceof AppstoreApiError && (e.isForbidden || e.isNotFound)) {
+      if (e instanceof ServiceCatalogApiError && (e.isForbidden || e.isNotFound)) {
         this.rows.set([]); // degrade: show the empty state, not a scary error
       } else {
         this.listError.set(`Could not load the catalog for ${d}. Please try again.`);
@@ -111,11 +111,11 @@ export class AppstoreCurationComponent {
     this.busy.set(true);
     try {
       if (kind === 'offer') {
-        await this.appstore.offer(domain, key);
+        await this.serviceCatalog.offer(domain, key);
         this.notice.set(`Offered “${key}” to ${domain}.`);
         this.serviceKey.set('');
       } else {
-        await this.appstore.withdraw(domain, key);
+        await this.serviceCatalog.withdraw(domain, key);
         this.notice.set(`Withdrew “${key}” from ${domain}.`);
       }
       await this.fetchCatalog(); // refresh WITHOUT clearing the success notice
@@ -127,7 +127,7 @@ export class AppstoreCurationComponent {
   }
 
   private message(e: unknown, kind: 'offer' | 'withdraw'): string {
-    if (e instanceof AppstoreApiError && e.isForbidden) {
+    if (e instanceof ServiceCatalogApiError && e.isForbidden) {
       return 'The server denied this action — superadmin is required to curate the catalog.';
     }
     return `Could not ${kind} the service. Please try again.`;

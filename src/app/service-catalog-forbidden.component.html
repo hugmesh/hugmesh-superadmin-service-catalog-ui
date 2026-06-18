@@ -1,0 +1,36 @@
+<section class="service-catalog-forbidden service-catalog-panel" role="alert" aria-labelledby="service-catalog-forbidden-title">
+  <h2 id="service-catalog-forbidden-title">You don't have access to this console</h2>
+  <p>
+    The Superadmin Service Catalog is the infra control plane — curating which services
+    each domain is offered, managing deploy templates, and recording the deployment
+    lifecycle. It requires the superadmin role. If you need access, ask a superadmin.
+  </p>
+</section>
+
+@if (canReadOwnCatalog()) {
+  <section class="service-catalog-panel service-catalog-forbidden__catalog" aria-labelledby="service-catalog-mycatalog-title">
+    <h3 id="service-catalog-mycatalog-title">Your domain’s offered catalog (read-only)</h3>
+    <p class="service-catalog-muted">
+      As an admin you can read the services a superadmin has offered to your domain.
+      You cannot offer, withdraw, or deploy from here.
+    </p>
+
+    @if (loading()) {
+      <p role="status" data-testid="service-catalog-mycatalog-loading">Loading your offered catalog…</p>
+    } @else if (error()) {
+      <p class="service-catalog-error" role="alert" data-testid="service-catalog-mycatalog-error">{{ error() }}</p>
+      <button type="button" class="service-catalog-btn service-catalog-btn--secondary" (click)="loadCatalog()">Retry</button>
+    } @else if (catalog() && catalog()!.length === 0) {
+      <p class="service-catalog-muted" data-testid="service-catalog-mycatalog-empty">No services have been offered to your domain yet.</p>
+    } @else if (catalog()) {
+      <ul class="service-catalog-list" data-testid="service-catalog-mycatalog-list">
+        @for (row of catalog()!; track trackId($index, row)) {
+          <li class="service-catalog-row">
+            <span class="service-catalog-row__key">{{ row.serviceKey }}</span>
+            <span class="service-catalog-muted">{{ row.domain }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

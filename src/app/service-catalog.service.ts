@@ -2,14 +2,14 @@ import { Injectable, InjectionToken, inject } from '@angular/core';
 
 /** Base URL of the admin BFF. The fe-gateway proxies same-origin /bff/** to
  *  snapdragon-admin-bff-api, so the default is the empty string = same origin.
- *  `globalThis.__SNAP_APPSTORE_URL__` lets the host override the target at
+ *  `globalThis.__SNAP_SERVICE_CATALOG_URL__` lets the host override the target at
  *  runtime (mirrors the other remotes' __SNAP_*_URL__ globals). */
-export const APPSTORE_BASE_URL = new InjectionToken<string>('APPSTORE_BASE_URL', {
-  factory: () => (globalThis as any).__SNAP_APPSTORE_URL__ ?? '',
+export const SERVICE_CATALOG_BASE_URL = new InjectionToken<string>('SERVICE_CATALOG_BASE_URL', {
+  factory: () => (globalThis as any).__SNAP_SERVICE_CATALOG_URL__ ?? '',
 });
 
 // ---------------------------------------------------------------------------
-// Contract — mirrors snapdragon-admin-bff-api appstore records (Jackson serialises
+// Contract — mirrors snapdragon-admin-bff-api serviceCatalog records (Jackson serialises
 // them camelCase): ServiceCuration / AppProfile / ServiceDeployment + the request
 // DTOs ServiceCurationRequest / AppProfileRequest / ServiceDeploymentRequest.
 // These are the EXACT JSON shapes the bff returns; when its /v3/api-docs is
@@ -70,7 +70,7 @@ export interface CreateDeployment {
 }
 
 /**
- * The FOUR App-Store service SOURCES a deployment can be provisioned FROM — the
+ * The FOUR Service Catalog service SOURCES a deployment can be provisioned FROM — the
  * `ServiceSource.Kind` enum the admin-bff effector (PR #67,
  * `appstore/ServiceSource.java`) parses from `sourceKind` (case-insensitive;
  * null/blank → SELECT). All four converge on the SAME deploy path (per-service
@@ -123,13 +123,13 @@ export interface ProvisionService {
  *  the bff returned — in particular the 403 the SUPERADMIN gate returns (the
  *  canonical default-deny signal), the 404 (a profile/deployment that is gone),
  *  and the 409 (a duplicate app_profile name). */
-export class AppstoreApiError extends Error {
+export class ServiceCatalogApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
   ) {
     super(message);
-    this.name = 'AppstoreApiError';
+    this.name = 'ServiceCatalogApiError';
   }
   /** A 403 — the SUPERADMIN @PreAuthorize / coarse /bff/superadmin/** gate denying.
    *  The server-authoritative denial (the UI gating is only convenience). */
@@ -144,7 +144,7 @@ export class AppstoreApiError extends Error {
   get isConflict(): boolean {
     return this.status === 409;
   }
-  /** A 400 — a bad request: in the App-Store this is the AddServiceEffector
+  /** A 400 — a bad request: in the Service Catalog this is the AddServiceEffector
    *  guard (a DOCKERFILE/ZIP source forced through before the in-cluster Kaniko
    *  builder exists, or a missing/blank repoUrl). The server `message` carries the
    *  reason, which the UI surfaces verbatim. */
@@ -154,7 +154,7 @@ export class AppstoreApiError extends Error {
 }
 
 /**
- * Thin reactive wrapper over the snapdragon-admin-bff-api App-Store surfaces. Auth
+ * Thin reactive wrapper over the snapdragon-admin-bff-api Service Catalog surfaces. Auth
  * piggybacks on the shared-session `bffToken` (the same Bearer the other BFF
  * surfaces use) read from `snap.session` in localStorage — the host injects
  * nothing and the module never renders a login form.
@@ -164,11 +164,11 @@ export class AppstoreApiError extends Error {
  * @PreAuthorize("hasRole('SUPERADMIN')")); the ONE admin-tier read is
  * /bff/admin/service-store (hasAnyRole('ADMIN','SUPERADMIN')). The UI gating is
  * convenience — the bff is the AUTHORITATIVE gate, so every method surfaces a 403
- * as an AppstoreApiError(403) the caller renders gracefully.
+ * as an ServiceCatalogApiError(403) the caller renders gracefully.
  */
 @Injectable({ providedIn: 'root' })
-export class AppstoreService {
-  private readonly base = inject(APPSTORE_BASE_URL);
+export class ServiceCatalogService {
+  private readonly base = inject(SERVICE_CATALOG_BASE_URL);
 
   // ----- token / headers --------------------------------------------------
 
@@ -215,7 +215,7 @@ export class AppstoreService {
       } catch {
         /* ignore */
       }
-      throw new AppstoreApiError(r.status, detail || `${method} ${path} failed: ${r.status}`);
+      throw new ServiceCatalogApiError(r.status, detail || `${method} ${path} failed: ${r.status}`);
     }
     const text = await r.text();
     return (text ? JSON.parse(text) : undefined) as T;

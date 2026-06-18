@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
 
-describe('AppComponent (appstore dev shell)', () => {
+describe('AppComponent (serviceCatalog dev shell)', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
@@ -21,8 +21,8 @@ describe('AppComponent (appstore dev shell)', () => {
     const el = fixture.nativeElement as HTMLElement;
     const skip = el.querySelector<HTMLAnchorElement>('a.skip');
     expect(skip).not.toBeNull();
-    expect(skip!.getAttribute('href')).toBe('#appstore-main');
-    const main = el.querySelector('main#appstore-main');
+    expect(skip!.getAttribute('href')).toBe('#service-catalog-main');
+    const main = el.querySelector('main#service-catalog-main');
     expect(main).not.toBeNull();
     expect(main!.getAttribute('tabindex')).toBe('-1');
   });
