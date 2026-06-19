@@ -1,0 +1,20 @@
+/* tslint:disable */
+/* eslint-disable */
+export interface StoragePool {
+  active?: boolean;
+  createdAt?: string;
+  createdBy?: string;
+  detachedAt?: string;
+  detachedBy?: string;
+  deviceId?: string;
+  diskSerial?: string;
+  domain?: string;
+  filesystem?: string;
+  generation?: number;
+  id?: string;
+  isExclusive?: boolean;
+  poolPath?: string;
+  propagationState?: string;
+  reservedBytes?: number;
+  state?: string;
+}

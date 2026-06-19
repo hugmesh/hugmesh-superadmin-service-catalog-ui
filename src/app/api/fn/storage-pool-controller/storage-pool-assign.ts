@@ -1,0 +1,34 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { AssignServiceRequest } from '../../models/assign-service-request';
+import { ServiceAssignment } from '../../models/service-assignment';
+
+export interface StoragePoolAssign$Params {
+  poolId: string;
+      body: AssignServiceRequest
+}
+
+export function storagePoolAssign(http: HttpClient, rootUrl: string, params: StoragePoolAssign$Params, context?: HttpContext): Observable<StrictHttpResponse<ServiceAssignment>> {
+  const rb = new RequestBuilder(rootUrl, storagePoolAssign.PATH, 'post');
+  if (params) {
+    rb.path('poolId', params.poolId, {});
+    rb.body(params.body, 'application/json');
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<ServiceAssignment>;
+    })
+  );
+}
+
+storagePoolAssign.PATH = '/bff/admin/device-storage-pools/pools/{poolId}/assignments';

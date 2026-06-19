@@ -1,0 +1,38 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+
+export interface MfaEnrollmentRemoveFactor$Params {
+  id: string;
+  Authorization?: string;
+}
+
+export function mfaEnrollmentRemoveFactor(http: HttpClient, rootUrl: string, params: MfaEnrollmentRemoveFactor$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+  const rb = new RequestBuilder(rootUrl, mfaEnrollmentRemoveFactor.PATH, 'delete');
+  if (params) {
+    rb.path('id', params.id, {});
+    rb.header('Authorization', params.Authorization, {});
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<{
+      [key: string]: {
+      };
+      }>;
+    })
+  );
+}
+
+mfaEnrollmentRemoveFactor.PATH = '/bff/mfa/factors/{id}';

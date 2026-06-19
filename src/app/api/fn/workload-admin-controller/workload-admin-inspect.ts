@@ -1,0 +1,33 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { PodInspect } from '../../models/pod-inspect';
+
+export interface WorkloadAdminInspect$Params {
+  namespace: string;
+  name: string;
+}
+
+export function workloadAdminInspect(http: HttpClient, rootUrl: string, params: WorkloadAdminInspect$Params, context?: HttpContext): Observable<StrictHttpResponse<PodInspect>> {
+  const rb = new RequestBuilder(rootUrl, workloadAdminInspect.PATH, 'get');
+  if (params) {
+    rb.path('namespace', params.namespace, {});
+    rb.path('name', params.name, {});
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<PodInspect>;
+    })
+  );
+}
+
+workloadAdminInspect.PATH = '/bff/admin/workloads/pods/{namespace}/{name}';

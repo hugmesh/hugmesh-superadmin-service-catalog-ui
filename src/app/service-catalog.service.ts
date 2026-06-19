@@ -1,4 +1,12 @@
 import { Injectable, InjectionToken, inject } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Observable, firstValueFrom, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+
+import { ServiceCurationControllerService } from './api/services/service-curation-controller.service';
+import { AppProfileControllerService } from './api/services/app-profile-controller.service';
+import { ServiceDeploymentControllerService } from './api/services/service-deployment-controller.service';
+import { AdminServiceStoreControllerService } from './api/services/admin-service-store-controller.service';
 
 /** Base URL of the admin BFF. The fe-gateway proxies same-origin /bff/** to
  *  snapdragon-admin-bff-api, so the default is the empty string = same origin.
@@ -12,10 +20,13 @@ export const SERVICE_CATALOG_BASE_URL = new InjectionToken<string>('SERVICE_CATA
 // Contract — mirrors snapdragon-admin-bff-api serviceCatalog records (Jackson serialises
 // them camelCase): ServiceCuration / AppProfile / ServiceDeployment + the request
 // DTOs ServiceCurationRequest / AppProfileRequest / ServiceDeploymentRequest.
-// These are the EXACT JSON shapes the bff returns; when its /v3/api-docs is
-// captured, `npm run gen` regenerates src/app/api/ from openapi.json and this
-// service becomes the thin wrapper over the generated client — the public method
-// signatures here are the stable contract. See README "Typed API client".
+// These are the EXACT JSON shapes the bff returns. As of the ng-openapi-gen
+// migration, `npm run gen:spec` copies the admin-bff's committed
+// src/main/resources/openapi/openapi.json to openapi.json and regenerates
+// src/app/api/, and this service is the thin DELEGATING wrapper over the
+// generated, typed client — the public method signatures + the interfaces below
+// are the stable contract the components consume (unchanged across the
+// migration). See README "Typed API client".
 // ---------------------------------------------------------------------------
 
 /** ServiceCuration — a service_curation row: per-{domain} offered-catalog record.
@@ -159,6 +170,22 @@ export class ServiceCatalogApiError extends Error {
  * surfaces use) read from `snap.session` in localStorage — the host injects
  * nothing and the module never renders a login form.
  *
+ * <p><b>ng-openapi-gen migration:</b> this service now DELEGATES every call to the
+ * generated, typed clients ({@link ServiceCurationControllerService} /
+ * {@link AppProfileControllerService} / {@link ServiceDeploymentControllerService} /
+ * {@link AdminServiceStoreControllerService}, under {@code src/app/api}, generated
+ * from the admin-bff-api OpenAPI spec) instead of hand-rolling {@code fetch} URLs.
+ * The generated clients call the SAME same-origin {@code /bff/**} paths (their
+ * {@code rootUrl} is set from {@link SERVICE_CATALOG_BASE_URL}, default ''), so the
+ * wire calls — URL + method + body — are unchanged. The shared-session Bearer is
+ * attached by the {@code bffAuthInterceptor} (reading the SAME {@code snap.session}
+ * {@code bffToken}), preserving the opaque {@code bff_session} auth exactly. This
+ * service keeps its OWN public {@link ServiceCuration} / {@link AppProfile} /
+ * {@link ServiceDeployment} / {@link ServiceCatalogApiError} types so the consuming
+ * components need ZERO change; the generated models are bridged at the delegation
+ * boundary, and {@code HttpErrorResponse}s are mapped back to
+ * {@link ServiceCatalogApiError} so the 400/403/404/409 surfacing is identical.
+ *
  * The methods map 1:1 to the bff endpoints (see each method). EVERY write/list is
  * SUPERADMIN-only at the bff (the /bff/superadmin/** coarse gate + the per-method
  * @PreAuthorize("hasRole('SUPERADMIN')")); the ONE admin-tier read is
@@ -169,56 +196,45 @@ export class ServiceCatalogApiError extends Error {
 @Injectable({ providedIn: 'root' })
 export class ServiceCatalogService {
   private readonly base = inject(SERVICE_CATALOG_BASE_URL);
+  private readonly curationApi = inject(ServiceCurationControllerService);
+  private readonly profileApi = inject(AppProfileControllerService);
+  private readonly deploymentApi = inject(ServiceDeploymentControllerService);
+  private readonly adminApi = inject(AdminServiceStoreControllerService);
 
-  // ----- token / headers --------------------------------------------------
-
-  private bffToken(): string | null {
-    try {
-      const s = JSON.parse(localStorage.getItem('snap.session') ?? 'null');
-      return s?.bffToken ?? null;
-    } catch {
-      return null;
-    }
+  constructor() {
+    // Point every generated client at the configured base (default '' = same
+    // origin, what the fe-gateway proxies). Mirrors the previous `${this.base}`
+    // prefix on the hand-rolled fetch URLs, so URL assertions stay valid.
+    this.curationApi.rootUrl = this.base;
+    this.profileApi.rootUrl = this.base;
+    this.deploymentApi.rootUrl = this.base;
+    this.adminApi.rootUrl = this.base;
   }
 
-  private headers(json = false): Record<string, string> {
-    const h: Record<string, string> = { Accept: 'application/json' };
-    const t = this.bffToken();
-    if (t) h['Authorization'] = `Bearer ${t}`;
-    if (json) h['Content-Type'] = 'application/json';
-    return h;
-  }
-
-  /** Issue a request to an ABSOLUTE bff path (the caller passes the full
-   *  /bff/... path so the EXACT PR1 URL is visible at the call site and asserted
-   *  in the spec). */
-  private async req<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const r = await fetch(`${this.base}${path}`, {
-      method,
-      headers: this.headers(body !== undefined),
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    if (!r.ok) {
-      // Read a server message (the bff returns a JSON {error|message}) but never
-      // let a parse failure mask the status the UI keys off.
-      let detail = '';
-      try {
-        const txt = await r.text();
-        if (txt) {
-          try {
-            const j = JSON.parse(txt);
-            detail = j.message ?? j.error ?? txt;
-          } catch {
-            detail = txt;
-          }
+  /** Map a generated-client {@link HttpErrorResponse} back to the public
+   *  {@link ServiceCatalogApiError} so the 400/403/404/409 surfacing the UI keys
+   *  off is identical to the pre-migration fetch layer. The bff returns a JSON
+   *  {@code {message|error}} body; never let a parse miss mask the status. */
+  private toApiError(method: string, path: string) {
+    return (e: unknown): Observable<never> => {
+      if (e instanceof HttpErrorResponse) {
+        const body = e.error;
+        let detail = '';
+        if (typeof body === 'string') {
+          detail = body;
+        } else if (body && typeof body === 'object') {
+          detail = (body as any).message ?? (body as any).error ?? '';
         }
-      } catch {
-        /* ignore */
+        return throwError(
+          () =>
+            new ServiceCatalogApiError(
+              e.status,
+              detail || `${method} ${path} failed: ${e.status}`,
+            ),
+        );
       }
-      throw new ServiceCatalogApiError(r.status, detail || `${method} ${path} failed: ${r.status}`);
-    }
-    const text = await r.text();
-    return (text ? JSON.parse(text) : undefined) as T;
+      return throwError(() => e);
+    };
   }
 
   // ----- CURATION (SUPERADMIN): /bff/superadmin/service-store/{domain} -----
@@ -226,27 +242,40 @@ export class ServiceCatalogService {
   /** GET /bff/superadmin/service-store/{domain} → ServiceCuration[] — the per-domain
    *  catalog (offered + withdrawn) for a {domain}. */
   listCuration(domain: string): Promise<ServiceCuration[]> {
-    return this.req<ServiceCuration[]>('GET', `/bff/superadmin/service-store/${encodeURIComponent(domain)}`);
+    return firstValueFrom(
+      this.curationApi
+        .serviceCurationList({ domain })
+        .pipe(
+          map((rows) => rows as unknown as ServiceCuration[]),
+          catchError(this.toApiError('GET', `/bff/superadmin/service-store/${domain}`)),
+        ),
+    );
   }
 
   /** POST /bff/superadmin/service-store/{domain}/offer {serviceKey} → ServiceCuration —
    *  offer a service_key to a {domain}'s admins. domain is the PATH target; the
    *  acting superadmin subject is stamped from the JWT (never a body field). */
   offer(domain: string, serviceKey: string): Promise<ServiceCuration> {
-    return this.req<ServiceCuration>(
-      'POST',
-      `/bff/superadmin/service-store/${encodeURIComponent(domain)}/offer`,
-      { serviceKey },
+    return firstValueFrom(
+      this.curationApi
+        .serviceCurationOffer({ domain, body: { serviceKey } })
+        .pipe(
+          map((row) => row as unknown as ServiceCuration),
+          catchError(this.toApiError('POST', `/bff/superadmin/service-store/${domain}/offer`)),
+        ),
     );
   }
 
   /** POST /bff/superadmin/service-store/{domain}/withdraw {serviceKey} → ServiceCuration —
    *  withdraw a service_key from a {domain}'s offered catalog (CAS offered->withdrawn). */
   withdraw(domain: string, serviceKey: string): Promise<ServiceCuration> {
-    return this.req<ServiceCuration>(
-      'POST',
-      `/bff/superadmin/service-store/${encodeURIComponent(domain)}/withdraw`,
-      { serviceKey },
+    return firstValueFrom(
+      this.curationApi
+        .serviceCurationWithdraw({ domain, body: { serviceKey } })
+        .pipe(
+          map((row) => row as unknown as ServiceCuration),
+          catchError(this.toApiError('POST', `/bff/superadmin/service-store/${domain}/withdraw`)),
+        ),
     );
   }
 
@@ -254,33 +283,64 @@ export class ServiceCatalogService {
 
   /** GET /bff/superadmin/app-profiles → AppProfile[] — the global template library. */
   listProfiles(): Promise<AppProfile[]> {
-    return this.req<AppProfile[]>('GET', '/bff/superadmin/app-profiles');
+    return firstValueFrom(
+      this.profileApi
+        .appProfileList()
+        .pipe(
+          map((rows) => rows as unknown as AppProfile[]),
+          catchError(this.toApiError('GET', '/bff/superadmin/app-profiles')),
+        ),
+    );
   }
 
   /** GET /bff/superadmin/app-profiles/{name} → AppProfile. */
   getProfile(name: string): Promise<AppProfile> {
-    return this.req<AppProfile>('GET', `/bff/superadmin/app-profiles/${encodeURIComponent(name)}`);
+    return firstValueFrom(
+      this.profileApi
+        .appProfileGet({ name })
+        .pipe(
+          map((row) => row as unknown as AppProfile),
+          catchError(this.toApiError('GET', `/bff/superadmin/app-profiles/${name}`)),
+        ),
+    );
   }
 
   /** POST /bff/superadmin/app-profiles {name, profileJson} → AppProfile (201). A
    *  duplicate name is a 409. */
   createProfile(name: string, profileJson: string): Promise<AppProfile> {
-    return this.req<AppProfile>('POST', '/bff/superadmin/app-profiles', { name, profileJson });
+    return firstValueFrom(
+      this.profileApi
+        .appProfileCreate({ body: { name, profileJson } })
+        .pipe(
+          map((row) => row as unknown as AppProfile),
+          catchError(this.toApiError('POST', '/bff/superadmin/app-profiles')),
+        ),
+    );
   }
 
   /** PUT /bff/superadmin/app-profiles/{name} {name(ignored), profileJson} → AppProfile.
    *  The PATH name identifies the row; the body name is ignored. */
   updateProfile(name: string, profileJson: string): Promise<AppProfile> {
-    return this.req<AppProfile>(
-      'PUT',
-      `/bff/superadmin/app-profiles/${encodeURIComponent(name)}`,
-      { name, profileJson },
+    return firstValueFrom(
+      this.profileApi
+        .appProfileUpdate({ name, body: { name, profileJson } })
+        .pipe(
+          map((row) => row as unknown as AppProfile),
+          catchError(this.toApiError('PUT', `/bff/superadmin/app-profiles/${name}`)),
+        ),
     );
   }
 
   /** DELETE /bff/superadmin/app-profiles/{name} → 204. */
   deleteProfile(name: string): Promise<void> {
-    return this.req<void>('DELETE', `/bff/superadmin/app-profiles/${encodeURIComponent(name)}`);
+    return firstValueFrom(
+      this.profileApi
+        .appProfileDelete({ name })
+        .pipe(
+          map(() => undefined),
+          catchError(this.toApiError('DELETE', `/bff/superadmin/app-profiles/${name}`)),
+        ),
+    );
   }
 
   // ----- DEPLOYMENTS (SUPERADMIN): .../{domain}/deployments ---------------
@@ -288,9 +348,13 @@ export class ServiceCatalogService {
   /** GET /bff/superadmin/service-store/{domain}/deployments → ServiceDeployment[] —
    *  the lifecycle-accounting rows for a {domain}. */
   listDeployments(domain: string): Promise<ServiceDeployment[]> {
-    return this.req<ServiceDeployment[]>(
-      'GET',
-      `/bff/superadmin/service-store/${encodeURIComponent(domain)}/deployments`,
+    return firstValueFrom(
+      this.deploymentApi
+        .serviceDeploymentList({ domain })
+        .pipe(
+          map((rows) => rows as unknown as ServiceDeployment[]),
+          catchError(this.toApiError('GET', `/bff/superadmin/service-store/${domain}/deployments`)),
+        ),
     );
   }
 
@@ -299,19 +363,28 @@ export class ServiceCatalogService {
    *  ending_at (the expiry clock) + enforce_actions. SHIPS DARK — the actual
    *  provision/teardown is a LATER effector increment, not wired here. */
   createDeployment(domain: string, body: CreateDeployment): Promise<ServiceDeployment> {
-    return this.req<ServiceDeployment>(
-      'POST',
-      `/bff/superadmin/service-store/${encodeURIComponent(domain)}/deployments`,
-      body,
+    return firstValueFrom(
+      this.deploymentApi
+        .serviceDeploymentCreate({ domain, body: body as any })
+        .pipe(
+          map((row) => row as unknown as ServiceDeployment),
+          catchError(this.toApiError('POST', `/bff/superadmin/service-store/${domain}/deployments`)),
+        ),
     );
   }
 
   /** POST /bff/superadmin/service-store/{domain}/deployments/{id}/end → ServiceDeployment —
    *  CAS active->ended (the row is retained as the audit trail). */
   endDeployment(domain: string, id: string): Promise<ServiceDeployment> {
-    return this.req<ServiceDeployment>(
-      'POST',
-      `/bff/superadmin/service-store/${encodeURIComponent(domain)}/deployments/${encodeURIComponent(id)}/end`,
+    return firstValueFrom(
+      this.deploymentApi
+        .serviceDeploymentEnd({ domain, id })
+        .pipe(
+          map((row) => row as unknown as ServiceDeployment),
+          catchError(
+            this.toApiError('POST', `/bff/superadmin/service-store/${domain}/deployments/${id}/end`),
+          ),
+        ),
     );
   }
 
@@ -327,10 +400,18 @@ export class ServiceCatalogService {
    *  that 400 gracefully if one is forced through. A missing/blank repoUrl is also a 400
    *  at the bff (@NotBlank). The {domain} is the explicit PATH target. */
   provisionDeployment(domain: string, id: string, body: ProvisionService): Promise<ServiceDeployment> {
-    return this.req<ServiceDeployment>(
-      'POST',
-      `/bff/superadmin/service-store/${encodeURIComponent(domain)}/deployments/${encodeURIComponent(id)}/provision`,
-      body,
+    return firstValueFrom(
+      this.deploymentApi
+        .serviceDeploymentProvision({ domain, id, body: body as any })
+        .pipe(
+          map((row) => row as unknown as ServiceDeployment),
+          catchError(
+            this.toApiError(
+              'POST',
+              `/bff/superadmin/service-store/${domain}/deployments/${id}/provision`,
+            ),
+          ),
+        ),
     );
   }
 
@@ -341,6 +422,13 @@ export class ServiceCatalogService {
    *  An admin sees only their own brand; a superadmin (unscoped) sees all. The
    *  domain is resolved from the validated JWT, NEVER a request field. */
   myDomainCatalog(): Promise<ServiceCuration[]> {
-    return this.req<ServiceCuration[]>('GET', '/bff/admin/service-store');
+    return firstValueFrom(
+      this.adminApi
+        .adminServiceStoreMyDomainCatalog()
+        .pipe(
+          map((rows) => rows as unknown as ServiceCuration[]),
+          catchError(this.toApiError('GET', '/bff/admin/service-store')),
+        ),
+    );
   }
 }

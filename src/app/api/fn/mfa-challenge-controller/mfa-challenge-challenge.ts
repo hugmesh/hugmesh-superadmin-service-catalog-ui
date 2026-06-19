@@ -1,0 +1,39 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { MfaChallengeRequest } from '../../models/mfa-challenge-request';
+
+export interface MfaChallengeChallenge$Params {
+  Authorization?: string;
+      body: MfaChallengeRequest
+}
+
+export function mfaChallengeChallenge(http: HttpClient, rootUrl: string, params: MfaChallengeChallenge$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+  const rb = new RequestBuilder(rootUrl, mfaChallengeChallenge.PATH, 'post');
+  if (params) {
+    rb.header('Authorization', params.Authorization, {});
+    rb.body(params.body, 'application/json');
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<{
+      [key: string]: {
+      };
+      }>;
+    })
+  );
+}
+
+mfaChallengeChallenge.PATH = '/bff/mfa/challenge';

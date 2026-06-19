@@ -1,0 +1,33 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { SignedExport } from '../../models/signed-export';
+
+export interface DeviceLicenseExport$Params {
+  mesh?: string;
+  node?: string;
+}
+
+export function deviceLicenseExport(http: HttpClient, rootUrl: string, params?: DeviceLicenseExport$Params, context?: HttpContext): Observable<StrictHttpResponse<SignedExport>> {
+  const rb = new RequestBuilder(rootUrl, deviceLicenseExport.PATH, 'get');
+  if (params) {
+    rb.query('mesh', params.mesh, {});
+    rb.query('node', params.node, {});
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<SignedExport>;
+    })
+  );
+}
+
+deviceLicenseExport.PATH = '/bff/admin/device-licenses/export';

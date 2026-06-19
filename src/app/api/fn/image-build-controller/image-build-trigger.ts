@@ -1,0 +1,39 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { TriggerImageBuildRequest } from '../../models/trigger-image-build-request';
+
+export interface ImageBuildTrigger$Params {
+  'X-ImageGen-StepUp'?: string;
+      body: TriggerImageBuildRequest
+}
+
+export function imageBuildTrigger(http: HttpClient, rootUrl: string, params: ImageBuildTrigger$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+  const rb = new RequestBuilder(rootUrl, imageBuildTrigger.PATH, 'post');
+  if (params) {
+    rb.header('X-ImageGen-StepUp', params['X-ImageGen-StepUp'], {});
+    rb.body(params.body, 'application/json');
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<{
+      [key: string]: {
+      };
+      }>;
+    })
+  );
+}
+
+imageBuildTrigger.PATH = '/bff/admin/image-builds';

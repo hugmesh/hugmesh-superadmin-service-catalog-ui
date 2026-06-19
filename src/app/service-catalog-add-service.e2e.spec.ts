@@ -1,7 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { ServiceCatalogAddServiceComponent } from './service-catalog-add-service.component';
 import { ServiceCatalogService, SERVICE_CATALOG_BASE_URL, ServiceDeployment } from './service-catalog.service';
+import { bffAuthInterceptor } from './auth.interceptor';
 
 /**
  * Gherkin-readable END-TO-END for the Service Catalog headline flow:
@@ -10,14 +13,17 @@ import { ServiceCatalogService, SERVICE_CATALOG_BASE_URL, ServiceDeployment } fr
  *            and sees it reflected in the domain's app profile (its deployment rows).
  *
  * This drives the REAL ServiceCatalogAddServiceComponent through the REAL ServiceCatalogService,
- * with ONLY `fetch` stubbed at the network edge — so the whole stack below the view
+ * with ONLY the network edge stubbed — so the whole stack below the view
  * (view → service → exact bff path/body) is exercised against the admin-bff effector
  * PR #67 contract, not a mocked service:
  *   GET  /bff/superadmin/service-store/{domain}/deployments        → the app profile rows
  *   POST /bff/superadmin/service-store/{domain}/deployments/{id}/provision {sourceKind, repoUrl,…}
  *
- * A backing in-memory "bff" flips a row's propagation_state pending→applied on provision,
- * so "see it in the app profile" is a real observable effect, end to end.
+ * Since the ng-openapi-gen migration the service delegates to the generated typed
+ * HttpClient client, so the network edge is the Angular {@link HttpTestingController}
+ * (was a `fetch` stub). A backing in-memory "bff" flips a row's propagation_state
+ * pending→applied on provision, so "see it in the app profile" is a real observable
+ * effect, end to end — the wire contract (paths + bodies) is unchanged.
  *
  * (The SUPERADMIN route gating + the in-remote /service-catalog/forbidden bounce are proven
  *  end-to-end in serviceCatalog.guard.spec.ts; this feature spec is the service-add flow.)
@@ -25,10 +31,12 @@ import { ServiceCatalogService, SERVICE_CATALOG_BASE_URL, ServiceDeployment } fr
 describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => {
   let fixture: ComponentFixture<ServiceCatalogAddServiceComponent>;
   let component: ServiceCatalogAddServiceComponent;
-  let fetchSpy: jasmine.Spy;
+  let httpMock: HttpTestingController;
 
   /** The in-memory app-profile (deployment rows) the fake bff serves + mutates. */
   let bffRows: ServiceDeployment[];
+  /** Every URL the flow hit, in order (the migrated stand-in for the fetch-spy log). */
+  let urlLog: { url: string; method: string; body: any }[];
 
   function bffRow(id: string, key: string): ServiceDeployment {
     return {
@@ -37,34 +45,56 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
       endedAt: null, createdBySubject: 'google:root',
     };
   }
-  function json(body: unknown, status = 200): Response {
-    return {
-      ok: status >= 200 && status < 300, status,
-      text: () => Promise.resolve(body === undefined ? '' : JSON.stringify(body)),
-    } as unknown as Response;
-  }
 
-  /** Wire the fake bff: GET deployments returns bffRows; POST .../provision flips the
-   *  addressed row pending→applied (the real effect a superadmin would observe). */
-  function installFakeBff(): void {
-    fetchSpy.and.callFake((url: string, init?: RequestInit) => {
-      const method = init?.method ?? 'GET';
+  /** Flush every pending HttpClient request once, applying the fake bff: GET
+   *  deployments returns bffRows; POST .../provision flips the addressed row
+   *  pending→applied (the real effect a superadmin would observe). Returns how many
+   *  it flushed so the caller can drain in waves (a provision POST resolving then
+   *  queues the reload GETs in a later microtask). */
+  function flushOnce(): number {
+    const pending = httpMock.match(() => true);
+    for (const req of pending) {
+      const url = req.request.url;
+      const method = req.request.method;
+      urlLog.push({ url, method, body: req.request.body });
       const provision = /\/deployments\/([^/]+)\/provision$/.exec(url);
       if (method === 'POST' && provision) {
         const id = decodeURIComponent(provision[1]);
         const target = bffRows.find((r) => r.id === id);
-        if (!target) return Promise.resolve(json({ message: 'no deployment' }, 404));
+        if (!target) {
+          req.flush({ message: 'no deployment' }, { status: 404, statusText: 'Not Found' });
+          continue;
+        }
         target.propagationState = 'applied';
-        return Promise.resolve(json(target));
+        req.flush(target);
+        continue;
       }
       if (method === 'GET' && /\/deployments$/.test(url)) {
-        return Promise.resolve(json(bffRows));
+        req.flush(bffRows);
+        continue;
       }
       if (method === 'GET' && /\/app-profiles$/.test(url)) {
-        return Promise.resolve(json([]));
+        req.flush([]);
+        continue;
       }
-      return Promise.resolve(json(undefined));
-    });
+      req.flush(null);
+    }
+    return pending.length;
+  }
+
+  /** Run `action` to completion, draining the fake bff in waves (each wave yields a
+   *  microtask so a request queued by a just-resolved one is picked up). */
+  async function withBff(action: Promise<void>): Promise<void> {
+    let settled = false;
+    const done = action.then(() => { settled = true; });
+    // Drain until the action settled AND no further requests appear.
+    for (let i = 0; i < 50; i++) {
+      flushOnce();
+      await Promise.resolve();
+      if (settled && httpMock.match(() => true).length === 0) break;
+    }
+    flushOnce();
+    await done;
   }
 
   function el(): HTMLElement {
@@ -83,11 +113,11 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
 
   /** GIVEN a superadmin loads a domain's app profile (its recorded deployments). The
    *  domain field is filled, then the real loadDomain() drives the real GET through
-   *  the real ServiceCatalogService to the stubbed fetch. */
+   *  the real ServiceCatalogService to the test backend. */
   async function givenLoadedDomain(domain = 'acme.test'): Promise<void> {
     setInput('service-catalog-add-domain', domain);
     component.domain.set(domain); // ensure the signal is set deterministically
-    await component.loadDomain();
+    await withBff(component.loadDomain());
     fixture.detectChanges();
   }
   /** WHEN they choose the Nth recorded deployment to provision. */
@@ -96,18 +126,15 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
     click(buttons[index]);
   }
   async function whenProvision(): Promise<void> {
-    await component.provision();
+    await withBff(component.provision());
     fixture.detectChanges();
   }
-  /** The single provision POST the flow issued (the most-recent call is the
-   *  post-provision reload GET, so find the POST .../provision explicitly). */
+  /** The single provision POST the flow issued. */
   function provisionCall(): { url: string; body: any } {
-    for (let i = fetchSpy.calls.count() - 1; i >= 0; i--) {
-      const args = fetchSpy.calls.argsFor(i);
-      const url = args[0] as string;
-      const init = (args[1] ?? {}) as RequestInit;
-      if (/\/provision$/.test(url) && (init.method ?? 'GET') === 'POST') {
-        return { url, body: JSON.parse(init.body as string) };
+    for (let i = urlLog.length - 1; i >= 0; i--) {
+      const c = urlLog[i];
+      if (/\/provision$/.test(c.url) && c.method === 'POST') {
+        return { url: c.url, body: c.body };
       }
     }
     throw new Error('no provision POST was issued');
@@ -117,19 +144,28 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
     localStorage.clear();
     localStorage.setItem('snap.session', JSON.stringify({ bffToken: 'tok' }));
     bffRows = [bffRow('dep-1', 'owncast'), bffRow('dep-2', 'phpbb')];
-    fetchSpy = spyOn(globalThis, 'fetch');
-    installFakeBff();
+    urlLog = [];
 
     await TestBed.configureTestingModule({
       imports: [ServiceCatalogAddServiceComponent],
-      providers: [ServiceCatalogService, { provide: SERVICE_CATALOG_BASE_URL, useValue: '' }],
+      providers: [
+        ServiceCatalogService,
+        { provide: SERVICE_CATALOG_BASE_URL, useValue: '' },
+        provideHttpClient(withInterceptors([bffAuthInterceptor])),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
+    httpMock = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(ServiceCatalogAddServiceComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    flushOnce(); // any on-init load
   });
 
-  afterEach(() => localStorage.clear());
+  afterEach(() => {
+    httpMock.verify();
+    localStorage.clear();
+  });
 
   it('SCENARIO: add a service via the SELECT source and see it APPLIED in the app profile', async () => {
     // GIVEN the domain's app profile is loaded (real GET hits the bff path)
@@ -193,7 +229,7 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
     expect(zip.disabled).toBeTrue();
     expect(el().querySelectorAll('[data-testid="service-catalog-source-gated-badge"]').length).toBe(2);
     // AND no provision POST has been issued
-    expect(fetchSpy.calls.all().some((c) => /\/provision$/.test(c.args[0] as string))).toBeFalse();
+    expect(urlLog.some((c) => /\/provision$/.test(c.url))).toBeFalse();
   });
 
   it('SCENARIO: switching the domain re-scopes the app profile (cross-domain isolation)', async () => {
@@ -210,7 +246,7 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
     expect(component.selectedId()).toBe('');
     expect(el().textContent).toContain('matrix');
     expect(el().textContent).not.toContain('owncast');
-    const getCalls = fetchSpy.calls.all().map((c) => c.args[0] as string).filter((u) => /\/deployments$/.test(u));
+    const getCalls = urlLog.map((c) => c.url).filter((u) => /\/deployments$/.test(u));
     expect(getCalls).toContain('/bff/superadmin/service-store/beta.test/deployments');
   });
 });

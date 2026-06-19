@@ -1,0 +1,32 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { DesktopAppCatalogEntry } from '../../models/desktop-app-catalog-entry';
+import { DesktopCatalogEntryRequest } from '../../models/desktop-catalog-entry-request';
+
+export interface DesktopCatalogAdminAdd$Params {
+      body: DesktopCatalogEntryRequest
+}
+
+export function desktopCatalogAdminAdd(http: HttpClient, rootUrl: string, params: DesktopCatalogAdminAdd$Params, context?: HttpContext): Observable<StrictHttpResponse<DesktopAppCatalogEntry>> {
+  const rb = new RequestBuilder(rootUrl, desktopCatalogAdminAdd.PATH, 'post');
+  if (params) {
+    rb.body(params.body, 'application/json');
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<DesktopAppCatalogEntry>;
+    })
+  );
+}
+
+desktopCatalogAdminAdd.PATH = '/bff/admin/desktop/catalog';

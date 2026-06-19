@@ -1,0 +1,20 @@
+/* tslint:disable */
+/* eslint-disable */
+export interface BackupSet {
+  completedAt?: string;
+  createdAt?: string;
+  createdBy?: string;
+  destinationKind?: 'OBJECT_STORE' | 'NODE_STORAGE';
+  destinationRef?: string;
+  domain?: string;
+  encryptionMeta?: string;
+  id?: string;
+  scope?: 'DOMAIN' | 'TOTAL';
+  services?: Array<string>;
+  setKey?: string;
+  sizeBytes?: number;
+  startedAt?: string;
+  status?: string;
+  total?: boolean;
+  version?: number;
+}

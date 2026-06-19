@@ -1,0 +1,31 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { DataBuffer } from '../../models/data-buffer';
+
+export interface TestReportsDownload$Params {
+  id: string;
+}
+
+export function testReportsDownload(http: HttpClient, rootUrl: string, params: TestReportsDownload$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<DataBuffer>>> {
+  const rb = new RequestBuilder(rootUrl, testReportsDownload.PATH, 'get');
+  if (params) {
+    rb.path('id', params.id, {});
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<Array<DataBuffer>>;
+    })
+  );
+}
+
+testReportsDownload.PATH = '/bff/admin/test-reports/{id}/download';

@@ -12,7 +12,7 @@
     "test": "ng test service-catalog --watch=false --browsers=ChromeHeadlessCI",
     "test:watch": "ng test service-catalog",
     "gen": "ng-openapi-gen",
-    "gen:fetch": "curl -fsS http://localhost:8080/v3/api-docs -o openapi.json && npm run gen"
+    "gen:spec": "node -e \"const fs=require('fs');const s=process.env.ADMIN_BFF_SPEC||'../snapdragon-admin-bff-api/src/main/resources/openapi/openapi.json';if(!fs.existsSync(s)){console.error('spec not found: '+s+'\\nRun `./mvnw -Dtest=OpenApiSpecDumpTest test` in snapdragon-admin-bff-api first, or set ADMIN_BFF_SPEC to its committed openapi.json.');process.exit(1)}fs.copyFileSync(s,'openapi.json');console.log('copied '+s+' -> openapi.json')\" && npm run gen"
   },
   "dependencies": {
     "@angular-architects/native-federation": "^22.0.0",

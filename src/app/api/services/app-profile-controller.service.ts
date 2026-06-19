@@ -1,0 +1,195 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+import { BaseService } from '../base-service';
+import { ApiConfiguration } from '../api-configuration';
+import { StrictHttpResponse } from '../strict-http-response';
+
+import { AppProfile } from '../models/app-profile';
+import { appProfileCreate } from '../fn/app-profile-controller/app-profile-create';
+import { AppProfileCreate$Params } from '../fn/app-profile-controller/app-profile-create';
+import { appProfileDelete } from '../fn/app-profile-controller/app-profile-delete';
+import { AppProfileDelete$Params } from '../fn/app-profile-controller/app-profile-delete';
+import { appProfileGet } from '../fn/app-profile-controller/app-profile-get';
+import { AppProfileGet$Params } from '../fn/app-profile-controller/app-profile-get';
+import { appProfileList } from '../fn/app-profile-controller/app-profile-list';
+import { AppProfileList$Params } from '../fn/app-profile-controller/app-profile-list';
+import { appProfileUpdate } from '../fn/app-profile-controller/app-profile-update';
+import { AppProfileUpdate$Params } from '../fn/app-profile-controller/app-profile-update';
+
+@Injectable({ providedIn: 'root' })
+export class AppProfileControllerService extends BaseService {
+  constructor(config: ApiConfiguration, http: HttpClient) {
+    super(config, http);
+  }
+
+  /** Path part for operation `appProfileGet()` */
+  static readonly AppProfileGetPath = '/bff/superadmin/app-profiles/{name}';
+
+  /**
+   * Get.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `appProfileGet()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  appProfileGet$Response(params: AppProfileGet$Params, context?: HttpContext): Observable<StrictHttpResponse<AppProfile>> {
+    return appProfileGet(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Get.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `appProfileGet$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  appProfileGet(params: AppProfileGet$Params, context?: HttpContext): Observable<AppProfile> {
+    return this.appProfileGet$Response(params, context).pipe(
+      map((r: StrictHttpResponse<AppProfile>): AppProfile => r.body)
+    );
+  }
+
+  /** Path part for operation `appProfileUpdate()` */
+  static readonly AppProfileUpdatePath = '/bff/superadmin/app-profiles/{name}';
+
+  /**
+   * Update.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `appProfileUpdate()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  appProfileUpdate$Response(params: AppProfileUpdate$Params, context?: HttpContext): Observable<StrictHttpResponse<AppProfile>> {
+    return appProfileUpdate(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Update.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `appProfileUpdate$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  appProfileUpdate(params: AppProfileUpdate$Params, context?: HttpContext): Observable<AppProfile> {
+    return this.appProfileUpdate$Response(params, context).pipe(
+      map((r: StrictHttpResponse<AppProfile>): AppProfile => r.body)
+    );
+  }
+
+  /** Path part for operation `appProfileDelete()` */
+  static readonly AppProfileDeletePath = '/bff/superadmin/app-profiles/{name}';
+
+  /**
+   * Delete.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `appProfileDelete()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  appProfileDelete$Response(params: AppProfileDelete$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+    return appProfileDelete(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Delete.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `appProfileDelete$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  appProfileDelete(params: AppProfileDelete$Params, context?: HttpContext): Observable<void> {
+    return this.appProfileDelete$Response(params, context).pipe(
+      map((r: StrictHttpResponse<void>): void => r.body)
+    );
+  }
+
+  /** Path part for operation `appProfileList()` */
+  static readonly AppProfileListPath = '/bff/superadmin/app-profiles';
+
+  /**
+   * List.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `appProfileList()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  appProfileList$Response(params?: AppProfileList$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<AppProfile>>> {
+    return appProfileList(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * List.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `appProfileList$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  appProfileList(params?: AppProfileList$Params, context?: HttpContext): Observable<Array<AppProfile>> {
+    return this.appProfileList$Response(params, context).pipe(
+      map((r: StrictHttpResponse<Array<AppProfile>>): Array<AppProfile> => r.body)
+    );
+  }
+
+  /** Path part for operation `appProfileCreate()` */
+  static readonly AppProfileCreatePath = '/bff/superadmin/app-profiles';
+
+  /**
+   * Create.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `appProfileCreate()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  appProfileCreate$Response(params: AppProfileCreate$Params, context?: HttpContext): Observable<StrictHttpResponse<AppProfile>> {
+    return appProfileCreate(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Create.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `appProfileCreate$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  appProfileCreate(params: AppProfileCreate$Params, context?: HttpContext): Observable<AppProfile> {
+    return this.appProfileCreate$Response(params, context).pipe(
+      map((r: StrictHttpResponse<AppProfile>): AppProfile => r.body)
+    );
+  }
+
+}

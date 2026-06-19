@@ -1,0 +1,33 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { DeviceSshDialResponse } from '../../models/device-ssh-dial-response';
+
+export interface DesktopDialAdminRevoke$Params {
+  deviceId: string;
+  'X-Device-Terminal-StepUp'?: string;
+}
+
+export function desktopDialAdminRevoke(http: HttpClient, rootUrl: string, params: DesktopDialAdminRevoke$Params, context?: HttpContext): Observable<StrictHttpResponse<DeviceSshDialResponse>> {
+  const rb = new RequestBuilder(rootUrl, desktopDialAdminRevoke.PATH, 'post');
+  if (params) {
+    rb.path('deviceId', params.deviceId, {});
+    rb.header('X-Device-Terminal-StepUp', params['X-Device-Terminal-StepUp'], {});
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<DeviceSshDialResponse>;
+    })
+  );
+}
+
+desktopDialAdminRevoke.PATH = '/bff/superadmin/desktop/dials/{deviceId}/revoke';

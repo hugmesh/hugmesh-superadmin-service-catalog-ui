@@ -1,0 +1,36 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+
+export interface DesktopSudoAdminRevoke$Params {
+  grantId: string;
+}
+
+export function desktopSudoAdminRevoke(http: HttpClient, rootUrl: string, params: DesktopSudoAdminRevoke$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+  const rb = new RequestBuilder(rootUrl, desktopSudoAdminRevoke.PATH, 'delete');
+  if (params) {
+    rb.path('grantId', params.grantId, {});
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<{
+      [key: string]: {
+      };
+      }>;
+    })
+  );
+}
+
+desktopSudoAdminRevoke.PATH = '/bff/admin/desktop/sudo/{grantId}';

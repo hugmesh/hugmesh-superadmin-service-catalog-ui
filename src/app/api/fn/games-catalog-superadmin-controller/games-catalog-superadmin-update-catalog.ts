@@ -1,0 +1,34 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { GameCatalogEntryRequest } from '../../models/game-catalog-entry-request';
+import { GameCatalogEntryResponse } from '../../models/game-catalog-entry-response';
+
+export interface GamesCatalogSuperadminUpdateCatalog$Params {
+  slug: string;
+      body: GameCatalogEntryRequest
+}
+
+export function gamesCatalogSuperadminUpdateCatalog(http: HttpClient, rootUrl: string, params: GamesCatalogSuperadminUpdateCatalog$Params, context?: HttpContext): Observable<StrictHttpResponse<GameCatalogEntryResponse>> {
+  const rb = new RequestBuilder(rootUrl, gamesCatalogSuperadminUpdateCatalog.PATH, 'put');
+  if (params) {
+    rb.path('slug', params.slug, {});
+    rb.body(params.body, 'application/json');
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<GameCatalogEntryResponse>;
+    })
+  );
+}
+
+gamesCatalogSuperadminUpdateCatalog.PATH = '/bff/superadmin/games-services/catalog/{slug}';

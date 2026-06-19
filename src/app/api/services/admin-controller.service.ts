@@ -1,0 +1,1089 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+import { BaseService } from '../base-service';
+import { ApiConfiguration } from '../api-configuration';
+import { StrictHttpResponse } from '../strict-http-response';
+
+import { adminAccessRoles } from '../fn/admin-controller/admin-access-roles';
+import { AdminAccessRoles$Params } from '../fn/admin-controller/admin-access-roles';
+import { adminAddRouteRule } from '../fn/admin-controller/admin-add-route-rule';
+import { AdminAddRouteRule$Params } from '../fn/admin-controller/admin-add-route-rule';
+import { adminAllowlist } from '../fn/admin-controller/admin-allowlist';
+import { AdminAllowlist$Params } from '../fn/admin-controller/admin-allowlist';
+import { adminClearAccessRole } from '../fn/admin-controller/admin-clear-access-role';
+import { AdminClearAccessRole$Params } from '../fn/admin-controller/admin-clear-access-role';
+import { adminDecideModeration } from '../fn/admin-controller/admin-decide-moderation';
+import { AdminDecideModeration$Params } from '../fn/admin-controller/admin-decide-moderation';
+import { adminDomainLocks } from '../fn/admin-controller/admin-domain-locks';
+import { AdminDomainLocks$Params } from '../fn/admin-controller/admin-domain-locks';
+import { adminGrant } from '../fn/admin-controller/admin-grant';
+import { AdminGrant$Params } from '../fn/admin-controller/admin-grant';
+import { adminGrantRole } from '../fn/admin-controller/admin-grant-role';
+import { AdminGrantRole$Params } from '../fn/admin-controller/admin-grant-role';
+import { adminInvite } from '../fn/admin-controller/admin-invite';
+import { AdminInvite$Params } from '../fn/admin-controller/admin-invite';
+import { adminIsos } from '../fn/admin-controller/admin-isos';
+import { AdminIsos$Params } from '../fn/admin-controller/admin-isos';
+import { adminLockDomain } from '../fn/admin-controller/admin-lock-domain';
+import { AdminLockDomain$Params } from '../fn/admin-controller/admin-lock-domain';
+import { adminNamespaceAccess } from '../fn/admin-controller/admin-namespace-access';
+import { AdminNamespaceAccess$Params } from '../fn/admin-controller/admin-namespace-access';
+import { adminRemoveRoute } from '../fn/admin-controller/admin-remove-route';
+import { AdminRemoveRoute$Params } from '../fn/admin-controller/admin-remove-route';
+import { adminRemoveRouteRule } from '../fn/admin-controller/admin-remove-route-rule';
+import { AdminRemoveRouteRule$Params } from '../fn/admin-controller/admin-remove-route-rule';
+import { adminRevoke } from '../fn/admin-controller/admin-revoke';
+import { AdminRevoke$Params } from '../fn/admin-controller/admin-revoke';
+import { adminRevokeRole } from '../fn/admin-controller/admin-revoke-role';
+import { AdminRevokeRole$Params } from '../fn/admin-controller/admin-revoke-role';
+import { adminRouteAccess } from '../fn/admin-controller/admin-route-access';
+import { AdminRouteAccess$Params } from '../fn/admin-controller/admin-route-access';
+import { adminRoutes } from '../fn/admin-controller/admin-routes';
+import { AdminRoutes$Params } from '../fn/admin-controller/admin-routes';
+import { adminSuspendAccessRole } from '../fn/admin-controller/admin-suspend-access-role';
+import { AdminSuspendAccessRole$Params } from '../fn/admin-controller/admin-suspend-access-role';
+import { adminUninvite } from '../fn/admin-controller/admin-uninvite';
+import { AdminUninvite$Params } from '../fn/admin-controller/admin-uninvite';
+import { adminUnlockDomain } from '../fn/admin-controller/admin-unlock-domain';
+import { AdminUnlockDomain$Params } from '../fn/admin-controller/admin-unlock-domain';
+import { adminUpsertRoute } from '../fn/admin-controller/admin-upsert-route';
+import { AdminUpsertRoute$Params } from '../fn/admin-controller/admin-upsert-route';
+import { adminUsage } from '../fn/admin-controller/admin-usage';
+import { AdminUsage$Params } from '../fn/admin-controller/admin-usage';
+import { ModerationDecisionDto } from '../models/moderation-decision-dto';
+
+@Injectable({ providedIn: 'root' })
+export class AdminControllerService extends BaseService {
+  constructor(config: ApiConfiguration, http: HttpClient) {
+    super(config, http);
+  }
+
+  /** Path part for operation `adminRoutes()` */
+  static readonly AdminRoutesPath = '/bff/admin/routes';
+
+  /**
+   * Routes.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminRoutes()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminRoutes$Response(params?: AdminRoutes$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminRoutes(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Routes.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminRoutes$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminRoutes(params?: AdminRoutes$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminRoutes$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminUpsertRoute()` */
+  static readonly AdminUpsertRoutePath = '/bff/admin/routes';
+
+  /**
+   * Upsert route.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminUpsertRoute()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminUpsertRoute$Response(params: AdminUpsertRoute$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminUpsertRoute(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Upsert route.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminUpsertRoute$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminUpsertRoute(params: AdminUpsertRoute$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminUpsertRoute$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminRouteAccess()` */
+  static readonly AdminRouteAccessPath = '/bff/admin/route-access';
+
+  /**
+   * Route access.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminRouteAccess()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminRouteAccess$Response(params?: AdminRouteAccess$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminRouteAccess(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Route access.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminRouteAccess$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminRouteAccess(params?: AdminRouteAccess$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminRouteAccess$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminAddRouteRule()` */
+  static readonly AdminAddRouteRulePath = '/bff/admin/route-access';
+
+  /**
+   * Add route rule.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminAddRouteRule()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminAddRouteRule$Response(params: AdminAddRouteRule$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminAddRouteRule(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Add route rule.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminAddRouteRule$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminAddRouteRule(params: AdminAddRouteRule$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminAddRouteRule$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminRemoveRouteRule()` */
+  static readonly AdminRemoveRouteRulePath = '/bff/admin/route-access';
+
+  /**
+   * Remove route rule.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminRemoveRouteRule()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminRemoveRouteRule$Response(params: AdminRemoveRouteRule$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminRemoveRouteRule(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Remove route rule.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminRemoveRouteRule$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminRemoveRouteRule(params: AdminRemoveRouteRule$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminRemoveRouteRule$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminGrantRole()` */
+  static readonly AdminGrantRolePath = '/bff/admin/roles/{roleName}/{user}';
+
+  /**
+   * Grant role.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminGrantRole()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminGrantRole$Response(params: AdminGrantRole$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminGrantRole(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Grant role.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminGrantRole$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminGrantRole(params: AdminGrantRole$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminGrantRole$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminRevokeRole()` */
+  static readonly AdminRevokeRolePath = '/bff/admin/roles/{roleName}/{user}';
+
+  /**
+   * Revoke role.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminRevokeRole()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminRevokeRole$Response(params: AdminRevokeRole$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminRevokeRole(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Revoke role.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminRevokeRole$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminRevokeRole(params: AdminRevokeRole$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminRevokeRole$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminNamespaceAccess()` */
+  static readonly AdminNamespaceAccessPath = '/bff/admin/namespace-access';
+
+  /**
+   * Namespace access.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminNamespaceAccess()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminNamespaceAccess$Response(params?: AdminNamespaceAccess$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminNamespaceAccess(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Namespace access.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminNamespaceAccess$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminNamespaceAccess(params?: AdminNamespaceAccess$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminNamespaceAccess$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminGrant()` */
+  static readonly AdminGrantPath = '/bff/admin/namespace-access';
+
+  /**
+   * Grant.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminGrant()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminGrant$Response(params: AdminGrant$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminGrant(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Grant.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminGrant$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminGrant(params: AdminGrant$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminGrant$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminRevoke()` */
+  static readonly AdminRevokePath = '/bff/admin/namespace-access';
+
+  /**
+   * Revoke.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminRevoke()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminRevoke$Response(params: AdminRevoke$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminRevoke(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Revoke.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminRevoke$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminRevoke(params: AdminRevoke$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminRevoke$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminDecideModeration()` */
+  static readonly AdminDecideModerationPath = '/bff/admin/moderation/{id}/decide';
+
+  /**
+   * Decide moderation.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminDecideModeration()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminDecideModeration$Response(params: AdminDecideModeration$Params, context?: HttpContext): Observable<StrictHttpResponse<ModerationDecisionDto>> {
+    return adminDecideModeration(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Decide moderation.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminDecideModeration$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminDecideModeration(params: AdminDecideModeration$Params, context?: HttpContext): Observable<ModerationDecisionDto> {
+    return this.adminDecideModeration$Response(params, context).pipe(
+      map((r: StrictHttpResponse<ModerationDecisionDto>): ModerationDecisionDto => r.body)
+    );
+  }
+
+  /** Path part for operation `adminLockDomain()` */
+  static readonly AdminLockDomainPath = '/bff/admin/domain-lock/{role}/{user}';
+
+  /**
+   * Lock domain.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminLockDomain()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminLockDomain$Response(params: AdminLockDomain$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminLockDomain(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Lock domain.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminLockDomain$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminLockDomain(params: AdminLockDomain$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminLockDomain$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminUnlockDomain()` */
+  static readonly AdminUnlockDomainPath = '/bff/admin/domain-lock/{role}/{user}';
+
+  /**
+   * Unlock domain.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminUnlockDomain()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminUnlockDomain$Response(params: AdminUnlockDomain$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminUnlockDomain(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Unlock domain.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminUnlockDomain$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminUnlockDomain(params: AdminUnlockDomain$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminUnlockDomain$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminAllowlist()` */
+  static readonly AdminAllowlistPath = '/bff/admin/allowlist';
+
+  /**
+   * Allowlist.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminAllowlist()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminAllowlist$Response(params?: AdminAllowlist$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminAllowlist(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Allowlist.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminAllowlist$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminAllowlist(params?: AdminAllowlist$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminAllowlist$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminInvite()` */
+  static readonly AdminInvitePath = '/bff/admin/allowlist';
+
+  /**
+   * Invite.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminInvite()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminInvite$Response(params: AdminInvite$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminInvite(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Invite.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminInvite$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminInvite(params: AdminInvite$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminInvite$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminUninvite()` */
+  static readonly AdminUninvitePath = '/bff/admin/allowlist';
+
+  /**
+   * Uninvite.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminUninvite()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminUninvite$Response(params: AdminUninvite$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminUninvite(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Uninvite.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminUninvite$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminUninvite(params: AdminUninvite$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminUninvite$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminSuspendAccessRole()` */
+  static readonly AdminSuspendAccessRolePath = '/bff/admin/access-roles/{role}/{user}';
+
+  /**
+   * Suspend access role.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminSuspendAccessRole()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminSuspendAccessRole$Response(params: AdminSuspendAccessRole$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminSuspendAccessRole(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Suspend access role.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminSuspendAccessRole$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  adminSuspendAccessRole(params: AdminSuspendAccessRole$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminSuspendAccessRole$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminClearAccessRole()` */
+  static readonly AdminClearAccessRolePath = '/bff/admin/access-roles/{role}/{user}';
+
+  /**
+   * Clear access role.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminClearAccessRole()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminClearAccessRole$Response(params: AdminClearAccessRole$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminClearAccessRole(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Clear access role.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminClearAccessRole$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminClearAccessRole(params: AdminClearAccessRole$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminClearAccessRole$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminUsage()` */
+  static readonly AdminUsagePath = '/bff/admin/usage';
+
+  /**
+   * Usage.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminUsage()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminUsage$Response(params?: AdminUsage$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminUsage(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Usage.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminUsage$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminUsage(params?: AdminUsage$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminUsage$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminIsos()` */
+  static readonly AdminIsosPath = '/bff/admin/isos';
+
+  /**
+   * Isos.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminIsos()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminIsos$Response(params?: AdminIsos$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminIsos(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Isos.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminIsos$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminIsos(params?: AdminIsos$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminIsos$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminDomainLocks()` */
+  static readonly AdminDomainLocksPath = '/bff/admin/domain-lock';
+
+  /**
+   * Domain locks.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminDomainLocks()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminDomainLocks$Response(params?: AdminDomainLocks$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminDomainLocks(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Domain locks.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminDomainLocks$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminDomainLocks(params?: AdminDomainLocks$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminDomainLocks$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminAccessRoles()` */
+  static readonly AdminAccessRolesPath = '/bff/admin/access-roles';
+
+  /**
+   * Access roles.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminAccessRoles()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminAccessRoles$Response(params?: AdminAccessRoles$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminAccessRoles(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Access roles.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminAccessRoles$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminAccessRoles(params?: AdminAccessRoles$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminAccessRoles$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+  /** Path part for operation `adminRemoveRoute()` */
+  static readonly AdminRemoveRoutePath = '/bff/admin/routes/{pathPrefix}';
+
+  /**
+   * Remove route.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `adminRemoveRoute()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminRemoveRoute$Response(params: AdminRemoveRoute$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return adminRemoveRoute(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Remove route.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `adminRemoveRoute$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  adminRemoveRoute(params: AdminRemoveRoute$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.adminRemoveRoute$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+}

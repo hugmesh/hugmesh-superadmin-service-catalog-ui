@@ -1,0 +1,41 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { SuspensionRequest } from '../../models/suspension-request';
+
+export interface AdminSuspendAccessRole$Params {
+  role: string;
+  user: string;
+      body?: SuspensionRequest
+}
+
+export function adminSuspendAccessRole(http: HttpClient, rootUrl: string, params: AdminSuspendAccessRole$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+  const rb = new RequestBuilder(rootUrl, adminSuspendAccessRole.PATH, 'post');
+  if (params) {
+    rb.path('role', params.role, {});
+    rb.path('user', params.user, {});
+    rb.body(params.body, 'application/json');
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<{
+      [key: string]: {
+      };
+      }>;
+    })
+  );
+}
+
+adminSuspendAccessRole.PATH = '/bff/admin/access-roles/{role}/{user}';

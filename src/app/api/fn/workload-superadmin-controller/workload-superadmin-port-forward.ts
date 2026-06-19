@@ -1,0 +1,40 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+
+export interface WorkloadSuperadminPortForward$Params {
+  namespace: string;
+  workload: string;
+  port: number;
+}
+
+export function workloadSuperadminPortForward(http: HttpClient, rootUrl: string, params: WorkloadSuperadminPortForward$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+  const rb = new RequestBuilder(rootUrl, workloadSuperadminPortForward.PATH, 'post');
+  if (params) {
+    rb.path('namespace', params.namespace, {});
+    rb.path('workload', params.workload, {});
+    rb.query('port', params.port, {});
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<{
+      [key: string]: {
+      };
+      }>;
+    })
+  );
+}
+
+workloadSuperadminPortForward.PATH = '/bff/superadmin/workloads/port-forward/{namespace}/{workload}';

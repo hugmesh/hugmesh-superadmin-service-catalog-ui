@@ -5,8 +5,6 @@
 /coverage
 /test-results
 /reports
-/openapi.json
-/src/app/api
 *.log
 .DS_Store
 .env

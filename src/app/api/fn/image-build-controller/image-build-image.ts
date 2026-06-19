@@ -1,0 +1,31 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { DataBuffer } from '../../models/data-buffer';
+
+export interface ImageBuildImage$Params {
+  id: string;
+}
+
+export function imageBuildImage(http: HttpClient, rootUrl: string, params: ImageBuildImage$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<DataBuffer>>> {
+  const rb = new RequestBuilder(rootUrl, imageBuildImage.PATH, 'get');
+  if (params) {
+    rb.path('id', params.id, {});
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<Array<DataBuffer>>;
+    })
+  );
+}
+
+imageBuildImage.PATH = '/bff/admin/image-builds/{id}/image';

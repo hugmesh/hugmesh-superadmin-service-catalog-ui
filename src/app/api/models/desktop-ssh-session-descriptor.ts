@@ -1,0 +1,33 @@
+/* tslint:disable */
+/* eslint-disable */
+
+/**
+ * Pre-WS descriptor: the real device-terminal WebSocket path + dark flag + step-up requirement (the UI's source of the live coordinates).
+ */
+export interface DesktopSshSessionDescriptor {
+
+  /**
+   * True while the live transport ships dark (app.device-terminal.enabled=false).
+   */
+  dark?: boolean;
+
+  /**
+   * The authorized target device id.
+   */
+  deviceId?: string;
+
+  /**
+   * Human-readable note for the UI.
+   */
+  note?: string;
+
+  /**
+   * Whether the WS handshake requires a step-up token (always true).
+   */
+  stepUpRequired?: boolean;
+
+  /**
+   * The real live WS handshake path (/bff/admin/device-terminal/{deviceId}).
+   */
+  wsPath?: string;
+}

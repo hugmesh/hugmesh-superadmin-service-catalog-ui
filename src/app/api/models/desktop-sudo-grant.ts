@@ -1,0 +1,16 @@
+/* tslint:disable */
+/* eslint-disable */
+export interface DesktopSudoGrant {
+  active?: boolean;
+  deviceId?: string;
+  domain?: string;
+  generation?: number;
+  grantedAt?: string;
+  grantedBy?: string;
+  id?: string;
+  propagationState?: string;
+  revokedAt?: string;
+  revokedBy?: string;
+  state?: string;
+  subject?: string;
+}

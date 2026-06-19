@@ -1,0 +1,36 @@
+/* tslint:disable */
+/* eslint-disable */
+
+/**
+ * Non-secret device dial row (status/generation/pins/pointers) — never key bytes.
+ */
+export interface DeviceSshDialResponse {
+  deviceId?: string;
+
+  /**
+   * Fingerprint of the BFF dial PUBLIC key (private key lives in Vault).
+   */
+  dialPubFp?: string;
+  dialUser?: string;
+  generation?: number;
+
+  /**
+   * Pinned device host-key fingerprint (pin only).
+   */
+  hostKeyFp?: string;
+
+  /**
+   * K8s Secret NAME the private key is synced into (a name, never bytes).
+   */
+  k8sSecretName?: string;
+
+  /**
+   * PENDING / ACTIVE / REVOKED.
+   */
+  status?: string;
+
+  /**
+   * Vault POINTER to the private dial key (a reference, never key bytes).
+   */
+  vaultRef?: string;
+}

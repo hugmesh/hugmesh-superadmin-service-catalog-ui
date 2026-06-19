@@ -1,0 +1,32 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
+import { StrictHttpResponse } from '../../strict-http-response';
+import { RequestBuilder } from '../../request-builder';
+
+import { Device } from '../../models/device';
+import { RegisterDeviceRequest } from '../../models/register-device-request';
+
+export interface DeviceLicenseRegister$Params {
+      body: RegisterDeviceRequest
+}
+
+export function deviceLicenseRegister(http: HttpClient, rootUrl: string, params: DeviceLicenseRegister$Params, context?: HttpContext): Observable<StrictHttpResponse<Device>> {
+  const rb = new RequestBuilder(rootUrl, deviceLicenseRegister.PATH, 'post');
+  if (params) {
+    rb.body(params.body, 'application/json');
+  }
+
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
+    filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
+    map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<Device>;
+    })
+  );
+}
+
+deviceLicenseRegister.PATH = '/bff/admin/device-licenses/register';

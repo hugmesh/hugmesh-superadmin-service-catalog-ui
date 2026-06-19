@@ -1,0 +1,18 @@
+/* tslint:disable */
+/* eslint-disable */
+import { ContainerSummary } from '../models/container-summary';
+export interface PodInspect {
+  containers?: Array<ContainerSummary>;
+  labels?: {
+[key: string]: string;
+};
+  name?: string;
+  namespace?: string;
+  node?: string;
+  ownerKind?: string;
+  ownerName?: string;
+  phase?: string;
+  serviceAccount?: string;
+  startedAt?: string;
+  workload?: string;
+}

@@ -1,0 +1,66 @@
+/* tslint:disable */
+/* eslint-disable */
+import { HttpClient, HttpContext } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+import { BaseService } from '../base-service';
+import { ApiConfiguration } from '../api-configuration';
+import { StrictHttpResponse } from '../strict-http-response';
+
+import { deviceEnrollmentSelfReport } from '../fn/device-enrollment-controller/device-enrollment-self-report';
+import { DeviceEnrollmentSelfReport$Params } from '../fn/device-enrollment-controller/device-enrollment-self-report';
+
+@Injectable({ providedIn: 'root' })
+export class DeviceEnrollmentControllerService extends BaseService {
+  constructor(config: ApiConfiguration, http: HttpClient) {
+    super(config, http);
+  }
+
+  /** Path part for operation `deviceEnrollmentSelfReport()` */
+  static readonly DeviceEnrollmentSelfReportPath = '/bff/internal/device-enrollment/self-report';
+
+  /**
+   * Self report.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `deviceEnrollmentSelfReport()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  deviceEnrollmentSelfReport$Response(params: DeviceEnrollmentSelfReport$Params, context?: HttpContext): Observable<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    return deviceEnrollmentSelfReport(this.http, this.rootUrl, params, context);
+  }
+
+  /**
+   * Self report.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `deviceEnrollmentSelfReport$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  deviceEnrollmentSelfReport(params: DeviceEnrollmentSelfReport$Params, context?: HttpContext): Observable<{
+[key: string]: {
+};
+}> {
+    return this.deviceEnrollmentSelfReport$Response(params, context).pipe(
+      map((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body)
+    );
+  }
+
+}
