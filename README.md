@@ -154,7 +154,58 @@ its OWN public `ServiceCuration` / `AppProfile` / `ServiceDeployment` /
 the generated models at the delegation boundary. The generated clients call the SAME
 same-origin `/bff/**` paths (`rootUrl` defaults to `''`), and the shared-session
 `bffToken` Bearer is attached by `bffAuthInterceptor` (reading the same `snap.session`,
-the opaque `bff_session` login flow the host shell performs).
+the opaque `bff_session` the host shell holds).
+
+## Auth & session model
+
+This remote does **no** login of its own — the host shell authgates the superadmin
+in and owns the session. Across the platform, **Casdoor** is the SSO IdP: `login-ui`
+runs the Casdoor OIDC authorization-code (PKCE) redirect and `user-bff` does the
+server-side code→token exchange and holds per-session JWT custody/refresh. The
+browser only ever holds an **opaque `bff_`-prefixed session** (the `snap.session`
+this remote reads) — the superadmin never sees their own Casdoor JWT.
+
+At the edge the **gateway** is a pure Casdoor-JWT OAuth2 resource server: a
+pre-security exchange filter swaps the `bff_` session for the internal custody JWT
+so the gateway's JWT validation + role gate run unchanged. Authorization is
+data-driven by the `gateway_route_access` Postgres table (source of truth) via
+`GatewayRouteAccessFilter`; the `/service-catalog=superadmin` and
+`/bff/superadmin/** = SUPERADMIN` rules live there, with SUPERADMIN granted
+cross-domain reach. The bff `@PreAuthorize` remains authoritative; this UI's gating
+is defence-in-depth.
+
+## Current State
+
+- **Console shipped** — the SUPERADMIN Service Catalog remote (Add a service /
+  Curation / App profiles / Deployments) is wired against the committed PR #56
+  data-layer surface and the committed `openapi.json` typed client; karma tests +
+  the Playwright/BDD e2e harness (wave 2b) are merged to `main`.
+- **Effector wired, ships dark** — `/provision` drives the Casdoor role +
+  `gateway_route_access` leg; the real ArgoCD apply is behind a `NoopArgoCdClient`
+  until the effector is enabled. `SELECT` and `GIT` provision; `DOCKERFILE`/`ZIP`
+  are disabled pending the in-cluster Kaniko builder (returns `400` today).
+- **Auth baseline current** — consumes the opaque `bff_` session model with Casdoor
+  SSO at the edge; route-access is data-driven via `gateway_route_access`. No login
+  logic lives here (login is `login-ui` + `user-bff`; account/session/MFA shared
+  infra is in `snapdragon-auth-core`). Aligned with the Spring Boot 4.0.2 /
+  Spring Cloud 2025.1 / Spring Cloud Gateway 5.0 (`spring.cloud.gateway.server.webflux.routes`)
+  backend baseline. CI is **GitLab** (no GitHub Actions).
+- **Internal-only surface** — served on 8080 as a native-federation remote behind
+  the gateway superadmin gate and the Tailscale-VPN-only superadmin surface.
+
+## Roadmap
+
+- **Enable the effector** — flip `NoopArgoCdClient` to real ArgoCD `Application`
+  apply once the provision path is live-validated.
+- **Kaniko builder leg** (generator) — unblocks the `DOCKERFILE` and `ZIP` sources so
+  build-from-source services can be provisioned, not just `SELECT`/`GIT`.
+- **App-profile resolution** — a later effector that parses the app-profile JSON
+  (resource/role/cert/exposure defaults) instead of storing it opaque.
+- **MFA step-up** — superadmin Service Catalog mutations (offer/withdraw/provision)
+  are candidate step-up actions under the platform MFA rollout (WebAuthn+TOTP).
+- **Capability gating** — reflect when foundational infra (x86 builder, ArgoCD,
+  generated images) is absent, degrading affected sources/flows like optional
+  services do.
 
 ## Develop
 
