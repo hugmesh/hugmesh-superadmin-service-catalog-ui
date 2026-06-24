@@ -191,7 +191,12 @@ is defence-in-depth.
   Spring Cloud 2025.1 / Spring Cloud Gateway 5.0 (`spring.cloud.gateway.server.webflux.routes`)
   backend baseline. CI is **GitLab** (no GitHub Actions).
 - **Internal-only surface** — served on 8080 as a native-federation remote behind
-  the gateway superadmin gate and the Tailscale-VPN-only superadmin surface.
+  the gateway superadmin gate and the Tailscale-VPN-only superadmin surface. The
+  `nginx.conf` ships baseline HTTP security headers (`X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, HSTS),
+  emitted `always` and repeated per `location` (nginx drops inherited `add_header`s
+  in a location with its own). Stricter policies (CSP, COEP/CORP, Permissions-Policy)
+  are deliberately deferred pending per-UI tuning + live-cluster browser validation.
 
 ## Roadmap
 
