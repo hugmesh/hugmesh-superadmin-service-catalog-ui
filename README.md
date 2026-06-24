@@ -187,8 +187,8 @@ is defence-in-depth.
 - **Auth baseline current** — consumes the opaque `bff_` session model with Casdoor
   SSO at the edge; route-access is data-driven via `gateway_route_access`. No login
   logic lives here (login is `login-ui` + `user-bff`; account/session/MFA shared
-  infra is in `snapdragon-auth-core`). Aligned with the Spring Boot 4.0.2 /
-  Spring Cloud 2025.1 / Spring Cloud Gateway 5.0 (`spring.cloud.gateway.server.webflux.routes`)
+  infra is in `snapdragon-auth-core`). Aligned with the Spring Boot 4.0.7 /
+  Spring Cloud 2025.1.2 / Spring Cloud Gateway 5.0 (`spring.cloud.gateway.server.webflux.routes`)
   backend baseline. CI is **GitLab** (no GitHub Actions).
 - **Internal-only surface** — served on 8080 as a native-federation remote behind
   the gateway superadmin gate and the Tailscale-VPN-only superadmin surface. The
