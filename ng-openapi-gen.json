@@ -4,5 +4,6 @@
   "output": "src/app/api",
   "skipJsonSuffix": true,
   "enumStyle": "alias",
-  "ignoreUnusedModels": false
+  "ignoreUnusedModels": false,
+  "services": true
 }

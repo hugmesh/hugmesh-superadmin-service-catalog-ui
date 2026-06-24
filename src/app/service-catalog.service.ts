@@ -1,7 +1,6 @@
 import { Injectable, InjectionToken, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, firstValueFrom, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
 
 import { ServiceCurationControllerService } from './api/services/service-curation-controller.service';
 import { AppProfileControllerService } from './api/services/app-profile-controller.service';
@@ -211,181 +210,151 @@ export class ServiceCatalogService {
     this.adminApi.rootUrl = this.base;
   }
 
-  /** Map a generated-client {@link HttpErrorResponse} back to the public
-   *  {@link ServiceCatalogApiError} so the 400/403/404/409 surfacing the UI keys
-   *  off is identical to the pre-migration fetch layer. The bff returns a JSON
-   *  {@code {message|error}} body; never let a parse miss mask the status. */
-  private toApiError(method: string, path: string) {
-    return (e: unknown): Observable<never> => {
-      if (e instanceof HttpErrorResponse) {
-        const body = e.error;
-        let detail = '';
-        if (typeof body === 'string') {
-          detail = body;
-        } else if (body && typeof body === 'object') {
-          detail = (body as any).message ?? (body as any).error ?? '';
-        }
-        return throwError(
-          () =>
-            new ServiceCatalogApiError(
-              e.status,
-              detail || `${method} ${path} failed: ${e.status}`,
-            ),
-        );
+  /** Map a caught error to a {@link ServiceCatalogApiError} so the 400/403/404/409
+   *  surfacing the UI keys off is identical to the pre-migration fetch layer. The
+   *  bff returns a JSON {@code {message|error}} body; never let a parse miss mask
+   *  the status. */
+  private toApiError(method: string, path: string, e: unknown): never {
+    if (e instanceof HttpErrorResponse) {
+      const body = e.error;
+      let detail = '';
+      if (typeof body === 'string') {
+        detail = body;
+      } else if (body && typeof body === 'object') {
+        detail = (body as any).message ?? (body as any).error ?? '';
       }
-      return throwError(() => e);
-    };
+      throw new ServiceCatalogApiError(
+        e.status,
+        detail || `${method} ${path} failed: ${e.status}`,
+      );
+    }
+    throw e;
   }
 
   // ----- CURATION (SUPERADMIN): /bff/superadmin/service-store/{domain} -----
 
   /** GET /bff/superadmin/service-store/{domain} → ServiceCuration[] — the per-domain
    *  catalog (offered + withdrawn) for a {domain}. */
-  listCuration(domain: string): Promise<ServiceCuration[]> {
-    return firstValueFrom(
-      this.curationApi
-        .serviceCurationList({ domain })
-        .pipe(
-          map((rows) => rows as unknown as ServiceCuration[]),
-          catchError(this.toApiError('GET', `/bff/superadmin/service-store/${domain}`)),
-        ),
-    );
+  async listCuration(domain: string): Promise<ServiceCuration[]> {
+    try {
+      const rows = await this.curationApi.serviceCurationList({ domain });
+      return rows as unknown as ServiceCuration[];
+    } catch (e) {
+      return this.toApiError('GET', `/bff/superadmin/service-store/${domain}`, e);
+    }
   }
 
   /** POST /bff/superadmin/service-store/{domain}/offer {serviceKey} → ServiceCuration —
    *  offer a service_key to a {domain}'s admins. domain is the PATH target; the
    *  acting superadmin subject is stamped from the JWT (never a body field). */
-  offer(domain: string, serviceKey: string): Promise<ServiceCuration> {
-    return firstValueFrom(
-      this.curationApi
-        .serviceCurationOffer({ domain, body: { serviceKey } })
-        .pipe(
-          map((row) => row as unknown as ServiceCuration),
-          catchError(this.toApiError('POST', `/bff/superadmin/service-store/${domain}/offer`)),
-        ),
-    );
+  async offer(domain: string, serviceKey: string): Promise<ServiceCuration> {
+    try {
+      const row = await this.curationApi.serviceCurationOffer({ domain, body: { serviceKey } });
+      return row as unknown as ServiceCuration;
+    } catch (e) {
+      return this.toApiError('POST', `/bff/superadmin/service-store/${domain}/offer`, e);
+    }
   }
 
   /** POST /bff/superadmin/service-store/{domain}/withdraw {serviceKey} → ServiceCuration —
    *  withdraw a service_key from a {domain}'s offered catalog (CAS offered->withdrawn). */
-  withdraw(domain: string, serviceKey: string): Promise<ServiceCuration> {
-    return firstValueFrom(
-      this.curationApi
-        .serviceCurationWithdraw({ domain, body: { serviceKey } })
-        .pipe(
-          map((row) => row as unknown as ServiceCuration),
-          catchError(this.toApiError('POST', `/bff/superadmin/service-store/${domain}/withdraw`)),
-        ),
-    );
+  async withdraw(domain: string, serviceKey: string): Promise<ServiceCuration> {
+    try {
+      const row = await this.curationApi.serviceCurationWithdraw({ domain, body: { serviceKey } });
+      return row as unknown as ServiceCuration;
+    } catch (e) {
+      return this.toApiError('POST', `/bff/superadmin/service-store/${domain}/withdraw`, e);
+    }
   }
 
   // ----- APP PROFILES (SUPERADMIN): /bff/superadmin/app-profiles ----------
 
   /** GET /bff/superadmin/app-profiles → AppProfile[] — the global template library. */
-  listProfiles(): Promise<AppProfile[]> {
-    return firstValueFrom(
-      this.profileApi
-        .appProfileList()
-        .pipe(
-          map((rows) => rows as unknown as AppProfile[]),
-          catchError(this.toApiError('GET', '/bff/superadmin/app-profiles')),
-        ),
-    );
+  async listProfiles(): Promise<AppProfile[]> {
+    try {
+      const rows = await this.profileApi.appProfileList();
+      return rows as unknown as AppProfile[];
+    } catch (e) {
+      return this.toApiError('GET', '/bff/superadmin/app-profiles', e);
+    }
   }
 
   /** GET /bff/superadmin/app-profiles/{name} → AppProfile. */
-  getProfile(name: string): Promise<AppProfile> {
-    return firstValueFrom(
-      this.profileApi
-        .appProfileGet({ name })
-        .pipe(
-          map((row) => row as unknown as AppProfile),
-          catchError(this.toApiError('GET', `/bff/superadmin/app-profiles/${name}`)),
-        ),
-    );
+  async getProfile(name: string): Promise<AppProfile> {
+    try {
+      const row = await this.profileApi.appProfileGet({ name });
+      return row as unknown as AppProfile;
+    } catch (e) {
+      return this.toApiError('GET', `/bff/superadmin/app-profiles/${name}`, e);
+    }
   }
 
   /** POST /bff/superadmin/app-profiles {name, profileJson} → AppProfile (201). A
    *  duplicate name is a 409. */
-  createProfile(name: string, profileJson: string): Promise<AppProfile> {
-    return firstValueFrom(
-      this.profileApi
-        .appProfileCreate({ body: { name, profileJson } })
-        .pipe(
-          map((row) => row as unknown as AppProfile),
-          catchError(this.toApiError('POST', '/bff/superadmin/app-profiles')),
-        ),
-    );
+  async createProfile(name: string, profileJson: string): Promise<AppProfile> {
+    try {
+      const row = await this.profileApi.appProfileCreate({ body: { name, profileJson } });
+      return row as unknown as AppProfile;
+    } catch (e) {
+      return this.toApiError('POST', '/bff/superadmin/app-profiles', e);
+    }
   }
 
   /** PUT /bff/superadmin/app-profiles/{name} {name(ignored), profileJson} → AppProfile.
    *  The PATH name identifies the row; the body name is ignored. */
-  updateProfile(name: string, profileJson: string): Promise<AppProfile> {
-    return firstValueFrom(
-      this.profileApi
-        .appProfileUpdate({ name, body: { name, profileJson } })
-        .pipe(
-          map((row) => row as unknown as AppProfile),
-          catchError(this.toApiError('PUT', `/bff/superadmin/app-profiles/${name}`)),
-        ),
-    );
+  async updateProfile(name: string, profileJson: string): Promise<AppProfile> {
+    try {
+      const row = await this.profileApi.appProfileUpdate({ name, body: { name, profileJson } });
+      return row as unknown as AppProfile;
+    } catch (e) {
+      return this.toApiError('PUT', `/bff/superadmin/app-profiles/${name}`, e);
+    }
   }
 
   /** DELETE /bff/superadmin/app-profiles/{name} → 204. */
-  deleteProfile(name: string): Promise<void> {
-    return firstValueFrom(
-      this.profileApi
-        .appProfileDelete({ name })
-        .pipe(
-          map(() => undefined),
-          catchError(this.toApiError('DELETE', `/bff/superadmin/app-profiles/${name}`)),
-        ),
-    );
+  async deleteProfile(name: string): Promise<void> {
+    try {
+      await this.profileApi.appProfileDelete({ name });
+    } catch (e) {
+      return this.toApiError('DELETE', `/bff/superadmin/app-profiles/${name}`, e);
+    }
   }
 
   // ----- DEPLOYMENTS (SUPERADMIN): .../{domain}/deployments ---------------
 
   /** GET /bff/superadmin/service-store/{domain}/deployments → ServiceDeployment[] —
    *  the lifecycle-accounting rows for a {domain}. */
-  listDeployments(domain: string): Promise<ServiceDeployment[]> {
-    return firstValueFrom(
-      this.deploymentApi
-        .serviceDeploymentList({ domain })
-        .pipe(
-          map((rows) => rows as unknown as ServiceDeployment[]),
-          catchError(this.toApiError('GET', `/bff/superadmin/service-store/${domain}/deployments`)),
-        ),
-    );
+  async listDeployments(domain: string): Promise<ServiceDeployment[]> {
+    try {
+      const rows = await this.deploymentApi.serviceDeploymentList({ domain });
+      return rows as unknown as ServiceDeployment[];
+    } catch (e) {
+      return this.toApiError('GET', `/bff/superadmin/service-store/${domain}/deployments`, e);
+    }
   }
 
   /** POST /bff/superadmin/service-store/{domain}/deployments {serviceKey, profileRef?,
    *  endingAt?, enforceActions?} → ServiceDeployment (201). Records created_at (now) +
    *  ending_at (the expiry clock) + enforce_actions. SHIPS DARK — the actual
    *  provision/teardown is a LATER effector increment, not wired here. */
-  createDeployment(domain: string, body: CreateDeployment): Promise<ServiceDeployment> {
-    return firstValueFrom(
-      this.deploymentApi
-        .serviceDeploymentCreate({ domain, body: body as any })
-        .pipe(
-          map((row) => row as unknown as ServiceDeployment),
-          catchError(this.toApiError('POST', `/bff/superadmin/service-store/${domain}/deployments`)),
-        ),
-    );
+  async createDeployment(domain: string, body: CreateDeployment): Promise<ServiceDeployment> {
+    try {
+      const row = await this.deploymentApi.serviceDeploymentCreate({ domain, body: body as any });
+      return row as unknown as ServiceDeployment;
+    } catch (e) {
+      return this.toApiError('POST', `/bff/superadmin/service-store/${domain}/deployments`, e);
+    }
   }
 
   /** POST /bff/superadmin/service-store/{domain}/deployments/{id}/end → ServiceDeployment —
    *  CAS active->ended (the row is retained as the audit trail). */
-  endDeployment(domain: string, id: string): Promise<ServiceDeployment> {
-    return firstValueFrom(
-      this.deploymentApi
-        .serviceDeploymentEnd({ domain, id })
-        .pipe(
-          map((row) => row as unknown as ServiceDeployment),
-          catchError(
-            this.toApiError('POST', `/bff/superadmin/service-store/${domain}/deployments/${id}/end`),
-          ),
-        ),
-    );
+  async endDeployment(domain: string, id: string): Promise<ServiceDeployment> {
+    try {
+      const row = await this.deploymentApi.serviceDeploymentEnd({ domain, id });
+      return row as unknown as ServiceDeployment;
+    } catch (e) {
+      return this.toApiError('POST', `/bff/superadmin/service-store/${domain}/deployments/${id}/end`, e);
+    }
   }
 
   /** POST /bff/superadmin/service-store/{domain}/deployments/{id}/provision
@@ -399,20 +368,17 @@ export class ServiceCatalogService {
    *  generator's builder exists, so the UI guards them (disabled+helptext) AND surfaces
    *  that 400 gracefully if one is forced through. A missing/blank repoUrl is also a 400
    *  at the bff (@NotBlank). The {domain} is the explicit PATH target. */
-  provisionDeployment(domain: string, id: string, body: ProvisionService): Promise<ServiceDeployment> {
-    return firstValueFrom(
-      this.deploymentApi
-        .serviceDeploymentProvision({ domain, id, body: body as any })
-        .pipe(
-          map((row) => row as unknown as ServiceDeployment),
-          catchError(
-            this.toApiError(
-              'POST',
-              `/bff/superadmin/service-store/${domain}/deployments/${id}/provision`,
-            ),
-          ),
-        ),
-    );
+  async provisionDeployment(domain: string, id: string, body: ProvisionService): Promise<ServiceDeployment> {
+    try {
+      const row = await this.deploymentApi.serviceDeploymentProvision({ domain, id, body: body as any });
+      return row as unknown as ServiceDeployment;
+    } catch (e) {
+      return this.toApiError(
+        'POST',
+        `/bff/superadmin/service-store/${domain}/deployments/${id}/provision`,
+        e,
+      );
+    }
   }
 
   // ----- TWO-TIER ADMIN READ (ADMIN|SUPERADMIN): /bff/admin/service-store --
@@ -421,14 +387,12 @@ export class ServiceCatalogService {
    *  services the superadmin OFFERED to the CALLER'S OWN issuer-derived domain.
    *  An admin sees only their own brand; a superadmin (unscoped) sees all. The
    *  domain is resolved from the validated JWT, NEVER a request field. */
-  myDomainCatalog(): Promise<ServiceCuration[]> {
-    return firstValueFrom(
-      this.adminApi
-        .adminServiceStoreMyDomainCatalog()
-        .pipe(
-          map((rows) => rows as unknown as ServiceCuration[]),
-          catchError(this.toApiError('GET', '/bff/admin/service-store')),
-        ),
-    );
+  async myDomainCatalog(): Promise<ServiceCuration[]> {
+    try {
+      const rows = await this.adminApi.adminServiceStoreMyDomainCatalog();
+      return rows as unknown as ServiceCuration[];
+    } catch (e) {
+      return this.toApiError('GET', '/bff/admin/service-store', e);
+    }
   }
 }

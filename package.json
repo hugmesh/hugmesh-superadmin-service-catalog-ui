@@ -44,7 +44,7 @@
     "karma-jasmine": "^5.1.0",
     "karma-jasmine-html-reporter": "^2.2.0",
     "karma-junit-reporter": "^2.0.1",
-    "ng-openapi-gen": "^0.51.0",
+    "ng-openapi-gen": "^1.0.5",
     "ng-packagr": "^22.0.0",
     "typescript": "~6.0.3"
   }
