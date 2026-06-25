@@ -91,11 +91,10 @@ The `/provision` row is the **Service Catalog effector** (snapdragon-admin-bff-a
 is one of the **four Service Catalog sources** — `SELECT` / `GIT` / `DOCKERFILE` / `ZIP`
 (case-insensitive; null/blank → `SELECT`). `SELECT` (a catalog tile) and `GIT` (a
 prebuilt repo) provision today; `DOCKERFILE` and `ZIP` need an image **built first**
-by the in-cluster **Kaniko** builder (the generator leg), which does not exist yet,
-so the bff rejects them with a `400` ("requires the in-cluster builder"). The effector
-itself **ships dark** by default (the bff `NoopArgoCdClient` makes no real ArgoCD
-mutation) — the call still returns `200`; the role + route-access leg is wired and the
-real ArgoCD apply lands when the effector is enabled.
+by the in-cluster **Kaniko** builder (`KanikoBuildLauncher`, shipped in admin-bff
+PR #152). The effector itself **ships dark** by default (the bff `NoopArgoCdClient`
+makes no real ArgoCD mutation) — the call still returns `200`; the role + route-access
+leg is wired and the real ArgoCD apply lands when the effector is enabled.
 
 The `{domain}` is always the explicit **path** target (never a body field) — the
 infra control plane picks the brand. The two-tier admin read resolves the domain
@@ -108,8 +107,8 @@ from the validated JWT issuer, never the request.
   **Catalog (SELECT)**, **Git / GitLab (GIT)**, **Dockerfile (DOCKERFILE)** or **Zip
   repo (ZIP)** — and **Provision** it (`POST .../deployments/{id}/provision`). SELECT
   and GIT provision today; DOCKERFILE and ZIP are presented as **disabled** radio
-  options with a "needs builder" badge + help text (they need the in-cluster Kaniko
-  builder, which is not available yet — the ships-dark degrade). The submit is guarded
+  options with a help text indicating they are pending effector enablement / ArgoCD
+  integration — the ships-dark degrade. The submit is guarded
   defence-in-depth, and the bff's authoritative `400` is surfaced verbatim. `repoUrl`
   is required (the bff `@NotBlank`); `path`/`targetRevision` are optional. The
   `{domain}` and `{id}` are the explicit PATH targets.
@@ -183,13 +182,19 @@ is defence-in-depth.
 - **Effector wired, ships dark** — `/provision` drives the Casdoor role +
   `gateway_route_access` leg; the real ArgoCD apply is behind a `NoopArgoCdClient`
   until the effector is enabled. `SELECT` and `GIT` provision; `DOCKERFILE`/`ZIP`
-  are disabled pending the in-cluster Kaniko builder (returns `400` today).
+  are disabled pending effector enablement / ArgoCD integration.
+- **Kaniko builder shipped** (admin-bff PR #152) — `KanikoBuildLauncher` is available
+  in the admin-bff; `DOCKERFILE` and `ZIP` sources can be unblocked once the
+  effector is wired end-to-end through the now-available builder.
 - **Auth baseline current** — consumes the opaque `bff_` session model with Casdoor
   SSO at the edge; route-access is data-driven via `gateway_route_access`. No login
   logic lives here (login is `login-ui` + `user-bff`; account/session/MFA shared
-  infra is in `snapdragon-auth-core`). Aligned with the Spring Boot 4.0.7 /
+  infra is in `snapdragon-auth-core`). Aligned with the **Java 25** / Spring Boot 4.0.7 /
   Spring Cloud 2025.1.2 / Spring Cloud Gateway 5.0 (`spring.cloud.gateway.server.webflux.routes`)
-  backend baseline. CI is **GitLab** (no GitHub Actions).
+  backend baseline. Backend BFF built against **snapdragon-parent 2.7.0** /
+  **snapdragon-commons 2.7.0** shared library. CI is **GitLab** (no GitHub Actions).
+  **Angular 22** (22.0.2 patch, native-federation 22.x, ng-openapi-gen 1.0.5) — see
+  dependency-scan PR #8 (2026-06-24).
 - **Internal-only surface** — served on 8080 as a native-federation remote behind
   the gateway superadmin gate and the Tailscale-VPN-only superadmin surface. The
   `nginx.conf` ships baseline HTTP security headers (`X-Content-Type-Options: nosniff`,
@@ -202,7 +207,8 @@ is defence-in-depth.
 
 - **Enable the effector** — flip `NoopArgoCdClient` to real ArgoCD `Application`
   apply once the provision path is live-validated.
-- **Kaniko builder leg** (generator) — unblocks the `DOCKERFILE` and `ZIP` sources so
+- **Wire DOCKERFILE/ZIP sources end-to-end** — connect the effector through the
+  now-available Kaniko builder (`KanikoBuildLauncher`, admin-bff PR #152) so
   build-from-source services can be provisioned, not just `SELECT`/`GIT`.
 - **App-profile resolution** — a later effector that parses the app-profile JSON
   (resource/role/cert/exposure defaults) instead of storing it opaque.
