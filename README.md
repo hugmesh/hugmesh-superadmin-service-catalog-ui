@@ -155,6 +155,12 @@ same-origin `/bff/**` paths (`rootUrl` defaults to `''`), and the shared-session
 `bffToken` Bearer is attached by `bffAuthInterceptor` (reading the same `snap.session`,
 the opaque `bff_session` the host shell holds).
 
+> **ng-openapi-gen 1.0.5 generates `Promise<T>` methods (not `Observable<T>`)**; the
+> `service-catalog.service.ts` delegation layer was rewritten to async/await in PR #10
+> to match. The public API/types surface (`ServiceCuration` / `AppProfile` /
+> `ServiceDeployment` / `ServiceCatalogApiError`) is unchanged — only the internal
+> delegation is async/await.
+
 ## Auth & session model
 
 This remote does **no** login of its own — the host shell authgates the superadmin
@@ -178,7 +184,10 @@ is defence-in-depth.
 - **Console shipped** — the SUPERADMIN Service Catalog remote (Add a service /
   Curation / App profiles / Deployments) is wired against the committed PR #56
   data-layer surface and the committed `openapi.json` typed client; karma tests +
-  the Playwright/BDD e2e harness (wave 2b) are merged to `main`.
+  the Playwright/BDD e2e harness (wave 2b) are merged to `main`. All 29 e2e
+  scenarios are tagged `@cluster` and **SKIP** unless `E2E_CLUSTER=1` (the remote
+  served at a `baseURL` + a reachable admin-bff `/bff/superadmin/service-store`).
+  The offline contract is proven by the Karma specs.
 - **Effector wired, ships dark** — `/provision` drives the Casdoor role +
   `gateway_route_access` leg; the real ArgoCD apply is behind a `NoopArgoCdClient`
   until the effector is enabled. `SELECT` and `GIT` provision; `DOCKERFILE`/`ZIP`
