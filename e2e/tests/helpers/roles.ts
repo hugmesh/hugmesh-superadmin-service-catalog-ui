@@ -70,8 +70,9 @@ export function resolveUser(username: string): SeedUser {
 
 /**
  * Build the SnapSession blob the SessionService expects (src/app/session.service.ts
- * SnapSession). Only the fields the Service Catalog console reads are load-bearing —
- * `roles` (the gating) and `bffToken` (the ServiceCatalogService Authorization header).
+ * SnapSession). Only `roles` is load-bearing for the console gating; auth to
+ * /bff/** now rides on the HttpOnly `bff_` cookie (the bffAuthInterceptor sends
+ * `withCredentials`), so the session no longer carries a browser Bearer.
  */
 export function sessionFor(user: SeedUser): Record<string, unknown> {
   return {
@@ -79,7 +80,6 @@ export function sessionFor(user: SeedUser): Record<string, unknown> {
     label: `${user.username}@${user.domain}`,
     provider: 'google',
     roles: user.roles,
-    bffToken: `e2e-${user.username}-token`,
     registrationComplete: true,
     matrix: null,
     mastodon: null,

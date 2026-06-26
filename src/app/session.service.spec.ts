@@ -12,7 +12,6 @@ function sessionFor(roles: string[]): SnapSession {
     label: 'x',
     provider: 'google',
     roles,
-    bffToken: 'tok',
     registrationComplete: true,
     matrix: null,
     mastodon: null,

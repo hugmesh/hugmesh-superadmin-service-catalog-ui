@@ -37,8 +37,9 @@ import { bffAuthInterceptor } from './auth.interceptor';
  * Since the ng-openapi-gen migration the service DELEGATES to the generated typed
  * clients (HttpClient), so the transport is exercised with Angular's
  * {@link HttpTestingController} instead of a fetch stub. Each test asserts the
- * URL the service hit + the JSON body it sent + that the Bearer from snap.session
- * is attached (now by {@code bffAuthInterceptor}) — the SAME wire contract.
+ * URL the service hit + the JSON body it sent + that the request carries the
+ * HttpOnly {@code bff_} cookie as credentials (now by {@code bffAuthInterceptor}
+ * via {@code withCredentials}, NOT a browser Bearer) — the SAME wire contract.
  */
 describe('ServiceCatalogService (exact PR1 bff paths)', () => {
   let service: ServiceCatalogService;
@@ -61,7 +62,6 @@ describe('ServiceCatalogService (exact PR1 bff paths)', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem('snap.session', JSON.stringify({ bffToken: 'tok-abc' }));
     TestBed.configureTestingModule({
       providers: [
         ServiceCatalogService,
@@ -243,10 +243,11 @@ describe('ServiceCatalogService (exact PR1 bff paths)', () => {
 
   // ── auth + error surfacing ────────────────────────────────────────────────
 
-  it('attaches the Bearer token from snap.session on every call', async () => {
+  it('sends the HttpOnly bff_ cookie (withCredentials) and NO browser Bearer on every call', async () => {
     const p = service.listProfiles();
     const req = httpMock.expectOne('/bff/superadmin/app-profiles');
-    expect(req.request.headers.get('Authorization')).toBe('Bearer tok-abc');
+    expect(req.request.withCredentials).withContext('the bff_ cookie must ride along').toBeTrue();
+    expect(req.request.headers.has('Authorization')).withContext('no browser-held Bearer').toBeFalse();
     req.flush([]);
     await p;
   });

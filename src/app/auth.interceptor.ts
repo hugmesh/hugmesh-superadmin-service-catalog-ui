@@ -1,16 +1,17 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 
 /**
- * Attaches the shared-session {@code bffToken} Bearer to every same-origin
- * {@code /bff/**} request, exactly as the hand-rolled {@code fetch} layer did
- * before the ng-openapi-gen migration.
+ * Authenticates every same-origin {@code /bff/**} request with the HttpOnly
+ * {@code bff_} cookie instead of a browser-held Bearer.
  *
- * <p>The token lives in {@code localStorage} under {@code snap.session} — the
- * OPAQUE {@code bff_session} login flow: the host shell (login-ui) performs the
- * {@code /bff/login} exchange and writes {@code snap.session}; this federated
- * remote only READS it and never renders a login form. The interceptor reads the
- * token per-request (never caches) so a re-login / cross-tab session change is
- * picked up immediately, matching the previous {@code bffToken()} call site.
+ * <p>The OPAQUE {@code bff_session} login flow runs on the host shell (login-ui):
+ * the {@code /bff/login} exchange returns a {@code Set-Cookie: bff_=...} the
+ * browser stores as HttpOnly (never readable from JS). The fe-gateway's
+ * {@code BffCookieToBearerWebFilter} turns that cookie into the upstream Bearer
+ * SERVER-SIDE, so the browser must only send the cookie as request credentials —
+ * it must NOT (and now cannot) attach an {@code Authorization} header from
+ * {@code localStorage}. We therefore set {@code withCredentials: true} on every
+ * request so the same-origin {@code bff_} cookie rides along.
  *
  * <p>{@code Accept: application/json} is added to match the previous fetch
  * headers; {@code Content-Type} is left to Angular's {@code HttpClient} (it sets
@@ -18,17 +19,6 @@ import { HttpInterceptorFn } from '@angular/common/http';
  * sends.
  */
 export const bffAuthInterceptor: HttpInterceptorFn = (req, next) => {
-  let token: string | null = null;
-  try {
-    const s = JSON.parse(localStorage.getItem('snap.session') ?? 'null');
-    token = s?.bffToken ?? null;
-  } catch {
-    token = null;
-  }
-
-  let headers = req.headers.set('Accept', 'application/json');
-  if (token) {
-    headers = headers.set('Authorization', `Bearer ${token}`);
-  }
-  return next(req.clone({ headers }));
+  const headers = req.headers.set('Accept', 'application/json');
+  return next(req.clone({ headers, withCredentials: true }));
 };

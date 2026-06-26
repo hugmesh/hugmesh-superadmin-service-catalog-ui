@@ -165,9 +165,9 @@ export class ServiceCatalogApiError extends Error {
 
 /**
  * Thin reactive wrapper over the snapdragon-admin-bff-api Service Catalog surfaces. Auth
- * piggybacks on the shared-session `bffToken` (the same Bearer the other BFF
- * surfaces use) read from `snap.session` in localStorage — the host injects
- * nothing and the module never renders a login form.
+ * rides on the HttpOnly `bff_` cookie (the same opaque `bff_session` the other BFF
+ * surfaces use) — the host injects nothing and the module never renders a login
+ * form.
  *
  * <p><b>ng-openapi-gen migration:</b> this service now DELEGATES every call to the
  * generated, typed clients ({@link ServiceCurationControllerService} /
@@ -176,10 +176,11 @@ export class ServiceCatalogApiError extends Error {
  * from the admin-bff-api OpenAPI spec) instead of hand-rolling {@code fetch} URLs.
  * The generated clients call the SAME same-origin {@code /bff/**} paths (their
  * {@code rootUrl} is set from {@link SERVICE_CATALOG_BASE_URL}, default ''), so the
- * wire calls — URL + method + body — are unchanged. The shared-session Bearer is
- * attached by the {@code bffAuthInterceptor} (reading the SAME {@code snap.session}
- * {@code bffToken}), preserving the opaque {@code bff_session} auth exactly. This
- * service keeps its OWN public {@link ServiceCuration} / {@link AppProfile} /
+ * wire calls — URL + method + body — are unchanged. The HttpOnly {@code bff_}
+ * cookie is sent by the {@code bffAuthInterceptor} (which sets
+ * {@code withCredentials: true}), preserving the opaque {@code bff_session} auth
+ * exactly (the fe-gateway turns the cookie into the upstream Bearer server-side).
+ * This service keeps its OWN public {@link ServiceCuration} / {@link AppProfile} /
  * {@link ServiceDeployment} / {@link ServiceCatalogApiError} types so the consuming
  * components need ZERO change; the generated models are bridged at the delegation
  * boundary, and {@code HttpErrorResponse}s are mapped back to

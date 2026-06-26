@@ -142,7 +142,6 @@ describe('FEATURE: Superadmin adds a service via the four sources (e2e)', () => 
 
   beforeEach(async () => {
     localStorage.clear();
-    localStorage.setItem('snap.session', JSON.stringify({ bffToken: 'tok' }));
     bffRows = [bffRow('dep-1', 'owncast'), bffRow('dep-2', 'phpbb')];
     urlLog = [];
 

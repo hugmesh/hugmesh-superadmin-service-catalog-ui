@@ -5,7 +5,6 @@ export interface SnapSession {
   label: string;              // display (email or discord handle)
   provider: 'google' | 'discord';
   roles: string[];
-  bffToken: string;
   registrationComplete: boolean;
   matrix: { token: string; userId: string } | null;
   mastodon: { token: string } | null;
