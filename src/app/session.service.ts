@@ -6,8 +6,6 @@ export interface SnapSession {
   provider: 'google' | 'discord';
   roles: string[];
   registrationComplete: boolean;
-  matrix: { token: string; userId: string } | null;
-  mastodon: { token: string } | null;
 }
 
 /** Holds the logged-in session (persisted to localStorage) and derives the

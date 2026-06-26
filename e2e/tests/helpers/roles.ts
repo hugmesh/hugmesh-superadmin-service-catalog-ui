@@ -81,8 +81,6 @@ export function sessionFor(user: SeedUser): Record<string, unknown> {
     provider: 'google',
     roles: user.roles,
     registrationComplete: true,
-    matrix: null,
-    mastodon: null,
   };
 }
 

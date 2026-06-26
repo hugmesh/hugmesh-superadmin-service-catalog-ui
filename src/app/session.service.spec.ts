@@ -13,8 +13,6 @@ function sessionFor(roles: string[]): SnapSession {
     provider: 'google',
     roles,
     registrationComplete: true,
-    matrix: null,
-    mastodon: null,
   };
 }
 
