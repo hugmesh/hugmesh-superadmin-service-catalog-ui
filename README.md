@@ -209,8 +209,14 @@ is defence-in-depth.
   `nginx.conf` ships baseline HTTP security headers (`X-Content-Type-Options: nosniff`,
   `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, HSTS),
   emitted `always` and repeated per `location` (nginx drops inherited `add_header`s
-  in a location with its own). Stricter policies (CSP, COEP/CORP, Permissions-Policy)
-  are deliberately deferred pending per-UI tuning + live-cluster browser validation.
+  in a location with its own), plus the shared **strong nonce-based
+  Content-Security-Policy** (ported from admin-ui/login-ui): a `map $request_id
+  $cspnonce` per-request nonce, a `sub_filter` that rewrites every `<script` in
+  the served `index.html` to carry `nonce="$cspnonce"`, and a
+  `Content-Security-Policy` header with NO `unsafe-inline` in `script-src`
+  (only `'self' 'nonce-…' blob:`; `style-src` keeps `'unsafe-inline'` because
+  Angular inlines component styles). COEP/CORP and Permissions-Policy remain
+  deferred pending per-UI tuning + live-cluster browser validation.
 
 ## Roadmap
 
