@@ -40,7 +40,7 @@ describe('ServiceCatalogAddServiceComponent (4-source provision over effector PR
   let fixture: ComponentFixture<ServiceCatalogAddServiceComponent>;
   let component: ServiceCatalogAddServiceComponent;
   let serviceCatalog: jasmine.SpyObj<
-    Pick<ServiceCatalogService, 'listDeployments' | 'listProfiles' | 'provisionDeployment'>
+    Pick<ServiceCatalogService, 'listDeployments' | 'listProfiles' | 'provisionDeployment' | 'builderStatus'>
   >;
 
   beforeEach(async () => {
@@ -48,10 +48,14 @@ describe('ServiceCatalogAddServiceComponent (4-source provision over effector PR
       'listDeployments',
       'listProfiles',
       'provisionDeployment',
+      'builderStatus',
     ]);
     serviceCatalog.listDeployments.and.resolveTo([dep('dep-1', 'owncast')]);
     serviceCatalog.listProfiles.and.resolveTo([]);
     serviceCatalog.provisionDeployment.and.resolveTo(dep('dep-1', 'owncast', 'active', 'applied'));
+    // Default: the builder pre-flight reports NOT ready (this environment's honest truth —
+    // no config flag, no build node) — DOCKERFILE/ZIP stay gated unless a test overrides it.
+    serviceCatalog.builderStatus.and.resolveTo({ enabled: false, buildNodePresent: false, warnings: [] });
 
     await TestBed.configureTestingModule({
       imports: [ServiceCatalogAddServiceComponent],
@@ -110,6 +114,69 @@ describe('ServiceCatalogAddServiceComponent (4-source provision over effector PR
     selectFirst();
     const badges = el().querySelectorAll('[data-testid="service-catalog-source-gated-badge"]');
     expect(badges.length).toBe(2);
+  });
+
+  it('explains the builder is NOT enabled when the config flag is off', async () => {
+    serviceCatalog.builderStatus.and.resolveTo({ enabled: false, buildNodePresent: false, warnings: [] });
+    await loadDomain();
+    selectFirst();
+    fixture.detectChanges();
+    const note = el().querySelector('[data-testid="service-catalog-builder-status"]')!;
+    expect(note.textContent).toContain('not enabled on this deployment');
+  });
+
+  it('explains the builder is enabled but no x86 build node was found', async () => {
+    serviceCatalog.builderStatus.and.resolveTo({ enabled: true, buildNodePresent: false, warnings: [] });
+    await loadDomain();
+    selectFirst();
+    fixture.detectChanges();
+    const note = el().querySelector('[data-testid="service-catalog-builder-status"]')!;
+    expect(note.textContent).toContain('no x86 build node was found');
+  });
+
+  // ── LIVE UN-GATE: the builder pre-flight confirms a real build is possible ────
+
+  it('UN-GATES DOCKERFILE + ZIP when the live builder pre-flight reports ready', async () => {
+    serviceCatalog.builderStatus.and.resolveTo({ enabled: true, buildNodePresent: true, warnings: [] });
+    await loadDomain();
+    selectFirst();
+    fixture.detectChanges();
+    const radios = Array.from(
+      el().querySelectorAll('input[type="radio"][name="sourceKind"]'),
+    ) as HTMLInputElement[];
+    const byValue = new Map(radios.map((r) => [r.value, r]));
+    expect(byValue.get('DOCKERFILE')!.disabled).withContext('DOCKERFILE un-gated').toBeFalse();
+    expect(byValue.get('ZIP')!.disabled).withContext('ZIP un-gated').toBeFalse();
+    expect(el().querySelectorAll('[data-testid="service-catalog-source-gated-badge"]').length).toBe(0);
+  });
+
+  it('chooseSource() SELECTS DOCKERFILE once the live pre-flight is ready, and provisions it', async () => {
+    serviceCatalog.builderStatus.and.resolveTo({ enabled: true, buildNodePresent: true, warnings: [] });
+    await loadDomain('acme.test');
+    selectFirst();
+    component.chooseSource('DOCKERFILE');
+    expect(component.sourceKind()).toBe('DOCKERFILE');
+    component.repoUrl.set('https://git.acme.test/build/owncast.git');
+    await component.provision();
+    expect(serviceCatalog.provisionDeployment).toHaveBeenCalledWith('acme.test', 'dep-1', {
+      sourceKind: 'DOCKERFILE',
+      repoUrl: 'https://git.acme.test/build/owncast.git',
+      path: null,
+      targetRevision: null,
+    });
+  });
+
+  it('a FAILED builder pre-flight fetch fails SAFE — stays gated, never a faked ready', async () => {
+    serviceCatalog.builderStatus.and.rejectWith(new Error('network error'));
+    await loadDomain();
+    selectFirst();
+    fixture.detectChanges();
+    const radios = Array.from(
+      el().querySelectorAll('input[type="radio"][name="sourceKind"]'),
+    ) as HTMLInputElement[];
+    const byValue = new Map(radios.map((r) => [r.value, r]));
+    expect(byValue.get('DOCKERFILE')!.disabled).withContext('fails safe: still gated').toBeTrue();
+    expect(byValue.get('ZIP')!.disabled).withContext('fails safe: still gated').toBeTrue();
   });
 
   // ── SELECT + GIT provision (the live sources) ─────────────────────────────────

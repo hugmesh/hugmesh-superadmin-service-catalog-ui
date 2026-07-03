@@ -10,6 +10,8 @@ import {
   ServiceSourceKind,
   SERVICE_SOURCE_KINDS,
   requiresBuilder,
+  builderReady as isBuilderReady,
+  BuilderStatus,
   ServiceCatalogApiError,
 } from './service-catalog.service';
 
@@ -90,13 +92,31 @@ export class ServiceCatalogAddServiceComponent {
   readonly notice = signal('');
   readonly touched = signal(false);
 
-  /** The four source options (display order: the two live, then the two builder-gated). */
-  readonly sourceOptions: readonly SourceOption[] = SERVICE_SOURCE_KINDS.map((kind) => ({
-    kind,
-    label: SOURCE_LABELS[kind],
-    blurb: SOURCE_BLURBS[kind],
-    builderGated: requiresBuilder(kind),
-  }));
+  /** The LIVE Kaniko-builder capability pre-flight (config flag + x86 build-node
+   *  presence), fetched alongside each domain load (see {@link fetchRows}). `null`
+   *  while loading; a failed fetch degrades to the fail-safe "unavailable" reading
+   *  (dark-by-default), never a faked ready. */
+  readonly builderStatus = signal<BuilderStatus | null>(null);
+
+  /** True only once the pre-flight has confirmed a real build is possible (BOTH the
+   *  config flag AND the live build-node probe). `false` while loading or on error —
+   *  DOCKERFILE/ZIP stay gated until this is confirmed true. */
+  readonly builderIsReady = computed(() => {
+    const status = this.builderStatus();
+    return status !== null && isBuilderReady(status);
+  });
+
+  /** The four source options (display order: the two live, then the two builder-gated),
+   *  recomputed whenever the live builder pre-flight resolves — DOCKERFILE/ZIP un-gate
+   *  the moment {@link builderIsReady} confirms a real build is possible. */
+  readonly sourceOptions = computed<readonly SourceOption[]>(() =>
+    SERVICE_SOURCE_KINDS.map((kind) => ({
+      kind,
+      label: SOURCE_LABELS[kind],
+      blurb: SOURCE_BLURBS[kind],
+      builderGated: requiresBuilder(kind) && !this.builderIsReady(),
+    })),
+  );
 
   /** The currently-selected deployment row (or null). */
   readonly selectedRow = computed<ServiceDeployment | null>(() => {
@@ -104,9 +124,22 @@ export class ServiceCatalogAddServiceComponent {
     return (this.rows() ?? []).find((r) => r.id === id) ?? null;
   });
 
-  /** True when the chosen source needs the (absent) in-cluster Kaniko builder. The
-   *  option is disabled in the UI, but guard the submit too (defence-in-depth). */
-  readonly sourceBuilderGated = computed(() => requiresBuilder(this.sourceKind()));
+  /** True when the chosen source needs the in-cluster Kaniko builder AND it is not
+   *  (yet) confirmed live-ready. The option is disabled in the UI, but guard the
+   *  submit too (defence-in-depth). */
+  readonly sourceBuilderGated = computed(
+    () => requiresBuilder(this.sourceKind()) && !this.builderIsReady(),
+  );
+
+  private async loadBuilderStatus(): Promise<void> {
+    try {
+      this.builderStatus.set(await this.serviceCatalog.builderStatus());
+    } catch {
+      // Fail-safe: an unreachable/denied pre-flight is treated as "not ready" — never
+      // faked ready. DOCKERFILE/ZIP simply stay gated with the static helptext.
+      this.builderStatus.set({ enabled: false, buildNodePresent: false, warnings: [] });
+    }
+  }
 
   trackId = (_: number, d: ServiceDeployment): string => d.id;
   trackKind = (_: number, o: SourceOption): string => o.kind;
@@ -140,6 +173,7 @@ export class ServiceCatalogAddServiceComponent {
     this.listLoading.set(true);
     this.listError.set('');
     void this.loadProfiles();
+    void this.loadBuilderStatus();
     try {
       const res = await this.serviceCatalog.listDeployments(d);
       this.rows.set(res);
@@ -174,9 +208,10 @@ export class ServiceCatalogAddServiceComponent {
   }
 
   /** Choose a source kind (ignores the builder-gated kinds — they are disabled, but
-   *  guard programmatic callers too). */
+   *  guard programmatic callers too). DOCKERFILE/ZIP are selectable once the live
+   *  pre-flight confirms {@link builderIsReady}. */
   chooseSource(kind: ServiceSourceKind): void {
-    if (requiresBuilder(kind)) return;
+    if (requiresBuilder(kind) && !this.builderIsReady()) return;
     this.sourceKind.set(kind);
   }
 

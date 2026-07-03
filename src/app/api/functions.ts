@@ -411,3 +411,5 @@ export type { AnubisStatus$Params as AnubisStatus$Params } from './fn/anubis-con
 export { anubisStatus as anubisStatus } from './fn/anubis-controller/anubis-status';
 export type { AnubisMetrics$Params as AnubisMetrics$Params } from './fn/anubis-controller/anubis-metrics';
 export { anubisMetrics as anubisMetrics } from './fn/anubis-controller/anubis-metrics';
+export type { ServiceCatalogBuilderStatus$Params as ServiceCatalogBuilderStatus$Params } from './fn/service-catalog-builder-controller/service-catalog-builder-status';
+export { serviceCatalogBuilderStatus as serviceCatalogBuilderStatus } from './fn/service-catalog-builder-controller/service-catalog-builder-status';

@@ -6,6 +6,7 @@ import { ServiceCurationControllerService } from './api/services/service-curatio
 import { AppProfileControllerService } from './api/services/app-profile-controller.service';
 import { ServiceDeploymentControllerService } from './api/services/service-deployment-controller.service';
 import { AdminServiceStoreControllerService } from './api/services/admin-service-store-controller.service';
+import { ServiceCatalogBuilderControllerService } from './api/services/service-catalog-builder-controller.service';
 
 /** Base URL of the admin BFF. The fe-gateway proxies same-origin /bff/** to
  *  snapdragon-admin-bff-api, so the default is the empty string = same origin.
@@ -110,9 +111,40 @@ export const SERVICE_SOURCE_KINDS: readonly ServiceSourceKind[] = [
 ] as const;
 
 /** Mirrors `ServiceSource.Kind.requiresBuilder()` — DOCKERFILE/ZIP need the
- *  in-cluster Kaniko builder (the generator leg) before an image exists. */
+ *  in-cluster Kaniko builder (the generator leg) before an image exists. This is the
+ *  STATIC per-kind fact (which sources need a builder at all); whether a builder is
+ *  actually AVAILABLE on this deployment is the separate, LIVE {@link BuilderStatus}
+ *  signal below — a kind should only be presented enabled when BOTH hold. */
 export function requiresBuilder(kind: ServiceSourceKind): boolean {
   return kind === 'DOCKERFILE' || kind === 'ZIP';
+}
+
+/**
+ * The LIVE Kaniko-builder capability pre-flight — GET
+ * `/bff/superadmin/service-store/builder` (admin-bff `ServiceCatalogBuilderController`).
+ * Two independent signals, BOTH required for a DOCKERFILE/ZIP source to actually build:
+ *
+ *   enabled          — the `app.appstore.builder.enabled` config flag on THIS
+ *                       deployment (whether the `KanikoBuildLauncher` bean is wired at
+ *                       all). NECESSARY but not SUFFICIENT.
+ *   buildNodePresent — a live, read-only, fail-safe k8s probe for at least one
+ *                       labelled x86/amd64 build Node. `false` (with a `warnings` entry)
+ *                       on ANY probe error/denial — never a faked `true`.
+ *
+ * A real build is possible only when BOTH are `true`. The bff's `AddServiceEffector`
+ * 400-guard remains the AUTHORITATIVE gate regardless of what this reports — this is a
+ * pre-flight UI signal only.
+ */
+export interface BuilderStatus {
+  enabled: boolean;
+  buildNodePresent: boolean;
+  warnings: string[];
+}
+
+/** True only when BOTH the config flag and the live build-node probe say yes — the
+ *  single boolean the UI un-gates DOCKERFILE/ZIP on. */
+export function builderReady(status: BuilderStatus): boolean {
+  return status.enabled && status.buildNodePresent;
 }
 
 /**
@@ -200,6 +232,7 @@ export class ServiceCatalogService {
   private readonly profileApi = inject(AppProfileControllerService);
   private readonly deploymentApi = inject(ServiceDeploymentControllerService);
   private readonly adminApi = inject(AdminServiceStoreControllerService);
+  private readonly builderApi = inject(ServiceCatalogBuilderControllerService);
 
   constructor() {
     // Point every generated client at the configured base (default '' = same
@@ -209,6 +242,7 @@ export class ServiceCatalogService {
     this.profileApi.rootUrl = this.base;
     this.deploymentApi.rootUrl = this.base;
     this.adminApi.rootUrl = this.base;
+    this.builderApi.rootUrl = this.base;
   }
 
   /** Map a caught error to a {@link ServiceCatalogApiError} so the 400/403/404/409
@@ -394,6 +428,26 @@ export class ServiceCatalogService {
       return rows as unknown as ServiceCuration[];
     } catch (e) {
       return this.toApiError('GET', '/bff/admin/service-store', e);
+    }
+  }
+
+  // ----- BUILDER CAPABILITY (SUPERADMIN): /bff/superadmin/service-store/builder ---
+
+  /** GET /bff/superadmin/service-store/builder → {@link BuilderStatus} — the LIVE
+   *  Kaniko-builder pre-flight (config flag + x86 build-node presence) the
+   *  Add-a-Service view consults to un-gate DOCKERFILE/ZIP only when a real build is
+   *  actually possible, instead of the static always-disabled {@link requiresBuilder}
+   *  gate alone. */
+  async builderStatus(): Promise<BuilderStatus> {
+    try {
+      const body = await this.builderApi.serviceCatalogBuilderStatus();
+      return {
+        enabled: Boolean((body as any)?.enabled),
+        buildNodePresent: Boolean((body as any)?.buildNodePresent),
+        warnings: Array.isArray((body as any)?.warnings) ? (body as any).warnings : [],
+      };
+    } catch (e) {
+      return this.toApiError('GET', '/bff/superadmin/service-store/builder', e);
     }
   }
 }

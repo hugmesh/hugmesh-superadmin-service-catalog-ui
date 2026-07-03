@@ -98,10 +98,26 @@
         <fieldset class="service-catalog-sources">
           <legend>Source</legend>
           <p id="service-catalog-source-help" class="service-catalog-field__help">
-            Where the service image comes from. Two sources need the in-cluster image builder, which is
-            not available yet, so they are disabled.
+            Where the service image comes from. Two sources need the in-cluster image builder.
           </p>
-          @for (opt of sourceOptions; track trackKind($index, opt)) {
+          @if (builderStatus(); as bs) {
+            @if (!builderIsReady()) {
+              <p class="service-catalog-muted" role="status" data-testid="service-catalog-builder-status">
+                @if (!bs.enabled) {
+                  The in-cluster image builder is not enabled on this deployment, so Dockerfile and Zip
+                  sources stay disabled.
+                } @else if (!bs.buildNodePresent) {
+                  The image builder is enabled but no x86 build node was found in this cluster, so
+                  Dockerfile and Zip sources stay disabled.
+                }
+              </p>
+            } @else {
+              <p class="service-catalog-muted" role="status" data-testid="service-catalog-builder-status">
+                The in-cluster image builder is available — Dockerfile and Zip sources can be provisioned.
+              </p>
+            }
+          }
+          @for (opt of sourceOptions(); track trackKind($index, opt)) {
             <label
               class="service-catalog-source-option"
               [class.service-catalog-source-option--disabled]="opt.builderGated"

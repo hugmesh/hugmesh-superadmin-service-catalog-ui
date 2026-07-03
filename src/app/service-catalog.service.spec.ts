@@ -241,6 +241,40 @@ describe('ServiceCatalogService (exact PR1 bff paths)', () => {
     expect(rows[0].domain).toBe('acme.test');
   });
 
+  // ── builder capability pre-flight ─────────────────────────────────────────
+
+  it('builderStatus → GET /bff/superadmin/service-store/builder, both signals TRUE', async () => {
+    const p = service.builderStatus();
+    const req = httpMock.expectOne('/bff/superadmin/service-store/builder');
+    expect(req.request.method).toBe('GET');
+    req.flush({ enabled: true, buildNodePresent: true, warnings: [] });
+    const status = await p;
+    expect(status).toEqual({ enabled: true, buildNodePresent: true, warnings: [] });
+  });
+
+  it('builderStatus reports the honest false/false + warnings when the builder is unwired', async () => {
+    const p = service.builderStatus();
+    const req = httpMock.expectOne('/bff/superadmin/service-store/builder');
+    req.flush({
+      enabled: false,
+      buildNodePresent: false,
+      warnings: ['x86 build-node presence could not be detected (Node list failed or was denied); reported absent.'],
+    });
+    const status = await p;
+    expect(status.enabled).toBeFalse();
+    expect(status.buildNodePresent).toBeFalse();
+    expect(status.warnings).toEqual([
+      'x86 build-node presence could not be detected (Node list failed or was denied); reported absent.',
+    ]);
+  });
+
+  it('builderStatus surfaces a 403 as ServiceCatalogApiError.isForbidden', async () => {
+    const p = service.builderStatus();
+    const req = httpMock.expectOne('/bff/superadmin/service-store/builder');
+    req.flush({ error: 'forbidden' }, { status: 403, statusText: 'Forbidden' });
+    await expectAsync(p).toBeRejectedWith(jasmine.objectContaining({ status: 403 }));
+  });
+
   // ── auth + error surfacing ────────────────────────────────────────────────
 
   it('sends the HttpOnly bff_ cookie (withCredentials) and NO browser Bearer on every call', async () => {

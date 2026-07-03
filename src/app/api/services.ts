@@ -37,6 +37,7 @@ export { DesktopSshTerminalControllerService } from './services/desktop-ssh-term
 export { DesktopRemoteInstallControllerService } from './services/desktop-remote-install-controller.service';
 export { DesktopInstallRequestAdminControllerService } from './services/desktop-install-request-admin-controller.service';
 export { DesktopCatalogAdminControllerService } from './services/desktop-catalog-admin-controller.service';
+export { ServiceCatalogBuilderControllerService } from './services/service-catalog-builder-controller.service';
 export { AppealContactControllerService } from './services/appeal-contact-controller.service';
 export { AnnouncementSurfaceControllerService } from './services/announcement-surface-controller.service';
 export { DesktopSudoEntitlementControllerService } from './services/desktop-sudo-entitlement-controller.service';

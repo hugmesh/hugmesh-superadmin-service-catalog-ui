@@ -4253,6 +4253,28 @@
         }
       }
     },
+    "/bff/superadmin/service-store/builder" : {
+      "get" : {
+        "tags" : [ "service-catalog-builder-controller" ],
+        "summary" : "Kaniko builder capability: config flag + live x86 build-node presence.",
+        "operationId" : "serviceCatalogBuilderStatus",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/superadmin/desktop/dials" : {
       "get" : {
         "tags" : [ "desktop-dial-admin-controller" ],
