@@ -1,5 +1,5 @@
-// Shared federation config helpers for the host shell + any future remote
-// bundles authored in this repo.
+// Shared federation config helpers, byte-identical across every Snapdragon
+// host and remote repo (this repo is a REMOTE — see README).
 //
 // The host's federation.config.js used to inline the same shareAll args and
 // skip list every other Snapdragon repo carries. Centralising them here means
@@ -9,7 +9,9 @@
 // runtime failure. Mirrors snapdragon.games/frontend/federation-base.js.
 //
 // Used by:
-//   - ./federation.config.js (this host)
+//   - ./federation.config.js (this repo's remote config, via snapdragonRemote)
+//   - the host's federation.config.js (via snapdragonHost), and every other
+//     remote's federation.config.js — copied byte-identical into each repo
 
 const { withNativeFederation, shareAll } = require('@angular-architects/native-federation/config');
 

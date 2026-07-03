@@ -1,10 +1,22 @@
 import { Injectable, signal, computed } from '@angular/core';
 
+/**
+ * The session payload persisted to `localStorage['snap.session']` by the login remote
+ * and read by this App-Store remote to gate views and attach the bearer token to BFF requests.
+ */
 export interface SnapSession {
-  id: string;                 // casdoor identity, e.g. google:alice@gmail.com
-  label: string;              // display (email or discord handle)
+  /** Casdoor subject — unique identity string, e.g. `google:alice@gmail.com`. */
+  id: string;
+  /** Human-readable display name (email or Discord handle). */
+  label: string;
+  /** The OIDC provider used to authenticate. */
   provider: 'google' | 'discord';
+  /**
+   * Lowercase Casdoor roles, `ROLE_`-prefix-stripped (e.g. `['admin', 'superadmin']`).
+   * The App-Store gates on `'superadmin'` for the write console and `'admin'|'superadmin'` for the read view.
+   */
   roles: string[];
+  /** True once the user has completed the Casdoor registration wizard. */
   registrationComplete: boolean;
 }
 
@@ -89,13 +101,39 @@ export class SessionService {
     }
   }
 
+  /**
+   * Read and parse the session from localStorage. Returns null on any parse error
+   * (corrupt JSON, missing key) so callers never see an unhandled exception.
+   */
   private load(): SnapSession | null {
     try { const raw = localStorage.getItem(this.key); return raw ? JSON.parse(raw) : null; }
     catch { return null; }
   }
+
+  /**
+   * Persist a new session to localStorage, update the signal, and broadcast to
+   * sibling instances so they reload immediately.
+   *
+   * @param s - The session payload to persist.
+   */
   set(s: SnapSession): void { localStorage.setItem(this.key, JSON.stringify(s)); this.session.set(s); this.broadcast(); }
+
+  /**
+   * Merge a partial update into the current session. A no-op when not logged in.
+   *
+   * @param p - The partial fields to merge into the current session.
+   */
   patch(p: Partial<SnapSession>): void { const s = this.session(); if (s) this.set({ ...s, ...p }); }
+
+  /**
+   * Remove the session from localStorage, clear the signal, and broadcast. Used by the
+   * logout flow to ensure every remote drops its session immediately.
+   */
   clear(): void { localStorage.removeItem(this.key); this.session.set(null); this.broadcast(); }
-  /** Notify the other in-page SessionService instances (host + remotes) to re-read. */
+
+  /**
+   * Fire a `snap-session-change` window event so every in-page `SessionService` instance
+   * (host + each loaded remote) re-reads localStorage. Does nothing on SSR.
+   */
   private broadcast(): void { if (typeof window !== 'undefined') window.dispatchEvent(new Event(this.channel)); }
 }

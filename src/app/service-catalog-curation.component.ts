@@ -28,40 +28,63 @@ import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from '
 export class ServiceCatalogCurationComponent {
   private readonly serviceCatalog = inject(ServiceCatalogService);
 
-  // ── domain selector ──
+  // ── Domain selector ────────────────────────────────────────────────────
+  /** The domain currently typed in the input (not yet loaded into the list). */
   readonly domain = signal('');
-  /** The domain currently loaded into the offered list (so the heading is stable
-   *  while the input is edited). */
+  /**
+   * The domain whose catalog is currently shown in the offered-list. Kept separately
+   * from `domain` so the heading stays stable while the superadmin is mid-type:
+   * the heading reads "Offered catalog for X" using the LOADED domain, not the
+   * typed-but-not-yet-fetched one.
+   */
   readonly loadedDomain = signal('');
 
-  // ── offered catalog list ──
+  // ── Offered catalog list ────────────────────────────────────────────────
+  /** All curation rows for the loaded domain (offered + withdrawn audit trail), or null while loading. */
   readonly rows = signal<ServiceCuration[] | null>(null);
+  /** True while the catalog GET is in flight. */
   readonly listLoading = signal(false);
+  /** Error from the catalog load — displayed in an aria-live region. */
   readonly listError = signal('');
 
-  // ── offer/withdraw action form ──
+  // ── Offer / Withdraw action form ────────────────────────────────────────
+  /** The `serviceKey` to offer to or withdraw from the loaded domain. */
   readonly serviceKey = signal('');
+  /** True while an offer/withdraw POST is in flight (disables action buttons). */
   readonly busy = signal(false);
+  /** Error from the last offer/withdraw action — displayed in an aria-live region. */
   readonly actionError = signal('');
+  /** Success notice from the last offer/withdraw action — displayed in an aria-live region. */
   readonly notice = signal('');
+  /** Whether the form has been submitted at least once (activates inline validation display). */
   readonly touched = signal(false);
 
-  /** Only the live (offered) rows, for the "current offered set" view. */
+  /** The currently-offered (live, non-withdrawn) rows — the visible offered-catalog view. */
   readonly offeredRows = computed(() => (this.rows() ?? []).filter((r) => r.state === 'offered'));
 
+  /** `ngFor` track-by by database id (avoids DOM churn on catalog reload). */
   trackId = (_: number, r: ServiceCuration): string => r.id;
 
+  /** True when the domain input is empty and the form has been touched. */
   domainInvalid(): boolean {
     return this.touched() && this.domain().trim().length === 0;
   }
+  /** True when the serviceKey input is empty and the form has been touched. */
   serviceKeyInvalid(): boolean {
     return this.touched() && this.serviceKey().trim().length === 0;
   }
-  /** A domain must be loaded before offer/withdraw can target it. */
+  /**
+   * True when an offer/withdraw action may proceed. Both `loadedDomain` and `serviceKey`
+   * must be non-blank, and no call must be in flight.
+   *
+   * A domain must be LOADED (not just typed) so accidental actions against an unconfirmed
+   * domain are prevented.
+   */
   canAct(): boolean {
     return this.loadedDomain().trim().length > 0 && this.serviceKey().trim().length > 0 && !this.busy();
   }
 
+  /** Fetch the catalog for the typed domain, validate input, and update `loadedDomain`. */
   async loadDomain(): Promise<void> {
     this.touched.set(true);
     this.actionError.set('');
@@ -69,8 +92,11 @@ export class ServiceCatalogCurationComponent {
     await this.fetchCatalog();
   }
 
-  /** Fetch the offered catalog for the domain in the input — WITHOUT clearing the
-   *  notice (so a post-write reload keeps its success message). */
+  /**
+   * Fetch the offered catalog for the domain in the input — WITHOUT clearing the success
+   * notice (so a prior offer/withdraw's confirmation persists through the list reload).
+   * Sets `loadedDomain` even on a graceful 403/404 so the heading shows the attempted domain.
+   */
   private async fetchCatalog(): Promise<void> {
     const d = this.domain().trim();
     if (d.length === 0) return;

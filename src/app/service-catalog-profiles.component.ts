@@ -31,29 +31,54 @@ export class ServiceCatalogProfilesComponent implements OnInit {
   private readonly serviceCatalog = inject(ServiceCatalogService);
 
   // ── list ──
+  /** The app profiles returned by `GET /bff/superadmin/app-profiles`, or null while loading. */
   readonly profiles = signal<AppProfile[] | null>(null);
+  /** True while the list GET is in flight. */
   readonly listLoading = signal(false);
+  /** Error from the list load — displayed in an aria-live region. */
   readonly listError = signal('');
 
   // ── editor ──
+  /**
+   * The current editor mode. `'create'` (new profile) or `'edit'` (updating an existing name).
+   * Drives whether the name field is editable and whether submit calls POST or PUT.
+   */
   readonly mode = signal<Mode>('create');
+  /** The profile name field. Read-only (displays `p.name`) in edit mode. */
   readonly name = signal('');
+  /**
+   * The profile body as a JSON string. Defaults to a minimal `cpu`/`memory` example.
+   * Validated client-side by `jsonValid()` before any submit to avoid a round-trip 400.
+   */
   readonly profileJson = signal('{\n  "cpu": "500m",\n  "memory": "512Mi"\n}');
+  /** True while a POST/PUT/DELETE call is in flight — disables action buttons. */
   readonly busy = signal(false);
+  /** Inline error from the last form action — displayed in an `role=alert` live region. */
   readonly formError = signal('');
+  /** Success notice from the last form action — displayed in an `role=status` live region. */
   readonly notice = signal('');
+  /** Whether the form has been submitted at least once (activates inline validation display). */
   readonly touched = signal(false);
 
+  /** `ngFor` track-by by database id (avoids DOM churn on list reload). */
   trackId = (_: number, p: AppProfile): string => p.id;
 
   ngOnInit(): void {
+    // Load the profile list immediately on mount.
     void this.reload();
   }
 
+  /** True when the name field is blank and the form has been touched in `'create'` mode. */
   nameInvalid(): boolean {
     return this.touched() && this.mode() === 'create' && this.name().trim().length === 0;
   }
-  /** Whether profileJson parses as JSON (empty = allowed → treated as "{}"). */
+
+  /**
+   * Whether `profileJson` is parseable as JSON. An empty body is permitted — treated
+   * as `'{}'` on submit (the simplest valid profile).
+   *
+   * @returns `true` when blank OR when the string parses without error.
+   */
   jsonValid(): boolean {
     const raw = this.profileJson().trim();
     if (raw.length === 0) return true;
@@ -64,14 +89,26 @@ export class ServiceCatalogProfilesComponent implements OnInit {
       return false;
     }
   }
+
+  /** True when the body has been touched AND `jsonValid()` returns false — activates the JSON error message. */
   jsonInvalid(): boolean {
     return this.touched() && !this.jsonValid();
   }
+
+  /**
+   * Whether the form may be submitted (name + JSON both valid for the current mode).
+   *
+   * @returns `false` when the name is blank in create mode, or when the JSON is malformed.
+   */
   formValid(): boolean {
     if (this.mode() === 'create' && this.name().trim().length === 0) return false;
     return this.jsonValid();
   }
 
+  /**
+   * Reload the profile list from `GET /bff/superadmin/app-profiles`.
+   * A 403/404 degrades to an empty list; any other error surfaces in `listError`.
+   */
   async reload(): Promise<void> {
     this.listLoading.set(true);
     this.listError.set('');
@@ -79,6 +116,7 @@ export class ServiceCatalogProfilesComponent implements OnInit {
       this.profiles.set(await this.serviceCatalog.listProfiles());
     } catch (e) {
       this.profiles.set(null);
+      // 403 (not superadmin) and 404 degrade to the empty state — not a UI error.
       if (e instanceof ServiceCatalogApiError && (e.isForbidden || e.isNotFound)) {
         this.profiles.set([]);
       } else {
@@ -89,6 +127,11 @@ export class ServiceCatalogProfilesComponent implements OnInit {
     }
   }
 
+  /**
+   * Reset the editor to the `'create'` (new profile) form and clear any previous
+   * errors or notices. Called after a successful create to ensure the form is ready
+   * for the next new entry.
+   */
   newProfile(): void {
     this.mode.set('create');
     this.name.set('');
@@ -98,6 +141,12 @@ export class ServiceCatalogProfilesComponent implements OnInit {
     this.touched.set(false);
   }
 
+  /**
+   * Load an existing profile into the editor for `'edit'` mode (PUT).
+   * Populates `name` and `profileJson` from the list row; clears prior errors.
+   *
+   * @param p - The profile row from the list to load into the form.
+   */
   editProfile(p: AppProfile): void {
     this.mode.set('edit');
     this.name.set(p.name);
@@ -107,18 +156,27 @@ export class ServiceCatalogProfilesComponent implements OnInit {
     this.touched.set(false);
   }
 
+  /**
+   * Submit the editor form: creates (`POST /bff/superadmin/app-profiles`) or updates
+   * (`PUT /bff/superadmin/app-profiles/{name}`) depending on `mode`. Validates
+   * client-side before calling; reloads the list on success; surfaces error messages
+   * from `ServiceCatalogApiError` (403 / 409 conflict / 404) without a generic flash.
+   *
+   * @throws BFF errors are caught and surfaced into `formError`.
+   */
   async submit(): Promise<void> {
     this.touched.set(true);
     this.formError.set('');
     this.notice.set('');
     if (!this.formValid()) return;
     this.busy.set(true);
+    // An empty body is treated as the minimal valid profile.
     const json = this.profileJson().trim() || '{}';
     try {
       if (this.mode() === 'create') {
         const created = await this.serviceCatalog.createProfile(this.name().trim(), json);
         this.newProfile(); // reset the form first (it clears the notice)…
-        this.notice.set(`Created profile “${created.name}”.`); // …then announce success
+        this.notice.set(`Created profile “${created.name}”.`); // …then set the notice on the clean form
       } else {
         const updated = await this.serviceCatalog.updateProfile(this.name().trim(), json);
         this.notice.set(`Updated profile “${updated.name}”.`);
@@ -131,12 +189,21 @@ export class ServiceCatalogProfilesComponent implements OnInit {
     }
   }
 
+  /**
+   * Delete a profile (`DELETE /bff/superadmin/app-profiles/{name}`).
+   * If the editor was open on the deleted profile, resets to create mode.
+   * Reloads the list on success; surfaces BFF errors into `formError`.
+   *
+   * @param p - The profile to delete.
+   * @throws BFF errors are caught and surfaced into `formError`.
+   */
   async deleteProfile(p: AppProfile): Promise<void> {
     this.busy.set(true);
     this.formError.set('');
     this.notice.set('');
     try {
       await this.serviceCatalog.deleteProfile(p.name);
+      // If the deleted profile was open in the editor, reset to create mode.
       if (this.mode() === 'edit' && this.name() === p.name) this.newProfile();
       this.notice.set(`Deleted profile “${p.name}”.`);
       await this.reload();

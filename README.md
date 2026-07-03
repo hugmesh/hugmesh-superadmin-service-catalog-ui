@@ -273,6 +273,21 @@ npm run build      # ng build service-catalog — dist/service-catalog/browser (
 npm test           # headless karma (ChromeHeadlessCI)
 ```
 
+### e2e
+
+`e2e/` is a separate npm workspace: a Playwright + playwright-bdd harness
+(`.feature` Gherkin specs under `e2e/features/`, step defs under
+`e2e/features/steps/`). Ships dark — the `@cluster`-tagged scenarios (see
+"Current State" above) skip unless `E2E_CLUSTER=1` points at a live remote +
+reachable `/bff/superadmin/service-store`; a plain run only proves the Gherkin
+compiles and every step is bound.
+
+```bash
+cd e2e
+npm install
+npm run bdd        # bddgen (generate specs from .feature files) + playwright test
+```
+
 ## Accessibility
 
 Cross-repo Snapdragon UI standard: every interactive control has a programmatic

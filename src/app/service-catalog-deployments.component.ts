@@ -34,34 +34,65 @@ import { ServiceCatalogService, ServiceDeployment, AppProfile, ServiceCatalogApi
 export class ServiceCatalogDeploymentsComponent {
   private readonly serviceCatalog = inject(ServiceCatalogService);
 
-  // ── domain selector ──
+  // ── Domain selector ────────────────────────────────────────────────────
+  /** The domain currently typed in the input (not yet loaded into the list). */
   readonly domain = signal('');
+  /**
+   * The domain whose deployments are currently shown in the list. Kept separately from
+   * `domain` so the heading stays stable while the superadmin is mid-type.
+   */
   readonly loadedDomain = signal('');
 
-  // ── deployment list ──
+  // ── Deployment list ─────────────────────────────────────────────────────
+  /** All deployment rows for the loaded domain (active + ended), or null while loading. */
   readonly rows = signal<ServiceDeployment[] | null>(null);
+  /** True while the deployment GET is in flight. */
   readonly listLoading = signal(false);
+  /** Error from the deployment load — displayed in an aria-live region. */
   readonly listError = signal('');
 
-  // ── profile options (to reference one) ──
+  // ── Profile dropdown (informational; load failure is non-fatal) ─────────
+  /** Available app profiles for the `profileRef` picker dropdown. */
   readonly profiles = signal<AppProfile[]>([]);
 
-  // ── record form ──
+  // ── Record form fields ──────────────────────────────────────────────────
+  /** The `serviceKey` of the service being recorded. */
   readonly serviceKey = signal('');
+  /**
+   * Optional reference to a named `app_profile` (the global deploy-template library).
+   * Leaving it blank uses the effector's built-in defaults at provision time.
+   */
   readonly profileRef = signal('');
-  /** datetime-local value (browser-local); converted to an ISO instant on submit. */
+  /**
+   * `datetime-local` value (browser-local time, no timezone suffix). Converted to a
+   * UTC ISO-8601 instant via `new Date(value).toISOString()` on submit; left blank for
+   * a permanent deployment (no expiry clock). Validated on submit: a non-empty value
+   * must parse as a valid date.
+   */
   readonly endingAtLocal = signal('');
+  /**
+   * Opaque JSON/CSV of effects to emit at end-of-lease. SHIPS DARK — the BFF stores
+   * this string but the effector that acts on it is a later increment.
+   */
   readonly enforceActions = signal('');
+  /** True while the record or end POST is in flight. */
   readonly busy = signal(false);
+  /** Error from the last form action — displayed in an aria-live region. */
   readonly formError = signal('');
+  /** Success notice from the last form action — displayed in an aria-live region. */
   readonly notice = signal('');
+  /** Whether the form has been submitted at least once (activates inline validation display). */
   readonly touched = signal(false);
 
-  /** Sorted: active first, then by created_at desc. */
+  /**
+   * Deployment rows sorted for display: `active` first (current deployments at the top),
+   * then within each state group by `createdAt` descending (newest first).
+   */
   readonly sortedRows = computed(() => {
     const r = this.rows();
     if (!r) return null;
     return [...r].sort((a, b) => {
+      // Active before ended, then newest first within each state.
       if (a.state !== b.state) return a.state === 'active' ? -1 : 1;
       return (b.createdAt ?? '').localeCompare(a.createdAt ?? '');
     });

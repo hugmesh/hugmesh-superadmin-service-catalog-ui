@@ -158,6 +158,7 @@ export class ServiceCatalogAddServiceComponent {
     );
   }
 
+  /** Fetch the deployable rows for the typed domain, resetting selection/touched state. */
   async loadDomain(): Promise<void> {
     this.touched.set(false);
     this.formError.set('');
