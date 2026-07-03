@@ -1,5 +1,4 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { SessionService } from './session.service';
 import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from './service-catalog.service';
 
@@ -21,7 +20,7 @@ import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from '
 @Component({
   selector: 'snap-service-catalog-forbidden',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './service-catalog-forbidden.component.html',
   styleUrl: './service-catalog-forbidden.component.scss',
 })

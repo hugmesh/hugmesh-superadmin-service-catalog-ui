@@ -1,6 +1,5 @@
 import { Injectable, InjectionToken, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
 
 import { ServiceCurationControllerService } from './api/services/service-curation-controller.service';
 import { AppProfileControllerService } from './api/services/app-profile-controller.service';
@@ -29,13 +28,17 @@ export const SERVICE_CATALOG_BASE_URL = new InjectionToken<string>('SERVICE_CATA
 // migration). See README "Typed API client".
 // ---------------------------------------------------------------------------
 
+/** The two service_curation lifecycle states: 'offered' (live in the catalog) |
+ *  'withdrawn' (CAS audit trail). */
+export type ServiceCurationState = 'offered' | 'withdrawn';
+
 /** ServiceCuration — a service_curation row: per-{domain} offered-catalog record.
  *  state = 'offered' (live in the catalog) | 'withdrawn' (CAS audit trail). */
 export interface ServiceCuration {
   id: string;
   domain: string;
   serviceKey: string;
-  state: string;
+  state: ServiceCurationState;
   curatedBySubject: string;
   createdAt: string;
   updatedAt: string;
@@ -53,6 +56,13 @@ export interface AppProfile {
   updatedAt: string;
 }
 
+/** The two service_deployment lifecycle states: 'active' | 'ended'. */
+export type ServiceDeploymentState = 'active' | 'ended';
+
+/** The three propagation states an effector run can leave a deployment in:
+ *  'pending' | 'applied' | 'failed'. */
+export type ServiceDeploymentPropagationState = 'pending' | 'applied' | 'failed';
+
 /** ServiceDeployment — a service_deployment row: per-{domain} lifecycle-accounting.
  *  state = 'active' | 'ended'; endingAt = the single expiry clock (null = permanent);
  *  enforceActions = opaque JSON/CSV of effects EMITTED at end-of-lease (SHIPS DARK);
@@ -62,11 +72,11 @@ export interface ServiceDeployment {
   domain: string;
   serviceKey: string;
   profileRef: string | null;
-  state: string;
+  state: ServiceDeploymentState;
   createdAt: string;
   endingAt: string | null;
   enforceActions: string | null;
-  propagationState: string;
+  propagationState: ServiceDeploymentPropagationState;
   endedAt: string | null;
   createdBySubject: string;
 }
@@ -256,7 +266,8 @@ export class ServiceCatalogService {
       if (typeof body === 'string') {
         detail = body;
       } else if (body && typeof body === 'object') {
-        detail = (body as any).message ?? (body as any).error ?? '';
+        const record = body as Record<string, unknown>;
+        detail = (record['message'] as string) ?? (record['error'] as string) ?? '';
       }
       throw new ServiceCatalogApiError(
         e.status,

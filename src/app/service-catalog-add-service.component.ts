@@ -1,5 +1,4 @@
 import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import {
@@ -62,7 +61,7 @@ interface SourceOption {
 @Component({
   selector: 'snap-service-catalog-add-service',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './service-catalog-add-service.component.html',
   styleUrl: './service-catalog-add-service.component.scss',
 })

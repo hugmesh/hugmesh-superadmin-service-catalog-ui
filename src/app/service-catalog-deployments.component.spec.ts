@@ -47,10 +47,10 @@ describe('ServiceCatalogDeploymentsComponent (lifecycle accounting)', () => {
     fixture.detectChanges();
   }
 
-  it('always shows the SHIPS-DARK note (the actual provision is a later increment)', () => {
+  it('always shows the accounting-only note (recording here does not itself provision)', () => {
     const note = el().querySelector('[data-testid="service-catalog-deployments-dark-note"]')!;
     expect(note).not.toBeNull();
-    expect(note.textContent).toContain('later increment');
+    expect(note.textContent).toContain('does not itself provision');
   });
 
   it('loadDomain calls listDeployments with the typed {domain}', async () => {

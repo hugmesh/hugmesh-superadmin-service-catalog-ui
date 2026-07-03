@@ -10,4 +10,4 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes),
     provideHttpClient(withFetch(), withInterceptors([bffAuthInterceptor])),
   ],
-}).catch((err) => console.error(err));
+}).catch(console.error);

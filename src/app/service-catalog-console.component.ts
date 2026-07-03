@@ -1,5 +1,4 @@
 import { Component, ElementRef, QueryList, ViewChildren, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { SessionService } from './session.service';
 
@@ -34,7 +33,7 @@ interface ServiceCatalogNavItem {
 @Component({
   selector: 'snap-service-catalog-console',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './service-catalog-console.component.html',
   styleUrl: './service-catalog-console.component.scss',
 })
@@ -72,7 +71,7 @@ export class ServiceCatalogConsoleComponent {
       path: 'deployments',
       label: 'Deployments',
       aria: 'Deployments — view the deployment accounting and record a new deployment',
-      help: 'Review the service deployment rows (state, created and ending clocks, enforce actions) and record a new deployment. The actual provision and teardown is a later increment. Requires the superadmin role.',
+      help: 'Review the service deployment rows (state, created and ending clocks, enforce actions) and record a new deployment. This records lifecycle/accounting only — actual provision and teardown happens from the Add a service tab. Requires the superadmin role.',
       show: () => this.session.canManageStore(),
     },
   ];

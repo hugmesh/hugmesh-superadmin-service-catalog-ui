@@ -1,5 +1,4 @@
 import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from './service-catalog.service';
@@ -22,7 +21,7 @@ import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from '
 @Component({
   selector: 'snap-service-catalog-curation',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './service-catalog-curation.component.html',
   styleUrl: './service-catalog-curation.component.scss',
 })

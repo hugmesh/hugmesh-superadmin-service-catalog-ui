@@ -1,5 +1,4 @@
 import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { ServiceCatalogService, ServiceDeployment, AppProfile, ServiceCatalogApiError } from './service-catalog.service';
@@ -14,19 +13,21 @@ import { ServiceCatalogService, ServiceDeployment, AppProfile, ServiceCatalogApi
  *            {serviceKey, profileRef?, endingAt?, enforceActions?}            (201)
  *   end    → POST /bff/superadmin/service-store/{domain}/deployments/{id}/end (CAS active->ended)
  *
- * IMPORTANT — this SHIPS DARK. The console manages the CATALOG + ACCOUNTING +
- * LIFECYCLE the BFF supports today; the ACTUAL provision/teardown (the AddService
- * effector) is a LATER increment. The UI says so plainly so it doesn't promise a
- * deploy that won't happen. The profile dropdown is populated from the app_profile
- * library; an optional ending_at (the expiry clock) and enforce_actions (the
- * dark-emit intent) are recorded.
+ * IMPORTANT — this view is CATALOG + ACCOUNTING + LIFECYCLE only; it does not
+ * itself provision or tear down anything. The actual provision/teardown (the
+ * AddService effector) lives one tab over, on the Add a service view — SELECT
+ * and GIT sources provision there today, DOCKERFILE/ZIP still ship dark pending
+ * ArgoCD integration. Recording a deployment here just accounts for it; it does
+ * not trigger a provision. The profile dropdown is populated from the
+ * app_profile library; an optional ending_at (the expiry clock) and
+ * enforce_actions (the dark-emit intent) are recorded.
  *
  * loading / empty / error states; a 403/404 degrades gracefully.
  */
 @Component({
   selector: 'snap-service-catalog-deployments',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './service-catalog-deployments.component.html',
   styleUrl: './service-catalog-deployments.component.scss',
 })
@@ -145,7 +146,7 @@ export class ServiceCatalogDeploymentsComponent {
       });
       this.notice.set(
         `Recorded a deployment of “${created.serviceKey}” in ${domain}. ` +
-          `Note: this records the lifecycle only — the actual provision is a later increment.`,
+          `Note: this records the lifecycle only — to actually provision it, use the Add a service tab.`,
       );
       this.serviceKey.set('');
       this.profileRef.set('');

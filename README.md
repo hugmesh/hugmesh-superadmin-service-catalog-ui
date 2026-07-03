@@ -121,11 +121,11 @@ from the validated JWT issuer, never the request.
 - **Deployments (accounting)** — view the `service_deployment` rows (service,
   state `active|ended`, `created_at`, `ending_at` expiry clock, `enforce_actions`,
   `propagation_state`) and **record** a deployment (`serviceKey` + optional
-  profile + optional `ending_at` + optional `enforce_actions`). **Ships dark**: the
-  console is explicit that the actual provision/teardown (the `AddService`
-  effector) is a **later increment** — this manages the catalog + accounting +
-  lifecycle the BFF supports today and does not promise a deploy that won't
-  happen.
+  profile + optional `ending_at` + optional `enforce_actions`). This view is
+  **catalog + accounting + lifecycle only** — recording a deployment here does
+  not itself provision or tear down anything; the actual provision/teardown (the
+  `AddService` effector) happens from the **Add a service** tab above (SELECT/GIT
+  provision today; DOCKERFILE/ZIP still ship dark).
 
 Every view has loading / empty / error states; a 403/404 degrades gracefully.
 
@@ -232,6 +232,37 @@ is defence-in-depth.
 - **Capability gating** — reflect when foundational infra (x86 builder, ArgoCD,
   generated images) is absent, degrading affected sources/flows like optional
   services do.
+
+## Known Gaps / TODO
+
+Verified directly against the current source (not from the roadmap narrative alone):
+
+- **`DOCKERFILE` / `ZIP` provisioning sources are UI-disabled, builder-gated** —
+  `requiresBuilder()` returns `true` for both (`src/app/service-catalog.service.ts:125-127`);
+  the add-service form renders them as disabled radio options with help text
+  (`src/app/service-catalog-add-service.component.html:102-115`). Only `SELECT`/`GIT`
+  provision today.
+- **Effector ships dark — no real ArgoCD mutation yet** — the provision call is wired
+  end-to-end (role + route-access) but the bff's `NoopArgoCdClient` makes no real
+  ArgoCD `Application` apply; the UI states this explicitly rather than promising a
+  live deploy (`src/app/service-catalog-add-service.component.ts:49-52,211`,
+  `src/app/service-catalog.service.ts:376`).
+- **App-profile JSON is stored opaque, not yet parsed/validated for content** — the
+  editor validates only that the value is well-formed JSON; a later effector is
+  needed to resolve the resource/role/cert/exposure defaults it encodes
+  (`src/app/service-catalog-profiles.component.html:54`).
+- **Deployment lifecycle is accounting-only** — recording/ending a `service_deployment`
+  row does not itself provision or tear down a real service; that is the separate
+  `AddService`/provision effector path (`src/app/service-catalog-deployments.component.ts:18`).
+- **CSP / COEP / CORP / Permissions-Policy are deliberately deferred** — only the
+  baseline header set (`nosniff`, `X-Frame-Options`, `Referrer-Policy`, HSTS) is
+  shipped in `nginx.conf`; stricter policies await per-UI tuning and live-cluster
+  validation (see "Current State" above).
+
+No `TODO`/`FIXME`/stub markers were found in the hand-written `src/app` source
+(the API client under `src/app/api/` is generated and excluded from this audit);
+the gaps above are the ones the code and its own doc comments explicitly call out
+as not-yet-done.
 
 ## Develop
 

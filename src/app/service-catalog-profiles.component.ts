@@ -1,5 +1,4 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { ServiceCatalogService, AppProfile, ServiceCatalogApiError } from './service-catalog.service';
@@ -24,7 +23,7 @@ type Mode = 'create' | 'edit';
 @Component({
   selector: 'snap-service-catalog-profiles',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './service-catalog-profiles.component.html',
   styleUrl: './service-catalog-profiles.component.scss',
 })
