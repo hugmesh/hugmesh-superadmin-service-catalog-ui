@@ -7,9 +7,11 @@
 #   ZIP        — an uploaded zip-as-repo built in-cluster first. NEEDS the Kaniko builder.
 #
 # Ships dark: DOCKERFILE + ZIP depend on the in-cluster Kaniko builder (the
-# generator leg) which does not exist yet, so the UI presents those two radio
-# options DISABLED + badged "needs builder", and the bff rejects them 400 if
-# forced. SELECT/GIT provision returns 200 but the NoopArgoCdClient makes no real
+# generator leg). The UI consults a live pre-flight (GET .../service-store/builder)
+# and only un-gates those two sources once it reports a real builder + build node —
+# on this harness's cluster fixture the pre-flight is not ready, so they render
+# DISABLED + badged "needs builder", and the bff rejects them 400 if forced anyway.
+# SELECT/GIT provision returns 200 but the NoopArgoCdClient makes no real
 # ArgoCD mutation — the UI is explicit that it records intent + wires the role/route.
 #
 # Each scenario flows: pick a domain → load its recorded deployment rows → choose

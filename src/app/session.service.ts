@@ -2,7 +2,9 @@ import { Injectable, signal, computed } from '@angular/core';
 
 /**
  * The session payload persisted to `localStorage['snap.session']` by the login remote
- * and read by this App-Store remote to gate views and attach the bearer token to BFF requests.
+ * and read by this Service Catalog remote to gate its views. BFF requests authenticate
+ * via the HttpOnly `bff_` cookie (see `auth.interceptor.ts`), not a token read from
+ * this session.
  */
 export interface SnapSession {
   /** Casdoor subject — unique identity string, e.g. `google:alice@gmail.com`. */
@@ -13,7 +15,7 @@ export interface SnapSession {
   provider: 'google' | 'discord';
   /**
    * Lowercase Casdoor roles, `ROLE_`-prefix-stripped (e.g. `['admin', 'superadmin']`).
-   * The App-Store gates on `'superadmin'` for the write console and `'admin'|'superadmin'` for the read view.
+   * The Service Catalog gates on `'superadmin'` for the write console and `'admin'|'superadmin'` for the read view.
    */
   roles: string[];
   /** True once the user has completed the Casdoor registration wizard. */

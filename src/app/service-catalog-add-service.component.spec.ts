@@ -1,7 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ServiceCatalogAddServiceComponent } from './service-catalog-add-service.component';
-import { ServiceCatalogService, ServiceDeployment, ServiceCatalogApiError } from './service-catalog.service';
+import {
+  ServiceCatalogService,
+  ServiceDeployment,
+  ServiceDeploymentState,
+  ServiceDeploymentPropagationState,
+  ServiceCatalogApiError,
+} from './service-catalog.service';
 import { accessibleName } from './accessible-name';
 
 /**
@@ -20,7 +26,12 @@ import { accessibleName } from './accessible-name';
  *   - graceful 403/404 on the row LOAD;
  *   - a11y: every interactive control has an accessible name.
  */
-function dep(id: string, key: string, state = 'active', propagationState = 'pending'): ServiceDeployment {
+function dep(
+  id: string,
+  key: string,
+  state: ServiceDeploymentState = 'active',
+  propagationState: ServiceDeploymentPropagationState = 'pending',
+): ServiceDeployment {
   return {
     id,
     domain: 'acme.test',

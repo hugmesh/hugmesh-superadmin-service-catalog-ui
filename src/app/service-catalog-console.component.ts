@@ -50,7 +50,7 @@ export class ServiceCatalogConsoleComponent {
       path: 'add',
       label: 'Add a service',
       aria: 'Add a service — provision a deployment from one of the four sources',
-      help: 'Provision a recorded deployment into a real service from a catalog tile, a git/GitLab repo, a Dockerfile or a zip upload. Dockerfile and zip need the in-cluster builder, which is not available yet. Requires the superadmin role.',
+      help: 'Provision a recorded deployment into a real service from a catalog tile, a git/GitLab repo, a Dockerfile or a zip upload. Dockerfile and zip need the in-cluster builder and stay disabled until a live pre-flight confirms one is available. Requires the superadmin role.',
       show: () => this.session.canManageStore(),
     },
     {

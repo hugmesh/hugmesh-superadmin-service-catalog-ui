@@ -16,8 +16,9 @@ import { ServiceCatalogService, ServiceDeployment, AppProfile, ServiceCatalogApi
  * IMPORTANT — this view is CATALOG + ACCOUNTING + LIFECYCLE only; it does not
  * itself provision or tear down anything. The actual provision/teardown (the
  * AddService effector) lives one tab over, on the Add a service view — SELECT
- * and GIT sources provision there today, DOCKERFILE/ZIP still ship dark pending
- * ArgoCD integration. Recording a deployment here just accounts for it; it does
+ * and GIT sources always provision there, DOCKERFILE/ZIP provision too once the
+ * live in-cluster builder pre-flight (GET .../service-store/builder) confirms a
+ * real build is possible. Recording a deployment here just accounts for it; it does
  * not trigger a provision. The profile dropdown is populated from the
  * app_profile library; an optional ending_at (the expiry clock) and
  * enforce_actions (the dark-emit intent) are recorded.

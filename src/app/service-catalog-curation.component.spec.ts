@@ -1,10 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ServiceCatalogCurationComponent } from './service-catalog-curation.component';
-import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from './service-catalog.service';
+import {
+  ServiceCatalogService,
+  ServiceCuration,
+  ServiceCurationState,
+  ServiceCatalogApiError,
+} from './service-catalog.service';
 import { accessibleName } from './accessible-name';
 
-function cur(key: string, state = 'offered'): ServiceCuration {
+function cur(key: string, state: ServiceCurationState = 'offered'): ServiceCuration {
   return {
     id: 'c-' + key, domain: 'acme.test', serviceKey: key, state,
     curatedBySubject: 's', createdAt: 'T', updatedAt: 'T',

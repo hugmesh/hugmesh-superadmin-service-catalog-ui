@@ -21,8 +21,10 @@ interface SourceOption {
   label: string;
   /** One-line description of what the source provisions from. */
   blurb: string;
-  /** True when the source needs the in-cluster Kaniko builder (DOCKERFILE/ZIP),
-   *  which is NOT yet available — the option is disabled with helptext. */
+  /** True when the source needs the in-cluster Kaniko builder (DOCKERFILE/ZIP) AND
+   *  the LIVE pre-flight ({@link ServiceCatalogAddServiceComponent.builderIsReady})
+   *  hasn't confirmed one is actually available — the option is disabled with
+   *  helptext until it is. */
   builderGated: boolean;
 }
 
@@ -43,15 +45,19 @@ interface SourceOption {
  *   ZIP        — an uploaded zip-as-repo that must be BUILT in-cluster first.
  *
  * SHIPS DARK / graceful degradation (the platform standard): DOCKERFILE and ZIP
- * depend on the in-cluster Kaniko image builder (the generator leg) which does not
- * exist yet, so the bff rejects them with a 400 ("requires the in-cluster builder").
- * The UI presents those two radio options DISABLED with help text rather than
- * letting a superadmin half-provision an Application that points at a non-existent
- * image — and if the server ever disagrees, the 400 is surfaced verbatim. The
- * SELECT/GIT effector itself also ships dark by default (the bff NoopArgoCdClient
- * makes no real ArgoCD mutation) — the call still returns 200; the UI is explicit
- * that provisioning records the intent and wires the role/route, and the real
- * ArgoCD apply lands when the effector is enabled.
+ * depend on the in-cluster Kaniko image builder (the generator leg). Since PR #17
+ * the UI consults a LIVE pre-flight (GET .../service-store/builder — see
+ * {@link ServiceCatalogAddServiceComponent.builderStatus}/`builderIsReady` below)
+ * and presents those two radio options DISABLED with help text only until that
+ * pre-flight confirms a real build is actually possible — no live deployment has
+ * both the config flag and a build node yet, so today they stay disabled in
+ * practice, but the gate itself is live/automatic, not hardcoded. If the server
+ * ever disagrees (e.g. a race), the bff's authoritative 400 ("requires the
+ * in-cluster builder") is surfaced verbatim. The SELECT/GIT effector itself also
+ * ships dark by default (the bff NoopArgoCdClient makes no real ArgoCD mutation)
+ * — the call still returns 200; the UI is explicit that provisioning records the
+ * intent and wires the role/route, and the real ArgoCD apply lands when the
+ * effector is enabled.
  *
  * Flow: TYPE a domain → load its deployment rows → pick a row → choose a source +
  * repo coordinates → Provision. The {domain} + {id} are the explicit PATH targets.

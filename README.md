@@ -35,6 +35,68 @@ So this remote:
 single source of truth for the shared-deps surface + RxJS skip list) so this
 remote can't drift from the host or the other Snapdragon remotes.
 
+## Architecture
+
+How a superadmin's click in this remote reaches a real (or ships-dark) cluster
+mutation — the host mount, the auth edge, the BFF surface, and the two things
+that gate on live infra (the effector's ArgoCD apply and the DOCKERFILE/ZIP
+builder pre-flight):
+
+```mermaid
+flowchart TD
+    subgraph Browser["Superadmin browser"]
+        Host["snapdragon.systems host shell"]
+    end
+
+    subgraph Remote["snapdragon-superadmin-service-catalog-ui (this repo, served on :8080)"]
+        RE["remoteEntry.json exposes ./ServiceCatalog"]
+        Guard["superadminGuard (SessionService.canManageStore)"]
+        Console["Console: Add a service / Curation / App profiles / Deployments"]
+        Forbidden["Forbidden screen (/service-catalog/forbidden)"]
+    end
+
+    subgraph Edge["Platform edge"]
+        Gateway["fe-gateway (bff_ cookie to Bearer swap, gateway_route_access)"]
+    end
+
+    subgraph BFF["snapdragon-admin-bff-api"]
+        Curation["ServiceCurationController"]
+        Profiles["AppProfileController"]
+        Deploy["ServiceDeploymentController"]
+        AdminRead["AdminServiceStoreController (two-tier read)"]
+        BuilderCtl["ServiceCatalogBuilderController"]
+        Effector["AddServiceEffector (PR #67)"]
+    end
+
+    subgraph Infra["Infra"]
+        Casdoor["Casdoor role grant"]
+        RouteAccess["gateway_route_access rule"]
+        ArgoCD["ArgoCD Application (NoopArgoCdClient by default)"]
+        Kaniko["Kaniko builder (x86 build-node probe)"]
+    end
+
+    Host -->|"loadRemoteModule"| RE
+    RE --> Guard
+    Guard -->|"SUPERADMIN"| Console
+    Guard -->|"admin, mod or user"| Forbidden
+    Forbidden -->|"ADMIN read degrade"| AdminRead
+
+    Console -->|"bff superadmin service-store"| Gateway
+    Gateway --> Curation
+    Gateway --> Profiles
+    Gateway --> Deploy
+    Gateway --> BuilderCtl
+    Deploy -->|"POST provision"| Effector
+    Effector --> Casdoor
+    Effector --> RouteAccess
+    Effector -.->|"ships dark by default"| ArgoCD
+    BuilderCtl --> Kaniko
+```
+
+The `BuilderCtl`/`Kaniko` leg (`GET /bff/superadmin/service-store/builder`) is
+the live capability pre-flight added in PR #17 — see "Add a service" below and
+"BFF contract" for the exact path.
+
 ## Role model
 
 Mirrors `snapdragon-admin-bff-api` (the Service Catalog controllers + `SecurityConfig`
@@ -83,6 +145,7 @@ in-remote target.)
 | `POST` | `/bff/superadmin/service-store/{domain}/deployments/{id}/end` | — | SUPERADMIN |
 | `POST` | `/bff/superadmin/service-store/{domain}/deployments/{id}/provision` | `{sourceKind, repoUrl, path?, targetRevision?}` | SUPERADMIN |
 | `GET` | `/bff/admin/service-store` | — | ADMIN \| SUPERADMIN |
+| `GET` | `/bff/superadmin/service-store/builder` | — | SUPERADMIN |
 
 The `/provision` row is the **Service Catalog effector** (snapdragon-admin-bff-api PR #67,
 `feat/superadmin-service-catalog-effector`, merged): it drives an existing
@@ -96,6 +159,14 @@ PR #152). The effector itself **ships dark** by default (the bff `NoopArgoCdClie
 makes no real ArgoCD mutation) — the call still returns `200`; the role + route-access
 leg is wired and the real ArgoCD apply lands when the effector is enabled.
 
+The `/builder` row is the **live Kaniko-builder capability pre-flight**
+(`ServiceCatalogBuilderController`, wired in this remote by PR #17): it reports
+`{enabled, buildNodePresent, warnings}` — the `app.appstore.builder.enabled` config
+flag AND a live, fail-safe x86 build-node probe. The Add-a-service view consults it
+(alongside `requiresBuilder()`, the static per-kind fact) to un-gate `DOCKERFILE`/`ZIP`
+the moment a real build is actually possible, instead of leaving them statically
+disabled forever. A failed/loading pre-flight fails safe (never a faked "ready").
+
 The `{domain}` is always the explicit **path** target (never a body field) — the
 infra control plane picks the brand. The two-tier admin read resolves the domain
 from the validated JWT issuer, never the request.
@@ -106,12 +177,18 @@ from the validated JWT issuer, never the request.
   deployments (its app profile), pick one, then choose one of the **four sources** —
   **Catalog (SELECT)**, **Git / GitLab (GIT)**, **Dockerfile (DOCKERFILE)** or **Zip
   repo (ZIP)** — and **Provision** it (`POST .../deployments/{id}/provision`). SELECT
-  and GIT provision today; DOCKERFILE and ZIP are presented as **disabled** radio
-  options with a help text indicating they are pending effector enablement / ArgoCD
-  integration — the ships-dark degrade. The submit is guarded
-  defence-in-depth, and the bff's authoritative `400` is surfaced verbatim. `repoUrl`
-  is required (the bff `@NotBlank`); `path`/`targetRevision` are optional. The
-  `{domain}` and `{id}` are the explicit PATH targets.
+  and GIT provision today. DOCKERFILE and ZIP are gated on the **live builder
+  pre-flight** (`GET .../service-store/builder`, PR #17): the view fetches it
+  alongside each domain load and un-gates those two sources automatically the
+  moment it confirms a real in-cluster build is possible (the config flag enabled
+  AND a build node actually present) — it does not wait for a redeploy. Today that
+  pre-flight reports "not ready" everywhere (no live Kaniko builder deployment
+  yet), so in practice SELECT/GIT are the only sources that provision; the radio
+  options render disabled with help text explaining *why* (not enabled vs.
+  enabled-but-no-build-node). The submit is guarded defence-in-depth, and the
+  bff's authoritative `400` is surfaced verbatim. `repoUrl` is required (the bff
+  `@NotBlank`); `path`/`targetRevision` are optional. The `{domain}` and `{id}`
+  are the explicit PATH targets.
 - **Curation** — type/select a domain, load its offered catalog, and offer or
   withdraw a `service_key` for it. Shows the current offered set per domain.
 - **App profiles** — CRUD the global deploy-template library (a name + a JSON
@@ -125,7 +202,7 @@ from the validated JWT issuer, never the request.
   **catalog + accounting + lifecycle only** — recording a deployment here does
   not itself provision or tear down anything; the actual provision/teardown (the
   `AddService` effector) happens from the **Add a service** tab above (SELECT/GIT
-  provision today; DOCKERFILE/ZIP still ship dark).
+  provision today; DOCKERFILE/ZIP stay gated on the live builder pre-flight).
 
 Every view has loading / empty / error states; a 403/404 degrades gracefully.
 
@@ -151,9 +228,11 @@ typed clients (`ServiceCurationControllerService` / `AppProfileControllerService
 its OWN public `ServiceCuration` / `AppProfile` / `ServiceDeployment` /
 `ServiceCatalogApiError` types — the stable contract the views consume — and bridges
 the generated models at the delegation boundary. The generated clients call the SAME
-same-origin `/bff/**` paths (`rootUrl` defaults to `''`), and the shared-session
-`bffToken` Bearer is attached by `bffAuthInterceptor` (reading the same `snap.session`,
-the opaque `bff_session` the host shell holds).
+same-origin `/bff/**` paths (`rootUrl` defaults to `''`); `bffAuthInterceptor`
+(`src/app/auth.interceptor.ts`) authenticates every request with `withCredentials: true`
+so the browser's HttpOnly `bff_` cookie rides along — it does **not** attach a
+bearer token read from `snap.session` (that browser-held bearer was removed in
+PR #14; see "Auth & session model").
 
 > **ng-openapi-gen 1.0.5 generates `Promise<T>` methods (not `Observable<T>`)**; the
 > `service-catalog.service.ts` delegation layer was rewritten to async/await in PR #10
@@ -190,11 +269,17 @@ is defence-in-depth.
   The offline contract is proven by the Karma specs.
 - **Effector wired, ships dark** — `/provision` drives the Casdoor role +
   `gateway_route_access` leg; the real ArgoCD apply is behind a `NoopArgoCdClient`
-  until the effector is enabled. `SELECT` and `GIT` provision; `DOCKERFILE`/`ZIP`
-  are disabled pending effector enablement / ArgoCD integration.
-- **Kaniko builder shipped** (admin-bff PR #152) — `KanikoBuildLauncher` is available
-  in the admin-bff; `DOCKERFILE` and `ZIP` sources can be unblocked once the
-  effector is wired end-to-end through the now-available builder.
+  until the effector is enabled. `SELECT` and `GIT` provision today.
+- **Live builder capability gating shipped** (PR #17) — the in-cluster **Kaniko**
+  builder (`KanikoBuildLauncher`, admin-bff PR #152) is available in the admin-bff,
+  and `DOCKERFILE`/`ZIP` are no longer a static always-disabled pair: the
+  Add-a-service view consults the live `GET /bff/superadmin/service-store/builder`
+  pre-flight (the `app.appstore.builder.enabled` config flag + a fail-safe x86
+  build-node probe, `ServiceCatalogBuilderController`) and un-gates them
+  automatically once a real build is confirmed possible. No deployment has that
+  config flag + a build node both live yet, so today the pre-flight still reports
+  "not ready" and only `SELECT`/`GIT` provision in practice — but that is now a
+  live signal, not a hardcoded gate.
 - **Auth baseline current** — consumes the opaque `bff_` session model with Casdoor
   SSO at the edge; route-access is data-driven via `gateway_route_access`. No login
   logic lives here (login is `login-ui` + `user-bff`; account/session/MFA shared
@@ -222,38 +307,42 @@ is defence-in-depth.
 
 - **Enable the effector** — flip `NoopArgoCdClient` to real ArgoCD `Application`
   apply once the provision path is live-validated.
-- **Wire DOCKERFILE/ZIP sources end-to-end** — connect the effector through the
-  now-available Kaniko builder (`KanikoBuildLauncher`, admin-bff PR #152) so
-  build-from-source services can be provisioned, not just `SELECT`/`GIT`.
+- **Deploy a live Kaniko builder** — the UI side of DOCKERFILE/ZIP is done (the
+  live pre-flight in "Current State" un-gates them automatically); what's left is
+  infra-side, on the admin-bff/cluster: flip `app.appstore.builder.enabled` and
+  land a labelled x86 build node somewhere the pre-flight can see, then
+  build-from-source services provision with no further UI change.
 - **App-profile resolution** — a later effector that parses the app-profile JSON
   (resource/role/cert/exposure defaults) instead of storing it opaque.
 - **MFA step-up** — superadmin Service Catalog mutations (offer/withdraw/provision)
   are candidate step-up actions under the platform MFA rollout (WebAuthn+TOTP).
-- **Capability gating** — reflect when foundational infra (x86 builder, ArgoCD,
-  generated images) is absent, degrading affected sources/flows like optional
-  services do.
 
 ## Known Gaps / TODO
 
 Verified directly against the current source (not from the roadmap narrative alone):
 
-- **`DOCKERFILE` / `ZIP` provisioning sources are UI-disabled, builder-gated** —
-  `requiresBuilder()` returns `true` for both (`src/app/service-catalog.service.ts:125-127`);
-  the add-service form renders them as disabled radio options with help text
-  (`src/app/service-catalog-add-service.component.html:102-115`). Only `SELECT`/`GIT`
-  provision today.
+- **`DOCKERFILE` / `ZIP` provisioning sources need a live in-cluster builder that
+  doesn't exist on any deployment yet** — `requiresBuilder()` is the static
+  per-kind fact (`src/app/service-catalog.service.ts:128-130`), but since PR #17
+  it is combined with the LIVE `BuilderStatus`/`builderReady()` signal
+  (`src/app/service-catalog.service.ts:132-158`, fetched by the
+  `builderStatus()` method at `:452-463`) to decide `opt.builderGated`;
+  the add-service form renders the gated options disabled with a help text that
+  explains why (`src/app/service-catalog-add-service.component.html:103-141`).
+  Only `SELECT`/`GIT` provision today, but the gate itself is now live/automatic,
+  not hardcoded — see "Current State".
 - **Effector ships dark — no real ArgoCD mutation yet** — the provision call is wired
   end-to-end (role + route-access) but the bff's `NoopArgoCdClient` makes no real
   ArgoCD `Application` apply; the UI states this explicitly rather than promising a
-  live deploy (`src/app/service-catalog-add-service.component.ts:49-52,211`,
-  `src/app/service-catalog.service.ts:376`).
+  live deploy (`src/app/service-catalog-add-service.component.ts:47-60`,
+  `src/app/service-catalog.service.ts:411`).
 - **App-profile JSON is stored opaque, not yet parsed/validated for content** — the
   editor validates only that the value is well-formed JSON; a later effector is
   needed to resolve the resource/role/cert/exposure defaults it encodes
   (`src/app/service-catalog-profiles.component.html:54`).
 - **Deployment lifecycle is accounting-only** — recording/ending a `service_deployment`
   row does not itself provision or tear down a real service; that is the separate
-  `AddService`/provision effector path (`src/app/service-catalog-deployments.component.ts:18`).
+  `AddService`/provision effector path (`src/app/service-catalog-deployments.component.ts:16`).
 - **CSP / COEP / CORP / Permissions-Policy are deliberately deferred** — only the
   baseline header set (`nosniff`, `X-Frame-Options`, `Referrer-Policy`, HSTS) is
   shipped in `nginx.conf`; stricter policies await per-UI tuning and live-cluster
