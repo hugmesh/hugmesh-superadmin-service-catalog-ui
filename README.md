@@ -1,8 +1,8 @@
-# snapdragon-superadmin-service-catalog-ui
+# hugmesh-superadmin-service-catalog-ui
 
 The **Superadmin Service Catalog console** — an Angular **native-federation remote** that
-the `snapdragon.systems` host mounts at the apex path **`/service-catalog`**. It is the
-SUPERADMIN console that makes the `snapdragon-admin-bff-api` Service Catalog **data
+the `hugmesh.systems` host mounts at the apex path **`/service-catalog`**. It is the
+SUPERADMIN console that makes the `hugmesh-admin-bff-api` Service Catalog **data
 layer** (PR #56, `feat/superadmin-service-catalog-data-layer`) usable: per-domain service
 **curation**, **app-profile** deploy-template CRUD, and **service-deployment**
 lifecycle **accounting**.
@@ -13,7 +13,7 @@ The federation-api service-catalog module row points at this remote:
 
 | field | value |
 | --- | --- |
-| `remote_entry_url` | `http://snapdragon-superadmin-service-catalog-ui:8080/remoteEntry.json` |
+| `remote_entry_url` | `http://hugmesh-superadmin-service-catalog-ui:8080/remoteEntry.json` |
 | `metadata.mountAt` | `/service-catalog` |
 | `metadata.requiresRole` | `superadmin` |
 | `kind` | `remote-shell` |
@@ -31,9 +31,9 @@ So this remote:
   gateway's `/service-catalog=superadmin` route-access gate and the Tailscale-VPN-only
   superadmin surface. It is **not** a public UI.
 
-`federation-base.js` is **byte-identical** to the `snapdragon.systems` host (the
+`federation-base.js` is **byte-identical** to the `hugmesh.systems` host (the
 single source of truth for the shared-deps surface + RxJS skip list) so this
-remote can't drift from the host or the other Snapdragon remotes.
+remote can't drift from the host or the other HugMesh remotes.
 
 ## Architecture
 
@@ -45,10 +45,10 @@ builder pre-flight):
 ```mermaid
 flowchart TD
     subgraph Browser["Superadmin browser"]
-        Host["snapdragon.systems host shell"]
+        Host["hugmesh.systems host shell"]
     end
 
-    subgraph Remote["snapdragon-superadmin-service-catalog-ui (this repo, served on :8080)"]
+    subgraph Remote["hugmesh-superadmin-service-catalog-ui (this repo, served on :8080)"]
         RE["remoteEntry.json exposes ./ServiceCatalog"]
         Guard["superadminGuard (SessionService.canManageStore)"]
         Console["Console: Add a service / Curation / App profiles / Deployments"]
@@ -59,7 +59,7 @@ flowchart TD
         Gateway["fe-gateway (bff_ cookie to Bearer swap, gateway_route_access)"]
     end
 
-    subgraph BFF["snapdragon-admin-bff-api"]
+    subgraph BFF["hugmesh-admin-bff-api"]
         Curation["ServiceCurationController"]
         Profiles["AppProfileController"]
         Deploy["ServiceDeploymentController"]
@@ -99,7 +99,7 @@ the live capability pre-flight added in PR #17 — see "Add a service" below and
 
 ## Role model
 
-Mirrors `snapdragon-admin-bff-api` (the Service Catalog controllers + `SecurityConfig`
+Mirrors `hugmesh-admin-bff-api` (the Service Catalog controllers + `SecurityConfig`
 path gates). The UI gating is defence-in-depth convenience; the bff
 `@PreAuthorize` is authoritative — every call surfaces a 403 gracefully.
 
@@ -147,7 +147,7 @@ in-remote target.)
 | `GET` | `/bff/admin/service-store` | — | ADMIN \| SUPERADMIN |
 | `GET` | `/bff/superadmin/service-store/builder` | — | SUPERADMIN |
 
-The `/provision` row is the **Service Catalog effector** (snapdragon-admin-bff-api PR #67,
+The `/provision` row is the **Service Catalog effector** (hugmesh-admin-bff-api PR #67,
 `feat/superadmin-service-catalog-effector`, merged): it drives an existing
 `service_deployment` row from accounting-only into a real provisioned service
 (per-service Casdoor role → route-access rule → ArgoCD `Application`). `sourceKind`
@@ -215,7 +215,7 @@ build is deterministic — no network, no running BFF.
 Regenerate with:
 
 ```bash
-npm run gen:spec   # copies ../snapdragon-admin-bff-api/src/main/resources/openapi/openapi.json
+npm run gen:spec   # copies ../hugmesh-admin-bff-api/src/main/resources/openapi/openapi.json
                    # → openapi.json, then runs ng-openapi-gen. Override the source with
                    # ADMIN_BFF_SPEC=/path/to/openapi.json. The BFF dumps that spec from
                    # `./mvnw -Dtest=OpenApiSpecDumpTest test`.
@@ -231,7 +231,7 @@ the generated models at the delegation boundary. The generated clients call the 
 same-origin `/bff/**` paths (`rootUrl` defaults to `''`); `bffAuthInterceptor`
 (`src/app/auth.interceptor.ts`) authenticates every request with `withCredentials: true`
 so the browser's HttpOnly `bff_` cookie rides along — it does **not** attach a
-bearer token read from `snap.session` (that browser-held bearer was removed in
+bearer token read from `hug.session` (that browser-held bearer was removed in
 PR #14; see "Auth & session model").
 
 > **ng-openapi-gen 1.0.5 generates `Promise<T>` methods (not `Observable<T>`)**; the
@@ -246,7 +246,7 @@ This remote does **no** login of its own — the host shell authgates the supera
 in and owns the session. Across the platform, **Casdoor** is the SSO IdP: `login-ui`
 runs the Casdoor OIDC authorization-code (PKCE) redirect and `user-bff` does the
 server-side code→token exchange and holds per-session JWT custody/refresh. The
-browser only ever holds an **opaque `bff_`-prefixed session** (the `snap.session`
+browser only ever holds an **opaque `bff_`-prefixed session** (the `hug.session`
 this remote reads) — the superadmin never sees their own Casdoor JWT.
 
 At the edge the **gateway** is a pure Casdoor-JWT OAuth2 resource server: a
@@ -283,10 +283,10 @@ is defence-in-depth.
 - **Auth baseline current** — consumes the opaque `bff_` session model with Casdoor
   SSO at the edge; route-access is data-driven via `gateway_route_access`. No login
   logic lives here (login is `login-ui` + `user-bff`; account/session/MFA shared
-  infra is in `snapdragon-auth-core`). Aligned with the **Java 25** / Spring Boot 4.0.7 /
+  infra is in `hugmesh-auth-core`). Aligned with the **Java 25** / Spring Boot 4.0.7 /
   Spring Cloud 2025.1.2 / Spring Cloud Gateway 5.0 (`spring.cloud.gateway.server.webflux.routes`)
-  backend baseline. Backend BFF built against **snapdragon-parent 2.7.0** /
-  **snapdragon-commons 2.7.0** shared library. CI is **GitLab** (no GitHub Actions).
+  backend baseline. Backend BFF built against **hugmesh-parent 2.7.0** /
+  **hugmesh-commons 2.7.0** shared library. CI is **GitLab** (no GitHub Actions).
   **Angular 22** (22.0.2 patch, native-federation 22.x, ng-openapi-gen 1.0.5) — see
   dependency-scan PR #8 (2026-06-24).
 - **Internal-only surface** — served on 8080 as a native-federation remote behind
@@ -379,7 +379,7 @@ npm run bdd        # bddgen (generate specs from .feature files) + playwright te
 
 ## Accessibility
 
-Cross-repo Snapdragon UI standard: every interactive control has a programmatic
+Cross-repo HugMesh UI standard: every interactive control has a programmatic
 accessible name (`accessible-name.ts` + spec), keyboard nav (the console menubar
 is a roving-tabindex WAI-ARIA menubar), `disabled` + help text where relevant,
 ARIA roles, visible focus rings, and loading/empty/error states announced via

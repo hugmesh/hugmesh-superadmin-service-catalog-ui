@@ -1,44 +1,44 @@
 @use 'styles/tokens' as t;
 
-/* Global styles + a11y baseline for the snapdragon-superadmin-service-catalog-ui native-federation
- * remote. These rules are the cross-repo Snapdragon accessibility standard
- * (copied from the snapdragon-wiki-ui peer / the snapdragon.systems host's
+/* Global styles + a11y baseline for the hugmesh-superadmin-service-catalog-ui native-federation
+ * remote. These rules are the cross-repo HugMesh accessibility standard
+ * (copied from the hugmesh-wiki-ui peer / the hugmesh.systems host's
  * styles.scss): they make the remote accessible when served standalone
  * (`ng serve service-catalog`) AND keep it consistent when federated into the host at
  * /service-catalog.
  */
 
-/* Snapdragon WCAG-AA/AAA palette — centralised as runtime :root custom
+/* HugMesh WCAG-AA/AAA palette — centralised as runtime :root custom
  * properties (mirrors the host + the wiki-ui peer). Each token carries its
  * contrast ratio against #0a0a12 (the darkest shell background) in the comment
- * so a future contrast regression is obvious at the source. These --sd-* vars
- * are the cross-repo Snapdragon contract; --service-catalog-* are the service-catalog-local
+ * so a future contrast regression is obvious at the source. These --hug-* vars
+ * are the cross-repo HugMesh contract; --service-catalog-* are the service-catalog-local
  * aliases the service catalog components read so a per-brand override can retint without
  * touching the platform tokens. */
 :root {
-  --sd-bg-0:        #0a0a12; /* shell + backdrop */
-  --sd-bg-1:        #12121e; /* cards, panels */
-  --sd-bg-2:        #1a1a2e; /* scrollbar trough */
-  --sd-border:      #1e1e32;
-  --sd-text:        #e8e8f0; /* 15.9:1 AAA */
-  --sd-text-muted:  #a8acc4; /*  8.77:1 AAA */
-  --sd-accent:      #7c4dff; /* backgrounds/borders only — 3.22:1 as text */
-  --sd-accent-soft: #b388ff; /*  7.38:1 AAA — use this for accent text */
-  --sd-success:     #4caf50;
-  --sd-warning:     #ffb74d;
-  --sd-error:       #ff6b6b;
+  --hug-bg-0:        #0a0a12; /* shell + backdrop */
+  --hug-bg-1:        #12121e; /* cards, panels */
+  --hug-bg-2:        #1a1a2e; /* scrollbar trough */
+  --hug-border:      #1e1e32;
+  --hug-text:        #e8e8f0; /* 15.9:1 AAA */
+  --hug-text-muted:  #a8acc4; /*  8.77:1 AAA */
+  --hug-accent:      #7c4dff; /* backgrounds/borders only — 3.22:1 as text */
+  --hug-accent-soft: #b388ff; /*  7.38:1 AAA — use this for accent text */
+  --hug-success:     #4caf50;
+  --hug-warning:     #ffb74d;
+  --hug-error:       #ff6b6b;
 
   /* Service Catalog-local aliases (default = the platform tokens). */
-  --service-catalog-bg:          var(--sd-bg-0);
-  --service-catalog-surface:     var(--sd-bg-1);
-  --service-catalog-border:      var(--sd-border);
-  --service-catalog-text:        var(--sd-text);
-  --service-catalog-text-muted:  var(--sd-text-muted);
-  --service-catalog-accent:      var(--sd-accent);
-  --service-catalog-accent-soft: var(--sd-accent-soft);
-  --service-catalog-success:     var(--sd-success);
-  --service-catalog-warning:     var(--sd-warning);
-  --service-catalog-error:       var(--sd-error);
+  --service-catalog-bg:          var(--hug-bg-0);
+  --service-catalog-surface:     var(--hug-bg-1);
+  --service-catalog-border:      var(--hug-border);
+  --service-catalog-text:        var(--hug-text);
+  --service-catalog-text-muted:  var(--hug-text-muted);
+  --service-catalog-accent:      var(--hug-accent);
+  --service-catalog-accent-soft: var(--hug-accent-soft);
+  --service-catalog-success:     var(--hug-success);
+  --service-catalog-warning:     var(--hug-warning);
+  --service-catalog-error:       var(--hug-error);
   --service-catalog-radius:      #{t.$radius-md};
   --service-catalog-gap:         0.75rem;
 }
@@ -139,7 +139,7 @@ a {
 }
 
 // Visually-hidden utility for screen-reader-only text. Keeps the element in the
-// accessibility tree (the standard Snapdragon .sr helper).
+// accessibility tree (the standard HugMesh .sr helper).
 .sr {
   position: absolute;
   width: 1px;

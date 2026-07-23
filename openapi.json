@@ -1,7 +1,7 @@
 {
   "openapi" : "3.0.1",
   "info" : {
-    "title" : "snapdragon-admin-bff-api",
+    "title" : "hugmesh-admin-bff-api",
     "description" : "Admin BFF API (/bff/**) — registration allowlist, namespace access, service-token brokering, and usage aggregation behind the backend gateway.",
     "version" : "0.1.0"
   },
@@ -8631,7 +8631,7 @@
         "properties" : {
           "stepUpToken" : {
             "type" : "string",
-            "description" : "Opaque single-use step-up token; present on the X-Device-Terminal-StepUp header (CLI) or the snapdragon.device-terminal.stepup.<token> subprotocol (browser)."
+            "description" : "Opaque single-use step-up token; present on the X-Device-Terminal-StepUp header (CLI) or the hugmesh.device-terminal.stepup.<token> subprotocol (browser)."
           },
           "ttlMinutes" : {
             "type" : "integer",

@@ -1,12 +1,12 @@
 import { Injectable, signal, computed } from '@angular/core';
 
 /**
- * The session payload persisted to `localStorage['snap.session']` by the login remote
+ * The session payload persisted to `localStorage['hug.session']` by the login remote
  * and read by this Service Catalog remote to gate its views. BFF requests authenticate
  * via the HttpOnly `bff_` cookie (see `auth.interceptor.ts`), not a token read from
  * this session.
  */
-export interface SnapSession {
+export interface HugSession {
   /** Casdoor subject — unique identity string, e.g. `google:alice@gmail.com`. */
   id: string;
   /** Human-readable display name (email or Discord handle). */
@@ -25,14 +25,14 @@ export interface SnapSession {
 /** Holds the logged-in session (persisted to localStorage) and derives the
  *  Casdoor-style role flags the Service Catalog console gates its views on.
  *
- *  This is the canonical Snapdragon SessionService (copied from snapdragon-owncast-ui /
- *  snapdragon-wiki-ui / snapdragon-admin-ui, the references with the full role-tier
+ *  This is the canonical HugMesh SessionService (copied from hugmesh-owncast-ui /
+ *  hugmesh-wiki-ui / hugmesh-admin-ui, the references with the full role-tier
  *  accessors) so this remote gates on the SAME JWT-derived signals as the other
  *  consoles. Roles are the lowercase Casdoor roles 'user'/'mod'/'admin'/'superadmin'.
  *  The reserved-prefix ROLE_/DOMAIN_ has already been stripped upstream (the gateway /
  *  BFF converter), so the role strings here are the bare lowercase tokens.
  *
- *  ── The Service Catalog role model (mirrors snapdragon-admin-bff-api SecurityConfig +
+ *  ── The Service Catalog role model (mirrors hugmesh-admin-bff-api SecurityConfig +
  *     ServiceCurationController / AppProfileController / ServiceDeploymentController /
  *     AdminServiceStoreController) ──
  *  SUPERADMIN  = the WHOLE infra control plane. Every /bff/superadmin/service-store +
@@ -50,9 +50,9 @@ export interface SnapSession {
  *  use, and still handles a 403/404 gracefully if the server disagrees. */
 @Injectable({ providedIn: 'root' })
 export class SessionService {
-  private readonly key = 'snap.session';
-  private readonly channel = 'snap-session-change';
-  readonly session = signal<SnapSession | null>(this.load());
+  private readonly key = 'hug.session';
+  private readonly channel = 'hug-session-change';
+  readonly session = signal<HugSession | null>(this.load());
   readonly loggedIn = computed(() => this.session() !== null);
 
   /** The raw Casdoor roles of the current session (empty when logged out). */
@@ -107,7 +107,7 @@ export class SessionService {
    * Read and parse the session from localStorage. Returns null on any parse error
    * (corrupt JSON, missing key) so callers never see an unhandled exception.
    */
-  private load(): SnapSession | null {
+  private load(): HugSession | null {
     try { const raw = localStorage.getItem(this.key); return raw ? JSON.parse(raw) : null; }
     catch { return null; }
   }
@@ -118,14 +118,14 @@ export class SessionService {
    *
    * @param s - The session payload to persist.
    */
-  set(s: SnapSession): void { localStorage.setItem(this.key, JSON.stringify(s)); this.session.set(s); this.broadcast(); }
+  set(s: HugSession): void { localStorage.setItem(this.key, JSON.stringify(s)); this.session.set(s); this.broadcast(); }
 
   /**
    * Merge a partial update into the current session. A no-op when not logged in.
    *
    * @param p - The partial fields to merge into the current session.
    */
-  patch(p: Partial<SnapSession>): void { const s = this.session(); if (s) this.set({ ...s, ...p }); }
+  patch(p: Partial<HugSession>): void { const s = this.session(); if (s) this.set({ ...s, ...p }); }
 
   /**
    * Remove the session from localStorage, clear the signal, and broadcast. Used by the
@@ -134,7 +134,7 @@ export class SessionService {
   clear(): void { localStorage.removeItem(this.key); this.session.set(null); this.broadcast(); }
 
   /**
-   * Fire a `snap-session-change` window event so every in-page `SessionService` instance
+   * Fire a `hug-session-change` window event so every in-page `SessionService` instance
    * (host + each loaded remote) re-reads localStorage. Does nothing on SSR.
    */
   private broadcast(): void { if (typeof window !== 'undefined') window.dispatchEvent(new Event(this.channel)); }

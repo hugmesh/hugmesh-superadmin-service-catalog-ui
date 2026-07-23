@@ -31,7 +31,7 @@ interface ServiceCatalogNavItem {
  * link carries an accessibleName + an aria-describedby help hint.
  */
 @Component({
-  selector: 'snap-service-catalog-console',
+  selector: 'hug-service-catalog-console',
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './service-catalog-console.component.html',

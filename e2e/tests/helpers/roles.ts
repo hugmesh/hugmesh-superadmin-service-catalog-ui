@@ -4,7 +4,7 @@ import { Browser, BrowserContext, Page, expect } from '@playwright/test';
  * Role catalogue for the Superadmin Service Catalog console.
  *
  * Unlike the games host (which drives a federated Casdoor login form), this
- * remote derives its role flags purely from `localStorage['snap.session']`:
+ * remote derives its role flags purely from `localStorage['hug.session']`:
  * SessionService.load() parses that key and exposes `roles[]`-derived signals
  * (isSuperadmin / isAdmin / canManageStore / canReadOwnCatalog — see
  * src/app/session.service.ts). The host shell normally writes that session after
@@ -52,7 +52,7 @@ export const SEED_USERS: SeedUser[] = [
 ];
 
 /** localStorage key the SessionService persists the session under. */
-export const SESSION_KEY = 'snap.session';
+export const SESSION_KEY = 'hug.session';
 
 /** The in-remote forbidden mount path a DENY routes to (NOT '/forbidden', NOT
  *  '/login'). Mirrors SERVICE_CATALOG_FORBIDDEN in src/app/service-catalog.guard.ts. */
@@ -69,8 +69,8 @@ export function resolveUser(username: string): SeedUser {
 }
 
 /**
- * Build the SnapSession blob the SessionService expects (src/app/session.service.ts
- * SnapSession). Only `roles` is load-bearing for the console gating; auth to
+ * Build the HugSession blob the SessionService expects (src/app/session.service.ts
+ * HugSession). Only `roles` is load-bearing for the console gating; auth to
  * /bff/** now rides on the HttpOnly `bff_` cookie (the bffAuthInterceptor sends
  * `withCredentials`), so the session no longer carries a browser Bearer.
  */
@@ -99,7 +99,7 @@ export async function newE2eContext(browser: Browser): Promise<BrowserContext> {
 }
 
 /**
- * "Log in" as a seed user by seeding `localStorage['snap.session']` BEFORE the
+ * "Log in" as a seed user by seeding `localStorage['hug.session']` BEFORE the
  * app boots, then navigating to a console route. We use addInitScript so the
  * session is present on the very first SessionService.load() — seeding after a
  * navigation would let the guard run against a logged-out session first.

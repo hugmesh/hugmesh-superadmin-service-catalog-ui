@@ -21,7 +21,7 @@ type Mode = 'create' | 'edit';
  * states; a 403/404/409 each surfaces a clear message.
  */
 @Component({
-  selector: 'snap-service-catalog-profiles',
+  selector: 'hug-service-catalog-profiles',
   standalone: true,
   imports: [FormsModule],
   templateUrl: './service-catalog-profiles.component.html',

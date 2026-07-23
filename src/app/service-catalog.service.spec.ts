@@ -17,7 +17,7 @@ import { bffAuthInterceptor } from './auth.interceptor';
 
 /**
  * The service layer is the thing that makes the PR1 data layer usable, so the
- * spec asserts it calls the EXACT snapdragon-admin-bff-api serviceCatalog paths (URL +
+ * spec asserts it calls the EXACT hugmesh-admin-bff-api serviceCatalog paths (URL +
  * method + body), branch feat/superadmin-service-catalog-data-layer (PR #56):
  *
  *   GET    /bff/superadmin/service-store/{domain}

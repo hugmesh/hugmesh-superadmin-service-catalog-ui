@@ -26,7 +26,7 @@ import { ServiceCatalogService, ServiceDeployment, AppProfile, ServiceCatalogApi
  * loading / empty / error states; a 403/404 degrades gracefully.
  */
 @Component({
-  selector: 'snap-service-catalog-deployments',
+  selector: 'hug-service-catalog-deployments',
   standalone: true,
   imports: [FormsModule],
   templateUrl: './service-catalog-deployments.component.html',

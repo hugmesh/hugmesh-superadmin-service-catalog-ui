@@ -1,7 +1,7 @@
 {
-  "name": "snapdragon-superadmin-service-catalog-ui",
+  "name": "@hugmesh/service-catalog",
   "version": "0.1.0",
-  "description": "Superadmin Service Catalog console — native-federation remote (exposes ./ServiceCatalog at remoteEntry.json on :8080), SUPERADMIN-only console over snapdragon-admin-bff-api /bff/superadmin/service-store + /bff/superadmin/app-profiles (per-domain service curation, app-profile deploy templates, service-deployment lifecycle accounting); mounted by the snapdragon.systems host at /service-catalog.",
+  "description": "Superadmin Service Catalog console — native-federation remote (exposes ./ServiceCatalog at remoteEntry.json on :8080), SUPERADMIN-only console over hugmesh-admin-bff-api /bff/superadmin/service-store + /bff/superadmin/app-profiles (per-domain service curation, app-profile deploy templates, service-deployment lifecycle accounting); mounted by the hugmesh.systems host at /service-catalog.",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -12,7 +12,7 @@
     "test": "ng test service-catalog --watch=false --browsers=ChromeHeadlessCI",
     "test:watch": "ng test service-catalog",
     "gen": "ng-openapi-gen",
-    "gen:spec": "node -e \"const fs=require('fs');const s=process.env.ADMIN_BFF_SPEC||'../snapdragon-admin-bff-api/src/main/resources/openapi/openapi.json';if(!fs.existsSync(s)){console.error('spec not found: '+s+'\\nRun `./mvnw -Dtest=OpenApiSpecDumpTest test` in snapdragon-admin-bff-api first, or set ADMIN_BFF_SPEC to its committed openapi.json.');process.exit(1)}fs.copyFileSync(s,'openapi.json');console.log('copied '+s+' -> openapi.json')\" && npm run gen"
+    "gen:spec": "node -e \"const fs=require('fs');const s=process.env.ADMIN_BFF_SPEC||'../hugmesh-admin-bff-api/src/main/resources/openapi/openapi.json';if(!fs.existsSync(s)){console.error('spec not found: '+s+'\\nRun `./mvnw -Dtest=OpenApiSpecDumpTest test` in hugmesh-admin-bff-api first, or set ADMIN_BFF_SPEC to its committed openapi.json.');process.exit(1)}fs.copyFileSync(s,'openapi.json');console.log('copied '+s+' -> openapi.json')\" && npm run gen"
   },
   "dependencies": {
     "@angular-architects/native-federation": "^22.0.0",

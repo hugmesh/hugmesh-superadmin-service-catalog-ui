@@ -18,7 +18,7 @@ import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from '
  * empty / error states), instead of a dead end. A mod/user sees only the message.
  */
 @Component({
-  selector: 'snap-service-catalog-forbidden',
+  selector: 'hug-service-catalog-forbidden',
   standalone: true,
   imports: [],
   templateUrl: './service-catalog-forbidden.component.html',

@@ -65,7 +65,7 @@ interface SourceOption {
  * loading / empty / error states; a 403/404/400 each degrade gracefully.
  */
 @Component({
-  selector: 'snap-service-catalog-add-service',
+  selector: 'hug-service-catalog-add-service',
   standalone: true,
   imports: [FormsModule],
   templateUrl: './service-catalog-add-service.component.html',

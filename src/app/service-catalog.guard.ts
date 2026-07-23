@@ -4,7 +4,7 @@ import { SessionService } from './session.service';
 
 /**
  * Route guard for the Superadmin Service Catalog console — the UI half of the Service Catalog
- * role model. It mirrors the snapdragon-admin-bff-api gates (defence-in-depth; the
+ * role model. It mirrors the hugmesh-admin-bff-api gates (defence-in-depth; the
  * bff is authoritative):
  *
  *   superadminGuard — SUPERADMIN. Gates the WHOLE console (curation write,

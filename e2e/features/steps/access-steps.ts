@@ -68,7 +68,7 @@ Then('the session domain is {string}', async ({ page }, domain: string) => {
   // a cheap guard against a storage-partition regression dropping the session.
   expect(roles.length).toBeGreaterThan(0);
   const id = await page.evaluate(() => {
-    const raw = window.localStorage.getItem('snap.session');
+    const raw = window.localStorage.getItem('hug.session');
     return raw ? (JSON.parse(raw) as { id?: string }).id ?? '' : '';
   });
   expect(id).toContain(domain);

@@ -1,5 +1,5 @@
 # Accessibility coverage for the SUPERADMIN-only surfaces. The console follows
-# the consolidated Snapdragon UI a11y standard (accessibleName util, labelled
+# the consolidated HugMesh UI a11y standard (accessibleName util, labelled
 # regions, menubar roving-tabindex nav, aria-describedby helptext on disabled
 # controls).
 #

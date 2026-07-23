@@ -8,15 +8,15 @@ import { AdminServiceStoreControllerService } from './api/services/admin-service
 import { ServiceCatalogBuilderControllerService } from './api/services/service-catalog-builder-controller.service';
 
 /** Base URL of the admin BFF. The fe-gateway proxies same-origin /bff/** to
- *  snapdragon-admin-bff-api, so the default is the empty string = same origin.
- *  `globalThis.__SNAP_SERVICE_CATALOG_URL__` lets the host override the target at
- *  runtime (mirrors the other remotes' __SNAP_*_URL__ globals). */
+ *  hugmesh-admin-bff-api, so the default is the empty string = same origin.
+ *  `globalThis.__HUG_SERVICE_CATALOG_URL__` lets the host override the target at
+ *  runtime (mirrors the other remotes' __HUG_*_URL__ globals). */
 export const SERVICE_CATALOG_BASE_URL = new InjectionToken<string>('SERVICE_CATALOG_BASE_URL', {
-  factory: () => (globalThis as any).__SNAP_SERVICE_CATALOG_URL__ ?? '',
+  factory: () => (globalThis as any).__HUG_SERVICE_CATALOG_URL__ ?? '',
 });
 
 // ---------------------------------------------------------------------------
-// Contract — mirrors snapdragon-admin-bff-api serviceCatalog records (Jackson serialises
+// Contract — mirrors hugmesh-admin-bff-api serviceCatalog records (Jackson serialises
 // them camelCase): ServiceCuration / AppProfile / ServiceDeployment + the request
 // DTOs ServiceCurationRequest / AppProfileRequest / ServiceDeploymentRequest.
 // These are the EXACT JSON shapes the bff returns. As of the ng-openapi-gen
@@ -206,7 +206,7 @@ export class ServiceCatalogApiError extends Error {
 }
 
 /**
- * Thin reactive wrapper over the snapdragon-admin-bff-api Service Catalog surfaces. Auth
+ * Thin reactive wrapper over the hugmesh-admin-bff-api Service Catalog surfaces. Auth
  * rides on the HttpOnly `bff_` cookie (the same opaque `bff_session` the other BFF
  * surfaces use) — the host injects nothing and the module never renders a login
  * form.

@@ -1,5 +1,5 @@
 /**
- * accessibleName(el) — the cross-repo Snapdragon a11y helper used by the
+ * accessibleName(el) — the cross-repo HugMesh a11y helper used by the
  * component specs to assert that EVERY interactive control exposes a
  * programmatic accessible name (WCAG 4.1.2 Name, Role, Value).
  *

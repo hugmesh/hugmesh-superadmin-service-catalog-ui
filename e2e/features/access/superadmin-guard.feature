@@ -1,13 +1,13 @@
 # superadminGuard ALLOW / DENY matrix for the Superadmin Service Catalog console.
 #
-# The console is a host-mounted federated remote; the snapdragon.systems host
+# The console is a host-mounted federated remote; the hugmesh.systems host
 # gates the WHOLE /service-catalog mount behind route-access superadmin. THESE in-remote
 # child guards (src/app/service-catalog.guard.ts) enforce the SAME boundary as
 # defence-in-depth: a non-superadmin who reaches the bundle still lands on the
 # in-remote forbidden screen at /service-catalog/forbidden (NOT '/forbidden', NOT
 # '/login' — shipping the bare path was a real wiki-ui bug).
 #
-# "Login" here seeds localStorage['snap.session'] directly — this remote derives
+# "Login" here seeds localStorage['hug.session'] directly — this remote derives
 # its role flags from that key (SessionService), it does not drive a Casdoor form.
 #
 # These scenarios are @cluster: each needs the built remote served at a baseURL

@@ -19,7 +19,7 @@ import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from '
  * aria-describedby help; the offered list announces its state.
  */
 @Component({
-  selector: 'snap-service-catalog-curation',
+  selector: 'hug-service-catalog-curation',
   standalone: true,
   imports: [FormsModule],
   templateUrl: './service-catalog-curation.component.html',

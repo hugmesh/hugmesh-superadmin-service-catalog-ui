@@ -1,16 +1,16 @@
-// Shared federation config helpers, byte-identical across every Snapdragon
+// Shared federation config helpers, byte-identical across every HugMesh
 // host and remote repo (this repo is a REMOTE — see README).
 //
 // The host's federation.config.js used to inline the same shareAll args and
-// skip list every other Snapdragon repo carries. Centralising them here means
+// skip list every other HugMesh repo carries. Centralising them here means
 // the federation surface (singletons, strictVersion, the RxJS skip list) lives
 // in ONE place — so a drift between host and remotes (e.g. one bundle sharing a
 // different RxJS subpath) can't quietly produce a "shared is not a function"
-// runtime failure. Mirrors snapdragon.games/frontend/federation-base.js.
+// runtime failure. Mirrors hugmesh.games/frontend/federation-base.js.
 //
 // Used by:
-//   - ./federation.config.js (this repo's remote config, via snapdragonRemote)
-//   - the host's federation.config.js (via snapdragonHost), and every other
+//   - ./federation.config.js (this repo's remote config, via hugmeshRemote)
+//   - the host's federation.config.js (via hugmeshHost), and every other
 //     remote's federation.config.js — copied byte-identical into each repo
 
 const { withNativeFederation, shareAll } = require('@angular-architects/native-federation/config');
@@ -38,7 +38,7 @@ const STD_SHARED = shareAll({
  * `extraSkip` lets a specific remote tack on its own skip entries without
  * losing the standard list.
  */
-function snapdragonRemote({ name, exposes, extraSkip = [] }) {
+function hugmeshRemote({ name, exposes, extraSkip = [] }) {
   return withNativeFederation({
     name,
     exposes,
@@ -50,10 +50,10 @@ function snapdragonRemote({ name, exposes, extraSkip = [] }) {
 /**
  * Federation config for the host shell. The host has no `exposes` block (it's a
  * consumer, not a provider), only a shared-deps surface and the skip list.
- * Naming the host explicitly keeps the convention shared across Snapdragon
+ * Naming the host explicitly keeps the convention shared across HugMesh
  * repos; a host carries no manifest self-row requirement.
  */
-function snapdragonHost({ name = 'snapdragon-host', extraSkip = [] } = {}) {
+function hugmeshHost({ name = 'hugmesh-host', extraSkip = [] } = {}) {
   return withNativeFederation({
     name,
     shared: { ...STD_SHARED },
@@ -62,8 +62,8 @@ function snapdragonHost({ name = 'snapdragon-host', extraSkip = [] } = {}) {
 }
 
 module.exports = {
-  snapdragonRemote,
-  snapdragonHost,
+  hugmeshRemote,
+  hugmeshHost,
   STD_SKIP,
   STD_SHARED,
 };

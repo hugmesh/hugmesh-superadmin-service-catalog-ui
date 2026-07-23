@@ -8,15 +8,15 @@ import { ServiceCatalogForbiddenComponent } from './service-catalog-forbidden.co
 import { superadminGuard } from './service-catalog.guard';
 
 /**
- * The exposed `./ServiceCatalog` module — mounted by the snapdragon.systems host at the
+ * The exposed `./ServiceCatalog` module — mounted by the hugmesh.systems host at the
  * apex path /service-catalog (the federation-api serviceCatalog module row: mountAt '/service-catalog',
- * remote_entry_url http://snapdragon-superadmin-service-catalog-ui:8080/remoteEntry.json,
+ * remote_entry_url http://hugmesh-superadmin-service-catalog-ui:8080/remoteEntry.json,
  * requiresRole 'superadmin', visibility internal). The host gates the WHOLE
  * /service-catalog mount behind route-access superadmin; THESE child guards enforce the
  * same SUPERADMIN boundary in-remote (defence-in-depth) so a non-superadmin who
  * reaches the bundle still lands on the forbidden screen.
  *
- * View → role gate (mirrors snapdragon-admin-bff-api serviceCatalog controllers):
+ * View → role gate (mirrors hugmesh-admin-bff-api serviceCatalog controllers):
  *   ''            ServiceCatalogConsole      — shell + nav (gated to SUPERADMIN by the children)
  *   add           ServiceCatalogAddService   — provision a deployment via one of the 4 sources (superadminGuard)
  *   curation      ServiceCatalogCuration     — per-domain offered catalog (superadminGuard)

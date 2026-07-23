@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
-import { SessionService, SnapSession } from './session.service';
+import { SessionService, HugSession } from './session.service';
 
 /** The role-composite signals are the UI's defence-in-depth gate, derived from
- *  the Casdoor roles in snap.session. Each tier (superadmin / admin / mod / plain
+ *  the Casdoor roles in hug.session. Each tier (superadmin / admin / mod / plain
  *  user) is exercised against canManageStore (the whole-console SUPERADMIN gate)
  *  and canReadOwnCatalog (the two-tier ADMIN|SUPERADMIN read) — mirroring the
  *  admin-bff serviceCatalog role model. */
-function sessionFor(roles: string[]): SnapSession {
+function sessionFor(roles: string[]): HugSession {
   return {
     id: 'google:x@y.com',
     label: 'x',
