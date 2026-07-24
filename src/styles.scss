@@ -88,11 +88,13 @@ h3 {
     width: auto;
     height: auto;
     padding: 0.6rem 1.2rem;
-    background: t.$charcoal;
+    // Purple --hug-* contract, not host gold: a remote's skip link must stay on the
+    // cross-repo palette (neon gold is host-shell chrome only). Was t.$charcoal / t.$neon.
+    background: var(--hug-bg-1);
     color: var(--service-catalog-text);
     font-size: 1rem;
     font-weight: 700;
-    border: 2px solid t.$neon;
+    border: 2px solid var(--hug-accent-soft);
     border-radius: t.$radius-sm;
     outline: none;
     clip: auto;

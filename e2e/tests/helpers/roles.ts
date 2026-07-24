@@ -29,26 +29,38 @@ export interface SeedUser {
   kind: 'superadmin' | 'admin' | 'mod' | 'user';
   /** The issuer-derived home domain — drives cross-tenant isolation scenarios. */
   domain: string;
+  /** env var the compose/cluster overlay routes this user's cred through for the
+   *  REAL host-shell Casdoor login ({@link login}). Falls back to `E2E_PASSWORD`
+   *  then `e2e-pass` (see {@link passwordFor}) so a missing env never throws. */
+  passwordEnv: string;
 }
 
 export const SEED_USERS: SeedUser[] = [
   // The privileged operator — the whole console is theirs.
-  { username: 'superadmin', roles: ['user', 'admin', 'superadmin'], kind: 'superadmin', domain: 'acme.test' },
+  { username: 'superadmin', roles: ['user', 'admin', 'superadmin'], kind: 'superadmin', domain: 'acme.test', passwordEnv: 'E2E_SUPERADMIN_PASSWORD' },
 
   // A second superadmin on a DIFFERENT brand — cross-tenant isolation: a
   // superadmin acting on their own platform must not silently leak another
-  // brand's recorded deployments into the view.
-  { username: 'superadmin-beta', roles: ['user', 'admin', 'superadmin'], kind: 'superadmin', domain: 'beta.test' },
+  // brand's recorded deployments into the view. Also drives the two-superadmin
+  // concurrent-mutation scenario (a second context ends a row the first is on).
+  { username: 'superadmin-beta', roles: ['user', 'admin', 'superadmin'], kind: 'superadmin', domain: 'beta.test', passwordEnv: 'E2E_SUPERADMIN_BETA_PASSWORD' },
 
-  // Domain admin — DENY at the superadminGuard, but the forbidden screen offers
-  // the read-only own-domain catalog degrade (canReadOwnCatalog).
-  { username: 'admin', roles: ['user', 'admin'], kind: 'admin', domain: 'acme.test' },
+  // Domain admin (acme.test) — DENY at the superadminGuard, but the forbidden
+  // screen offers the read-only own-domain catalog degrade (canReadOwnCatalog).
+  // The two-tier /bff/admin/service-store read is scoped to THIS admin's own
+  // issuer-derived domain, so it sees only what a superadmin offered to acme.test.
+  { username: 'admin', roles: ['user', 'admin'], kind: 'admin', domain: 'acme.test', passwordEnv: 'E2E_ADMIN_PASSWORD' },
+
+  // Domain admin on a DIFFERENT brand (beta.test) — the cross-user visibility
+  // matrix: a service offered to acme.test must NEVER surface in this admin's
+  // own-domain catalog. Mirrors admin-ui's admin-domain-a / admin-domain-b split.
+  { username: 'admin-beta', roles: ['user', 'admin'], kind: 'admin', domain: 'beta.test', passwordEnv: 'E2E_ADMIN_BETA_PASSWORD' },
 
   // Mod — DENY, and NO catalog degrade (canReadOwnCatalog is false).
-  { username: 'mod', roles: ['user', 'mod'], kind: 'mod', domain: 'acme.test' },
+  { username: 'mod', roles: ['user', 'mod'], kind: 'mod', domain: 'acme.test', passwordEnv: 'E2E_MOD_PASSWORD' },
 
   // Plain user — DENY, no degrade.
-  { username: 'user', roles: ['user'], kind: 'user', domain: 'acme.test' },
+  { username: 'user', roles: ['user'], kind: 'user', domain: 'acme.test', passwordEnv: 'E2E_USER_PASSWORD' },
 ];
 
 /** localStorage key the SessionService persists the session under. */
@@ -118,6 +130,60 @@ export async function loginAs(page: Page, user: SeedUser, route = '/service-cata
       }
     },
     [SESSION_KEY, blob] as const,
+  );
+  await page.goto(route, { waitUntil: 'domcontentloaded' });
+}
+
+/** Resolve a seed user's password — per-user env override, then `E2E_PASSWORD`,
+ *  then the `e2e-pass` default — without throwing on a missing env (mirrors the
+ *  admin-ui / games e2e legs). */
+export function passwordFor(user: SeedUser): string {
+  return process.env[user.passwordEnv] ?? process.env['E2E_PASSWORD'] ?? 'e2e-pass';
+}
+
+/**
+ * REAL host-shell Casdoor login — the honest path for scenarios that make
+ * server-authoritative BFF calls (every /bff/superadmin/** read + write, and the
+ * /bff/admin/service-store two-tier read).
+ *
+ * Unlike {@link loginAs} (which only seeds `localStorage['hug.session']`), this
+ * drives the hugmesh.systems host shell's federated login remote so the
+ * gateway sets the HttpOnly `bff_` cookie via Set-Cookie. The `bffAuthInterceptor`
+ * sends that cookie (`withCredentials`) on every request, so a subsequent
+ * `provision` / `offer` / `record` / profile write actually authenticates —
+ * whereas a seeded session carries NO `bff_` cookie and the write 401/403s the
+ * moment E2E_CLUSTER=1 is flipped on.
+ *
+ * @cluster-only — this hits a LIVE Casdoor + host shell (the login remote is
+ * served under the host at /login, NOT by this remote's own dev shell, which only
+ * mounts /service-catalog). So it is only reached from `@cluster`-tagged scenarios
+ * (skipped at runtime unless E2E_CLUSTER=1); bddgen + `--list` still discover them.
+ *
+ * On success the host writes `hug.session` (SessionService.set/broadcast); we
+ * wait for that non-secret key so a follow-up guarded navigation doesn't race the
+ * write (the bearer no longer lives in the browser — auth rides the cookie). The
+ * form inputs hang off `formControlName` (the public selector contract shared
+ * across the HugMesh login remote).
+ */
+export async function login(page: Page, user: SeedUser, route = '/service-catalog/add'): Promise<void> {
+  await page.goto('/login', { waitUntil: 'domcontentloaded' });
+  await page.locator('input[formControlName="username"]').waitFor({ state: 'visible', timeout: 20_000 });
+  await page.fill('input[formControlName="username"]', user.username);
+  await page.fill('input[formControlName="password"]', passwordFor(user));
+  await page.click('button.login-btn');
+  await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 60_000 });
+  await page.waitForFunction(
+    () => {
+      const raw = window.localStorage.getItem('hug.session');
+      if (!raw) return false;
+      try {
+        return Boolean(JSON.parse(raw).id);
+      } catch {
+        return false;
+      }
+    },
+    undefined,
+    { timeout: 15_000 },
   );
   await page.goto(route, { waitUntil: 'domcontentloaded' });
 }

@@ -20,15 +20,20 @@ const bddTestDir = defineBddConfig({
     'features/steps/**/*.ts',
     'features/support/**/*.ts',
   ],
-  // NOTE: we deliberately do NOT set a `tags: 'not @skip'` filter here. A
+  // NOTE: we deliberately do NOT set a config-level `tags:` filter here. A
   // config-level tag filter EXCLUDES matched scenarios from generation
-  // entirely, so they'd vanish from `playwright test --list`. playwright-bdd
-  // instead treats `@skip` as a special tag (generate/specialTags.ts) and emits
-  // a `test.skip(...)` for those scenarios — they STILL appear in `--list`
-  // (the offline-discoverable contract this harness validates on) but never
-  // execute. Every feature here is `@skip @cluster` because each needs the
-  // built remote served + a real admin-bff; the offline service-layer contract
-  // is already proven by src/app/service-catalog-add-service.e2e.spec.ts.
+  // entirely, so they'd vanish from `playwright test --list` — and offline
+  // discoverability is the contract this harness validates on.
+  //
+  // Every feature here is tagged `@cluster` (NOT `@skip`): each needs the built
+  // remote served + a real admin-bff, but each must actually RUN once that stack
+  // exists. `@skip` is a playwright-bdd special tag that emits an unconditional
+  // `test.skip()` (dist/generate/specialTags.js), which would make the suite
+  // permanently dark. Instead features/support/fixtures.ts registers a
+  // `Before({ tags: '@cluster' })` hook that skips at RUNTIME unless
+  // E2E_CLUSTER=1 — conditional, and still fully generated + listed.
+  // The offline service-layer contract is proven separately by
+  // src/app/service-catalog-add-service.e2e.spec.ts.
 });
 
 export default defineConfig({

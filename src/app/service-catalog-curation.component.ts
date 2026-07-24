@@ -56,8 +56,17 @@ export class ServiceCatalogCurationComponent {
   readonly actionError = signal('');
   /** Success notice from the last offer/withdraw action — displayed in an aria-live region. */
   readonly notice = signal('');
-  /** Whether the form has been submitted at least once (activates inline validation display). */
+  /** Whether the DOMAIN form has been submitted at least once (activates the
+   *  domain-field inline validation display). */
   readonly touched = signal(false);
+  /**
+   * Whether the OFFER form's service-key field has been submitted at least once.
+   * Kept SEPARATE from `touched` so merely LOADING a domain (which sets `touched`
+   * to validate the domain input) does NOT spuriously flag the still-empty service
+   * key as invalid — that premature `role=alert` "A service key is required" fired
+   * on every catalog load and announced a spurious error to screen readers.
+   */
+  readonly keyTouched = signal(false);
 
   /** The currently-offered (live, non-withdrawn) rows — the visible offered-catalog view. */
   readonly offeredRows = computed(() => (this.rows() ?? []).filter((r) => r.state === 'offered'));
@@ -65,13 +74,13 @@ export class ServiceCatalogCurationComponent {
   /** `ngFor` track-by by database id (avoids DOM churn on catalog reload). */
   trackId = (_: number, r: ServiceCuration): string => r.id;
 
-  /** True when the domain input is empty and the form has been touched. */
+  /** True when the domain input is empty and the domain form has been touched. */
   domainInvalid(): boolean {
     return this.touched() && this.domain().trim().length === 0;
   }
-  /** True when the serviceKey input is empty and the form has been touched. */
+  /** True when the serviceKey input is empty and the OFFER form has been touched. */
   serviceKeyInvalid(): boolean {
-    return this.touched() && this.serviceKey().trim().length === 0;
+    return this.keyTouched() && this.serviceKey().trim().length === 0;
   }
   /**
    * True when an offer/withdraw action may proceed. Both `loadedDomain` and `serviceKey`
@@ -87,6 +96,9 @@ export class ServiceCatalogCurationComponent {
   /** Fetch the catalog for the typed domain, validate input, and update `loadedDomain`. */
   async loadDomain(): Promise<void> {
     this.touched.set(true);
+    // Loading a domain must NOT pre-flag the offer form's (empty) key field — reset
+    // the offer-form touched state so no premature "service key required" alert shows.
+    this.keyTouched.set(false);
     this.actionError.set('');
     this.notice.set('');
     await this.fetchCatalog();
@@ -127,7 +139,11 @@ export class ServiceCatalogCurationComponent {
   }
 
   private async act(kind: 'offer' | 'withdraw', keyArg?: string): Promise<void> {
-    this.touched.set(true);
+    // Only flag the OFFER form's key field when the action came FROM that form (no
+    // explicit keyArg) — a per-row Withdraw carries its own key and must not mark the
+    // typed-key input touched.
+    const usingFormKey = keyArg === undefined;
+    if (usingFormKey) this.keyTouched.set(true);
     this.actionError.set('');
     this.notice.set('');
     const domain = this.loadedDomain().trim();
@@ -139,6 +155,9 @@ export class ServiceCatalogCurationComponent {
         await this.serviceCatalog.offer(domain, key);
         this.notice.set(`Offered “${key}” to ${domain}.`);
         this.serviceKey.set('');
+        // The field is intentionally cleared for the next offer — reset its touched
+        // state too so the now-empty field isn't flagged after a SUCCESSFUL offer.
+        this.keyTouched.set(false);
       } else {
         await this.serviceCatalog.withdraw(domain, key);
         this.notice.set(`Withdrew “${key}” from ${domain}.`);

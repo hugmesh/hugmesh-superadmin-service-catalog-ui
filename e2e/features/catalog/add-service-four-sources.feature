@@ -23,22 +23,29 @@
 # is already proven offline by src/app/service-catalog-add-service.e2e.spec.ts (karma,
 # fetch-stubbed); this BDD layer is the through-the-browser presentation. bddgen
 # + `playwright test --list` discover these regardless.
+#
+# HONESTY — real Casdoor for real BFF work: every scenario that LOADS a domain (a
+# /bff/superadmin/service-store read) or PROVISIONS (a write) signs in through the
+# host-shell Casdoor flow so the HttpOnly bff_ cookie is present — a seeded-only
+# session carries no cookie and the read/write 401/403s the day E2E_CLUSTER=1 is on
+# (roles.ts `login()` vs `loginAs()`). Only the pure-render scenario (the ships-dark
+# note, which touches no BFF) stays on the seeded fast path.
 @cluster
 Feature: Superadmin adds a service via the four sources
   As a superadmin curating a domain's services
   I want to provision a recorded deployment from one of the four sources
   So the per-service role + route-access rule are wired and ArgoCD picks it up
 
-  Background:
+  Scenario: the add view explains the ships-dark effector before any provision
     Given "superadmin" opens the service-catalog at "/service-catalog/add"
     And the service-catalog console nav is visible
-
-  Scenario: the add view explains the ships-dark effector before any provision
     Then the ships-dark effector note is shown
     And the "add" view is shown
 
   Scenario: add a service via the SELECT (catalog) source
-    Given the domain "acme.test" is loaded with recorded deployments
+    Given "superadmin" signs in and opens the service-catalog at "/service-catalog/add"
+    And the service-catalog console nav is visible
+    And the domain "acme.test" is loaded with recorded deployments
     When the superadmin chooses the first recorded deployment
     And the superadmin picks the "SELECT" source
     And the superadmin enters the repository URL "https://git.acme.test/catalog/owncast.git"
@@ -47,7 +54,9 @@ Feature: Superadmin adds a service via the four sources
     And the deployment list reflects the applied propagation state
 
   Scenario: add a service via the GIT source with a path and revision
-    Given the domain "acme.test" is loaded with recorded deployments
+    Given "superadmin" signs in and opens the service-catalog at "/service-catalog/add"
+    And the service-catalog console nav is visible
+    And the domain "acme.test" is loaded with recorded deployments
     When the superadmin chooses the first recorded deployment
     And the superadmin picks the "GIT" source
     And the superadmin enters the repository URL "https://gitlab.acme.test/svc/phpbb.git"
@@ -57,14 +66,18 @@ Feature: Superadmin adds a service via the four sources
     Then a provision success notice is shown
 
   Scenario: the DOCKERFILE and ZIP sources are offered but DISABLED (ships dark)
-    Given the domain "acme.test" is loaded with recorded deployments
+    Given "superadmin" signs in and opens the service-catalog at "/service-catalog/add"
+    And the service-catalog console nav is visible
+    And the domain "acme.test" is loaded with recorded deployments
     When the superadmin chooses the first recorded deployment
     Then the "DOCKERFILE" source option is disabled and badged "needs builder"
     And the "ZIP" source option is disabled and badged "needs builder"
     And the Provision button is disabled until a live source and repo URL are chosen
 
   Scenario: provisioning is blocked until a deployment, a live source, and a repo URL are present
-    Given the domain "acme.test" is loaded with recorded deployments
+    Given "superadmin" signs in and opens the service-catalog at "/service-catalog/add"
+    And the service-catalog console nav is visible
+    And the domain "acme.test" is loaded with recorded deployments
     Then the Provision button is disabled until a live source and repo URL are chosen
     When the superadmin chooses the first recorded deployment
     And the superadmin picks the "SELECT" source

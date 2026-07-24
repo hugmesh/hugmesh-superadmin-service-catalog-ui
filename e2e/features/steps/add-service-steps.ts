@@ -35,6 +35,21 @@ When('the superadmin chooses the first recorded deployment', async ({ page }) =>
   await expect(page.locator('fieldset.service-catalog-sources')).toBeVisible({ timeout: 10_000 });
 });
 
+When('the superadmin chooses the {string} deployment to provision', async ({ page }, serviceKey: string) => {
+  // The per-row Choose button carries aria-label "Choose <serviceKey> to provision"
+  // (service-catalog-add-service.component.html) — target the named row, not the first.
+  await page
+    .getByRole('button', { name: new RegExp(`Choose ${serviceKey} to provision`, 'i') })
+    .first()
+    .click();
+  await expect(page.locator('fieldset.service-catalog-sources')).toBeVisible({ timeout: 10_000 });
+});
+
+Then('the add list shows {string} as {string}', async ({ page }, serviceKey: string, state: string) => {
+  const rows = page.locator('[data-testid="service-catalog-add-list"] tbody tr').filter({ hasText: serviceKey });
+  await expect(rows.filter({ hasText: state }).first()).toBeVisible({ timeout: 15_000 });
+});
+
 When('the superadmin picks the {string} source', async ({ page }, kind: string) => {
   const radio = page.locator(`[data-testid="service-catalog-source-${kind}"] input[type="radio"]`);
   await radio.check();

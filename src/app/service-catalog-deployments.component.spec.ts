@@ -117,6 +117,26 @@ describe('ServiceCatalogDeploymentsComponent (lifecycle accounting)', () => {
     expect(serviceCatalog.createDeployment).not.toHaveBeenCalled();
   });
 
+  it('does NOT flag the service key as invalid merely from loading a domain', async () => {
+    // Regression: loadDomain used to set `touched` true, prematurely rendering
+    // "A service key is required" under the record form on every load even though the
+    // domain form has no touched-gated validation. Loading now resets touched.
+    await loadDomain('acme.test');
+    expect(component.serviceKeyInvalid()).toBeFalse();
+    const key = el().querySelector('#service-catalog-record-key');
+    expect(key?.getAttribute('aria-invalid')).toBeNull();
+    expect(el().textContent).not.toContain('A service key is required');
+  });
+
+  it('DOES flag the service key required once an empty record is submitted', async () => {
+    await loadDomain('acme.test');
+    component.serviceKey.set('');
+    await component.record();
+    fixture.detectChanges();
+    expect(component.serviceKeyInvalid()).toBeTrue();
+    expect(el().textContent).toContain('A service key is required');
+  });
+
   it('end calls endDeployment with the {domain} + row id', async () => {
     serviceCatalog.listDeployments.and.resolveTo([dep({ id: 'dep-9' })]);
     await loadDomain('acme.test');

@@ -18,7 +18,10 @@ $pastel-lemon:    #fdffb6;
 $pastel-peach:    #ffd6a5;
 
 $font-sans:  Arial, Helvetica, sans-serif;
-$font-mono:  $font-sans;
+// Real monospace stack (the fleet baseline) — the app-profile JSON textarea reads
+// this token instead of hardcoding its own family. $font-fancy stays aliased to the
+// sans stack (no display face is wired in this remote).
+$font-mono:  ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
 $font-fancy: $font-sans;
 
 $radius-sm:   0.5rem;

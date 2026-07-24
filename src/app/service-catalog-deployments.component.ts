@@ -119,7 +119,11 @@ export class ServiceCatalogDeploymentsComponent {
   }
 
   async loadDomain(): Promise<void> {
-    this.touched.set(true);
+    // Reset (not set) the record-form touched state on load: the domain form has no
+    // touched-gated validation of its own, so setting it true here only pre-flagged
+    // the still-empty record service-key field with a premature "service key required"
+    // role=alert on every load. `record()` sets it true when the form is submitted.
+    this.touched.set(false);
     this.formError.set('');
     this.notice.set('');
     await this.fetchDeployments();

@@ -94,6 +94,37 @@ describe('ServiceCatalogCurationComponent (per-domain offered catalog)', () => {
     expect(serviceCatalog.offer).not.toHaveBeenCalled();
   });
 
+  it('does NOT flag the service key as invalid merely from loading a domain', async () => {
+    // Regression: loadDomain used to set the shared `touched` flag (needed for the
+    // domain field), which prematurely rendered "A service key is required" on the
+    // still-empty offer field on every catalog load. The offer form now tracks its
+    // own keyTouched, so loading a domain must leave the key field un-flagged.
+    await loadDomain('acme.test');
+    expect(component.serviceKeyInvalid()).toBeFalse();
+    const key = el().querySelector('#service-catalog-curation-key');
+    expect(key?.getAttribute('aria-invalid')).toBeNull();
+    expect(el().textContent).not.toContain('A service key is required');
+  });
+
+  it('DOES flag the service key required once an empty offer is submitted', async () => {
+    await loadDomain('acme.test');
+    component.serviceKey.set('');
+    await component.offer();
+    fixture.detectChanges();
+    expect(component.serviceKeyInvalid()).toBeTrue();
+    expect(el().textContent).toContain('A service key is required');
+  });
+
+  it('clears the service-key flag again after a SUCCESSFUL offer (field is reset)', async () => {
+    await loadDomain('acme.test');
+    component.serviceKey.set('owncast');
+    await component.offer();
+    fixture.detectChanges();
+    // The field is cleared for the next offer; it must not be flagged invalid.
+    expect(component.serviceKeyInvalid()).toBeFalse();
+    expect(el().textContent).not.toContain('A service key is required');
+  });
+
   it('surfaces a 403 from offer as a clear action error', async () => {
     await loadDomain('acme.test');
     component.serviceKey.set('owncast');

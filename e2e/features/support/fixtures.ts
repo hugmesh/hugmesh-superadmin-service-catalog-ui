@@ -44,12 +44,14 @@ let stepCounter = 0;
 // offline / in CI, so we SKIP `@cluster` scenarios at runtime unless
 // `E2E_CLUSTER=1` is exported (the cluster-e2e job sets it).
 //
-// This is the runtime equivalent of an `@skip` tag, chosen deliberately over the
-// feature/scenario `@skip` special tag: in playwright-bdd 8.5.x an `@skip` tag
-// EXCLUDES the scenario from bddgen generation entirely, so it would vanish from
-// `playwright test --list`. A runtime skip keeps every scenario DISCOVERABLE by
-// `--list` (the offline contract this harness validates) while never executing
-// it on a bare runner.
+// Chosen deliberately over the feature/scenario `@skip` special tag: playwright-bdd
+// turns `@skip` into an UNCONDITIONAL `test.skip()` on the generated spec
+// (dist/generate/specialTags.js), so the suite could never run even with the stack
+// up. This hook is CONDITIONAL — it skips only while E2E_CLUSTER is unset, and the
+// same scenarios execute for real once it is set. Either way every scenario stays
+// generated and DISCOVERABLE by `playwright test --list` (the offline contract this
+// harness validates); only a config-level `tags:` filter would drop them from
+// generation, which is why playwright.config.ts sets none.
 const CLUSTER_AVAILABLE = process.env.E2E_CLUSTER === '1';
 
 Before({ tags: '@cluster' }, async () => {
