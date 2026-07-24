@@ -11,6 +11,7 @@ import { RequestBuilder } from '../../request-builder';
 export interface AdminSshKeyIssuanceIssue$Params {
   deviceId: string;
   'X-SshKeyIssue-StepUp'?: string;
+  Authorization?: string;
 }
 
 export function adminSshKeyIssuanceIssue(http: HttpClient, rootUrl: string, params: AdminSshKeyIssuanceIssue$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -21,6 +22,7 @@ export function adminSshKeyIssuanceIssue(http: HttpClient, rootUrl: string, para
   if (params) {
     rb.query('deviceId', params.deviceId, {});
     rb.header('X-SshKeyIssue-StepUp', params['X-SshKeyIssue-StepUp'], {});
+    rb.header('Authorization', params.Authorization, {});
   }
 
   return http.request(

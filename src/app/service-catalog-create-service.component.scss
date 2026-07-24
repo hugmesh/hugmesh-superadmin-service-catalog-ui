@@ -1,0 +1,243 @@
+@use 'controls';
+
+:host {
+  display: grid;
+  gap: 1rem;
+}
+
+// ── step rail (visual only; the role=status progress line carries the a11y text) ──
+.service-catalog-progress {
+  color: var(--service-catalog-text);
+  font-weight: 600;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.service-catalog-step-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  counter-reset: service-catalog-step;
+
+  li {
+    counter-increment: service-catalog-step;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--service-catalog-border);
+    color: var(--service-catalog-text-muted);
+    font-size: 0.82rem;
+
+    &::before {
+      content: counter(service-catalog-step) '. ';
+    }
+
+    &.active {
+      border-color: var(--service-catalog-accent);
+      color: var(--service-catalog-text);
+    }
+
+    &.done {
+      color: var(--service-catalog-success);
+      border-color: var(--service-catalog-success);
+    }
+  }
+}
+
+// ── archetype cards ──
+.service-catalog-archetypes {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.service-catalog-archetype-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.6rem;
+  align-items: start;
+  border: 1px solid var(--service-catalog-border);
+  border-radius: var(--service-catalog-radius);
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+
+  > input[type='radio'] {
+    grid-row: 1 / span 2;
+    margin-top: 0.2rem;
+  }
+
+  &--selected {
+    border-color: var(--service-catalog-accent);
+  }
+
+  &__head {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__title {
+    font-weight: 700;
+  }
+}
+
+// ── source radio group (shared visual with the add-service view) ──
+.service-catalog-sources {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid var(--service-catalog-border);
+  border-radius: var(--service-catalog-radius);
+  padding: 0.75rem 1rem 1rem;
+
+  > legend {
+    font-weight: 700;
+    padding: 0 0.35rem;
+  }
+}
+
+.service-catalog-source-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.6rem;
+  align-items: start;
+
+  > input[type='radio'] {
+    grid-row: 1 / span 2;
+    margin-top: 0.2rem;
+  }
+
+  &__label {
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &--disabled {
+    opacity: 0.55;
+  }
+}
+
+.service-catalog-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--service-catalog-radius);
+  border: 1px solid var(--service-catalog-warning);
+  color: var(--service-catalog-warning);
+
+  &--kind {
+    border-color: var(--service-catalog-border);
+    color: var(--service-catalog-text-muted);
+  }
+}
+
+.service-catalog-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.5rem 0 1rem;
+  font-weight: 600;
+
+  > input[type='checkbox'] {
+    margin-top: 0.2rem;
+  }
+}
+
+// ── review + step-up + apply chain ──
+.service-catalog-review {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0.5rem 0 1rem;
+
+  dt {
+    font-weight: 700;
+    color: var(--service-catalog-text-muted);
+  }
+
+  dd {
+    margin: 0;
+    word-break: break-word;
+  }
+}
+
+.service-catalog-stepup {
+  border: 1px solid var(--service-catalog-warning);
+  border-radius: var(--service-catalog-radius);
+  padding: 0.75rem 1rem 1rem;
+  margin: 0.5rem 0 1rem;
+
+  > h4 {
+    margin: 0 0 0.35rem;
+  }
+}
+
+.service-catalog-actions,
+.service-catalog-wizard-nav {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.service-catalog-apply {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+
+  &__step {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.15rem 0.75rem;
+    align-items: baseline;
+    border: 1px solid var(--service-catalog-border);
+    border-left-width: 3px;
+    border-radius: var(--service-catalog-radius);
+    padding: 0.5rem 0.75rem;
+
+    &--running {
+      border-left-color: var(--service-catalog-accent);
+    }
+    &--done {
+      border-left-color: var(--service-catalog-success);
+    }
+    &--error {
+      border-left-color: var(--service-catalog-error);
+    }
+    &--skipped {
+      opacity: 0.6;
+    }
+  }
+
+  &__label {
+    font-weight: 600;
+  }
+
+  &__badge {
+    justify-self: end;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--service-catalog-text-muted);
+  }
+
+  &__detail {
+    grid-column: 1 / -1;
+    color: var(--service-catalog-text-muted);
+    font-size: 0.9rem;
+  }
+
+  &__archive {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-top: 0.35rem;
+  }
+}

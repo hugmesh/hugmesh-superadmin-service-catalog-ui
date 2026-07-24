@@ -1,0 +1,589 @@
+<section class="service-catalog-panel" aria-labelledby="service-catalog-create-title">
+  <h2 id="service-catalog-create-title">Create a service</h2>
+  <p class="service-catalog-muted">
+    Stand up a brand-new service from scratch: pick an identity and a starter archetype, choose a
+    source, optionally federate its UI, then apply the chain. Each step runs against the real
+    admin-bff wizard and surfaces its own result — nothing is faked.
+  </p>
+  <p class="service-catalog-warning" role="note" data-testid="service-catalog-create-dark-intro">
+    Ships dark: the provision effector and the federation registration both ship dark by default
+    (no real ArgoCD apply, no real manifest registration) — the wizard records the intent and
+    reports each leg honestly. Scaffolding and federating each require a fresh step-up.
+  </p>
+
+  <p class="service-catalog-progress" role="status" aria-live="polite" data-testid="service-catalog-create-progress">
+    Step {{ stepIndex() + 1 }} of {{ steps.length }}: {{ steps[stepIndex()].title }}
+  </p>
+  <ol class="service-catalog-step-rail" data-testid="service-catalog-create-step-rail" aria-hidden="true">
+    @for (s of steps; track s.id; let i = $index) {
+      <li [class.active]="i === stepIndex()" [class.done]="i < stepIndex()">{{ s.title }}</li>
+    }
+  </ol>
+</section>
+
+<!-- ── STEP: Identity ──────────────────────────────────────────────────────── -->
+@if (currentStep() === 'identity') {
+  <section class="service-catalog-panel" aria-labelledby="service-catalog-create-identity-title" data-testid="service-catalog-create-step-identity">
+    <h3 id="service-catalog-create-identity-title">Identity</h3>
+
+    <div class="service-catalog-field">
+      <label for="service-catalog-create-domain">Domain</label>
+      <input
+        id="service-catalog-create-domain"
+        name="domain"
+        type="text"
+        autocomplete="off"
+        [ngModel]="domain()"
+        (ngModelChange)="domain.set($event)"
+        aria-describedby="service-catalog-create-domain-help"
+        placeholder="acme.test"
+      />
+      <span id="service-catalog-create-domain-help" class="service-catalog-field__help">
+        The brand/domain the new service belongs to. It is the explicit path target on every call.
+      </span>
+    </div>
+
+    <div class="service-catalog-field">
+      <label for="service-catalog-create-servicekey">Service key</label>
+      <input
+        id="service-catalog-create-servicekey"
+        name="serviceKey"
+        type="text"
+        autocomplete="off"
+        maxlength="128"
+        [ngModel]="serviceKey()"
+        (ngModelChange)="serviceKey.set($event)"
+        aria-describedby="service-catalog-create-servicekey-help"
+        placeholder="owncast"
+      />
+      <span id="service-catalog-create-servicekey-help" class="service-catalog-field__help">
+        The service identity (1–128 chars). It derives the code slug “{{ derivedSlug() }}”.
+      </span>
+    </div>
+
+    <div class="service-catalog-field">
+      <label for="service-catalog-create-displayname">Display name (optional)</label>
+      <input
+        id="service-catalog-create-displayname"
+        name="displayName"
+        type="text"
+        autocomplete="off"
+        maxlength="128"
+        [ngModel]="displayName()"
+        (ngModelChange)="displayName.set($event)"
+        aria-describedby="service-catalog-create-displayname-help"
+        placeholder="Owncast"
+      />
+      <span id="service-catalog-create-displayname-help" class="service-catalog-field__help">
+        A human-friendly title rendered into the starter codebase. Defaults to the service key.
+      </span>
+    </div>
+
+    <div class="service-catalog-field">
+      <label for="service-catalog-create-profileref">App profile (optional)</label>
+      <select
+        id="service-catalog-create-profileref"
+        name="profileRef"
+        [ngModel]="profileRef()"
+        (ngModelChange)="profileRef.set($event)"
+        aria-describedby="service-catalog-create-profileref-help"
+      >
+        <option value="">No profile (effector defaults)</option>
+        @for (p of profiles(); track trackProfile($index, p)) {
+          <option [value]="p.name">{{ p.name }}</option>
+        }
+      </select>
+      <span id="service-catalog-create-profileref-help" class="service-catalog-field__help">
+        A reusable deploy template from the app-profile library. Blank uses the effector defaults.
+      </span>
+    </div>
+  </section>
+}
+
+<!-- ── STEP: Archetype ─────────────────────────────────────────────────────── -->
+@if (currentStep() === 'archetype') {
+  <section class="service-catalog-panel" aria-labelledby="service-catalog-create-archetype-title" data-testid="service-catalog-create-step-archetype">
+    <h3 id="service-catalog-create-archetype-title">Starter archetype</h3>
+    <p class="service-catalog-field__help">
+      Pick the example codebase the scaffold renders. Each is a runnable starter, not an empty stub.
+    </p>
+
+    @if (archetypesError()) {
+      <p class="service-catalog-error" role="alert" data-testid="service-catalog-create-archetype-error">{{ archetypesError() }}</p>
+      <button type="button" class="service-catalog-btn service-catalog-btn--secondary" (click)="reloadArchetypes()">Retry</button>
+    } @else if (archetypes().length === 0) {
+      <p class="service-catalog-muted" role="status" data-testid="service-catalog-create-archetype-loading">Loading archetypes…</p>
+    } @else {
+      <ul class="service-catalog-archetypes" data-testid="service-catalog-create-archetypes">
+        @for (a of archetypes(); track trackArchetype($index, a)) {
+          <li>
+            <label
+              class="service-catalog-archetype-card"
+              [class.service-catalog-archetype-card--selected]="selectedArchetype() === a.name"
+              [attr.data-testid]="'service-catalog-create-archetype-' + a.name"
+            >
+              <input
+                type="radio"
+                name="archetype"
+                [value]="a.name"
+                [checked]="selectedArchetype() === a.name"
+                [attr.aria-describedby]="'service-catalog-create-archetype-desc-' + a.name"
+                (change)="selectArchetype(a.name)"
+              />
+              <span class="service-catalog-archetype-card__head">
+                <span class="service-catalog-archetype-card__title">{{ a.displayName }}</span>
+                <span class="service-catalog-badge service-catalog-badge--kind">{{ a.kind }}</span>
+              </span>
+              <span [id]="'service-catalog-create-archetype-desc-' + a.name" class="service-catalog-field__help">{{ a.description }}</span>
+            </label>
+          </li>
+        }
+      </ul>
+
+      @if (slugArchetypeInvalid()) {
+        <p class="service-catalog-error" role="alert" data-testid="service-catalog-create-archetype-slug-error">
+          The “{{ selectedArchetype() }}” archetype relocates a Java package, so the service key must
+          yield a package-safe slug (^[a-z0-9]+$). “{{ serviceKey().trim() }}” yields
+          “{{ derivedSlug() }}”. Choose a service key with no hyphens or symbols, or a different archetype.
+        </p>
+      }
+    }
+  </section>
+}
+
+<!-- ── STEP: Source ────────────────────────────────────────────────────────── -->
+@if (currentStep() === 'source') {
+  <section class="service-catalog-panel" aria-labelledby="service-catalog-create-source-title" data-testid="service-catalog-create-step-source">
+    <h3 id="service-catalog-create-source-title">Source</h3>
+    <fieldset class="service-catalog-sources">
+      <legend>Source</legend>
+      <p id="service-catalog-create-source-help" class="service-catalog-field__help">
+        Where the service image comes from. Two sources need the in-cluster image builder.
+      </p>
+      @if (builderStatus(); as bs) {
+        @if (!builderIsReady()) {
+          <p class="service-catalog-muted" role="status" data-testid="service-catalog-create-builder-status">
+            @if (!bs.enabled) {
+              The in-cluster image builder is not enabled on this deployment, so Dockerfile and Zip
+              sources stay disabled.
+            } @else if (!bs.buildNodePresent) {
+              The image builder is enabled but no x86 build node was found in this cluster, so
+              Dockerfile and Zip sources stay disabled.
+            }
+          </p>
+        } @else {
+          <p class="service-catalog-muted" role="status" data-testid="service-catalog-create-builder-status">
+            The in-cluster image builder is available — Dockerfile and Zip sources can be provisioned.
+          </p>
+        }
+      }
+      @for (opt of sourceOptions(); track trackKind($index, opt)) {
+        <label
+          class="service-catalog-source-option"
+          [class.service-catalog-source-option--disabled]="opt.builderGated"
+          [attr.data-testid]="'service-catalog-create-source-' + opt.kind"
+        >
+          <input
+            type="radio"
+            name="sourceKind"
+            [value]="opt.kind"
+            [checked]="sourceKind() === opt.kind"
+            [disabled]="opt.builderGated"
+            [attr.aria-describedby]="'service-catalog-create-source-blurb-' + opt.kind"
+            (change)="chooseSource(opt.kind)"
+          />
+          <span class="service-catalog-source-option__label">
+            {{ opt.label }}
+            @if (opt.builderGated) {
+              <span class="service-catalog-badge" data-testid="service-catalog-create-source-gated-badge">needs builder</span>
+            }
+          </span>
+          <span [id]="'service-catalog-create-source-blurb-' + opt.kind" class="service-catalog-field__help">{{ opt.blurb }}</span>
+        </label>
+      }
+    </fieldset>
+
+    <div class="service-catalog-field">
+      <label for="service-catalog-create-repo">Repository URL</label>
+      <input
+        id="service-catalog-create-repo"
+        name="repoUrl"
+        type="text"
+        autocomplete="off"
+        [ngModel]="repoUrl()"
+        (ngModelChange)="repoUrl.set($event)"
+        [attr.aria-invalid]="repoUrl().trim().length === 0 ? 'true' : null"
+        aria-describedby="service-catalog-create-repo-help"
+        placeholder="https://gitlab.acme.test/services/owncast.git"
+      />
+      <span id="service-catalog-create-repo-help" class="service-catalog-field__help">
+        The descriptor / GitOps repo ArgoCD watches (required).
+      </span>
+    </div>
+
+    <div class="service-catalog-field">
+      <label for="service-catalog-create-path">Path in repo (optional)</label>
+      <input
+        id="service-catalog-create-path"
+        name="path"
+        type="text"
+        autocomplete="off"
+        [ngModel]="path()"
+        (ngModelChange)="path.set($event)"
+        aria-describedby="service-catalog-create-path-help"
+        placeholder="deploy/"
+      />
+      <span id="service-catalog-create-path-help" class="service-catalog-field__help">
+        The path within the repo ArgoCD syncs. Leave blank for the repo root.
+      </span>
+    </div>
+
+    <div class="service-catalog-field">
+      <label for="service-catalog-create-rev">Target revision (optional)</label>
+      <input
+        id="service-catalog-create-rev"
+        name="targetRevision"
+        type="text"
+        autocomplete="off"
+        [ngModel]="targetRevision()"
+        (ngModelChange)="targetRevision.set($event)"
+        aria-describedby="service-catalog-create-rev-help"
+        placeholder="main"
+      />
+      <span id="service-catalog-create-rev-help" class="service-catalog-field__help">
+        The branch, tag or commit. Leave blank for HEAD.
+      </span>
+    </div>
+
+    @if (sourceBuilderGated()) {
+      <p class="service-catalog-warning" role="status" data-testid="service-catalog-create-source-gated-notice">
+        This source needs the in-cluster image builder (Kaniko), which is not available yet. Choose
+        a catalog or git source to provision now.
+      </p>
+    }
+  </section>
+}
+
+<!-- ── STEP: Federation ────────────────────────────────────────────────────── -->
+@if (currentStep() === 'federation') {
+  <section class="service-catalog-panel" aria-labelledby="service-catalog-create-federation-title" data-testid="service-catalog-create-step-federation">
+    <h3 id="service-catalog-create-federation-title">Federation</h3>
+
+    @if (federationStatus(); as fs) {
+      @if (!fs.enabled) {
+        <p class="service-catalog-warning" role="note" data-testid="service-catalog-create-federation-dark">
+          Federation registration ships dark on this deployment
+          (app.appstore.federation.enabled=false) — a federate call records the intent but makes no
+          real manifest registration yet.
+        </p>
+      } @else {
+        <p class="service-catalog-muted" role="status" data-testid="service-catalog-create-federation-live">
+          Federation registration is live — federating registers a real module in the manifest.
+        </p>
+      }
+    }
+
+    <label class="service-catalog-check">
+      <input
+        type="checkbox"
+        name="federate"
+        [ngModel]="federate()"
+        (ngModelChange)="federate.set($event)"
+        data-testid="service-catalog-create-federate-toggle"
+      />
+      Register this service’s UI into the federation manifest (federate)
+    </label>
+
+    @if (federate()) {
+      <div class="service-catalog-field">
+        <label for="service-catalog-create-slug">Module slug</label>
+        <input
+          id="service-catalog-create-slug"
+          name="slug"
+          type="text"
+          autocomplete="off"
+          [ngModel]="slug()"
+          (ngModelChange)="slug.set($event)"
+          [attr.aria-invalid]="slugInvalid() ? 'true' : null"
+          aria-describedby="service-catalog-create-slug-help"
+          placeholder="owncast"
+        />
+        <span id="service-catalog-create-slug-help" class="service-catalog-field__help">
+          The federation module slug (^[a-z0-9-]{{ '{' }}1,64{{ '}' }}$). Defaults to the service slug.
+        </span>
+        @if (slugInvalid()) {
+          <span class="service-catalog-error" role="alert">A slug must match ^[a-z0-9-]{{ '{' }}1,64{{ '}' }}$.</span>
+        }
+      </div>
+
+      <div class="service-catalog-field">
+        <label for="service-catalog-create-mount">Mount path</label>
+        <input
+          id="service-catalog-create-mount"
+          name="mountAt"
+          type="text"
+          autocomplete="off"
+          [ngModel]="mountAt()"
+          (ngModelChange)="mountAt.set($event)"
+          [attr.aria-invalid]="mountAtInvalid() ? 'true' : null"
+          aria-describedby="service-catalog-create-mount-help"
+          placeholder="/owncast"
+        />
+        <span id="service-catalog-create-mount-help" class="service-catalog-field__help">
+          Where the host shell mounts the remote (^/[A-Za-z0-9/_-]*$). Also recorded on the scaffold.
+        </span>
+        @if (mountAtInvalid()) {
+          <span class="service-catalog-error" role="alert">A mount path must match ^/[A-Za-z0-9/_-]*$.</span>
+        }
+      </div>
+
+      <div class="service-catalog-field">
+        <label for="service-catalog-create-exposed">Exposed module</label>
+        <input
+          id="service-catalog-create-exposed"
+          name="exposedModule"
+          type="text"
+          autocomplete="off"
+          [ngModel]="exposedModule()"
+          (ngModelChange)="exposedModule.set($event)"
+          [attr.aria-invalid]="exposedModuleInvalid() ? 'true' : null"
+          aria-describedby="service-catalog-create-exposed-help"
+          placeholder="./routes"
+        />
+        <span id="service-catalog-create-exposed-help" class="service-catalog-field__help">
+          The native-federation exposed key the host mounts (e.g. ./routes).
+        </span>
+      </div>
+
+      <div class="service-catalog-field">
+        <label for="service-catalog-create-remoteentry">Remote-entry URL</label>
+        <input
+          id="service-catalog-create-remoteentry"
+          name="remoteEntryUrl"
+          type="text"
+          autocomplete="off"
+          [ngModel]="remoteEntryUrl()"
+          (ngModelChange)="remoteEntryUrl.set($event)"
+          [attr.aria-invalid]="remoteEntryInvalid() ? 'true' : null"
+          aria-describedby="service-catalog-create-remoteentry-help"
+          placeholder="http://hugmesh-owncast:8080/remoteEntry.json"
+        />
+        <span id="service-catalog-create-remoteentry-help" class="service-catalog-field__help">
+          The built remote’s remoteEntry.json URL (http(s), required).
+        </span>
+      </div>
+
+      <div class="service-catalog-field">
+        <label for="service-catalog-create-kind">Module kind</label>
+        <select
+          id="service-catalog-create-kind"
+          name="federationKind"
+          [ngModel]="federationKind()"
+          (ngModelChange)="federationKind.set($event)"
+          aria-describedby="service-catalog-create-kind-help"
+        >
+          <option value="remote-shell">remote-shell</option>
+          <option value="fragment">fragment</option>
+        </select>
+        <span id="service-catalog-create-kind-help" class="service-catalog-field__help">
+          remote-shell (a routed micro-frontend) or fragment (an embedded profile fragment).
+        </span>
+      </div>
+
+      <div class="service-catalog-field">
+        <label for="service-catalog-create-visibility">Visibility</label>
+        <select
+          id="service-catalog-create-visibility"
+          name="visibility"
+          [ngModel]="visibility()"
+          (ngModelChange)="visibility.set($event)"
+          aria-describedby="service-catalog-create-visibility-help"
+        >
+          <option value="internal">internal</option>
+          <option value="public">public</option>
+        </select>
+        <span id="service-catalog-create-visibility-help" class="service-catalog-field__help">
+          internal (manifest-visible to the mesh) or public. Defaults to internal.
+        </span>
+      </div>
+
+      <div class="service-catalog-field">
+        <label for="service-catalog-create-role">Requires role (optional)</label>
+        <input
+          id="service-catalog-create-role"
+          name="requiresRole"
+          type="text"
+          autocomplete="off"
+          maxlength="32"
+          [ngModel]="requiresRole()"
+          (ngModelChange)="requiresRole.set($event)"
+          aria-describedby="service-catalog-create-role-help"
+          placeholder="superadmin"
+        />
+        <span id="service-catalog-create-role-help" class="service-catalog-field__help">
+          The route-access role the host gates the mount behind. Also recorded on the scaffold.
+        </span>
+      </div>
+    } @else {
+      <p class="service-catalog-muted" role="status" data-testid="service-catalog-create-federate-off">
+        Federation is off — the apply chain will scaffold and provision the service without
+        registering a UI module. Turn it on above to federate.
+      </p>
+    }
+  </section>
+}
+
+<!-- ── STEP: Review & apply ────────────────────────────────────────────────── -->
+@if (currentStep() === 'review') {
+  <section class="service-catalog-panel" aria-labelledby="service-catalog-create-review-title" data-testid="service-catalog-create-step-review">
+    <h3 id="service-catalog-create-review-title">Review &amp; apply</h3>
+
+    <dl class="service-catalog-review" data-testid="service-catalog-create-review">
+      <dt>Domain</dt><dd>{{ domain().trim() }}</dd>
+      <dt>Service key</dt><dd>{{ serviceKey().trim() }}</dd>
+      <dt>Display name</dt><dd>{{ displayName().trim() || '(service key)' }}</dd>
+      <dt>App profile</dt><dd>{{ profileRef().trim() || '(effector defaults)' }}</dd>
+      <dt>Archetype</dt><dd>{{ selectedArchetype() }}</dd>
+      <dt>Source</dt><dd>{{ sourceKind() }} — {{ repoUrl().trim() }}</dd>
+      <dt>Federation</dt>
+      <dd>
+        @if (federate()) {
+          {{ federationKind() }} · {{ visibility() }} · mount {{ mountAt().trim() }} · slug {{ slug().trim() }}
+        } @else {
+          skipped
+        }
+      </dd>
+    </dl>
+
+    <label class="service-catalog-check">
+      <input
+        type="checkbox"
+        name="offerService"
+        [ngModel]="offerService()"
+        (ngModelChange)="offerService.set($event)"
+        data-testid="service-catalog-create-offer-toggle"
+      />
+      Also offer this service into {{ domain().trim() || 'the domain' }}’s catalog first
+    </label>
+
+    @if (stepUpChallenge(); as challenge) {
+      <div class="service-catalog-stepup" role="group" aria-labelledby="service-catalog-create-stepup-title" data-testid="service-catalog-create-stepup">
+        <h4 id="service-catalog-create-stepup-title">Step-up required</h4>
+        <p class="service-catalog-field__help">
+          “{{ challenge.action }}” needs a fresh step-up confirmation. Paste a valid step-up token
+          (sent as X-ServiceStore-StepUp) to continue the chain from where it paused. The token is
+          never stored.
+        </p>
+        <div class="service-catalog-field">
+          <label for="service-catalog-create-stepup-token">Step-up token</label>
+          <input
+            id="service-catalog-create-stepup-token"
+            name="stepUpToken"
+            type="password"
+            autocomplete="off"
+            [ngModel]="stepUpTokenInput()"
+            (ngModelChange)="stepUpTokenInput.set($event)"
+          />
+        </div>
+        <div class="service-catalog-actions">
+          <button
+            type="button"
+            class="service-catalog-btn"
+            [disabled]="stepUpTokenInput().trim().length === 0"
+            (click)="submitStepUp()"
+            data-testid="service-catalog-create-stepup-submit"
+          >Confirm and retry</button>
+          <button
+            type="button"
+            class="service-catalog-btn service-catalog-btn--secondary"
+            (click)="cancelStepUp()"
+            data-testid="service-catalog-create-stepup-cancel"
+          >Cancel</button>
+        </div>
+      </div>
+    }
+
+    @if (error()) {
+      <p class="service-catalog-error" role="alert" data-testid="service-catalog-create-error">{{ error() }}</p>
+    }
+
+    <button
+      type="button"
+      class="service-catalog-btn"
+      [disabled]="!canApply() || stepUpChallenge() !== null"
+      (click)="apply()"
+      data-testid="service-catalog-create-apply"
+    >{{ applying() ? 'Applying…' : (applyStarted() ? 'Re-run the chain' : 'Create the service') }}</button>
+
+    @if (applyStarted()) {
+      <ol class="service-catalog-apply" data-testid="service-catalog-create-apply-steps">
+        @for (step of applySteps(); track trackApplyStep($index, step)) {
+          <li
+            class="service-catalog-apply__step"
+            [class]="'service-catalog-apply__step--' + step.status"
+            [attr.data-testid]="'service-catalog-create-apply-' + step.id"
+            [attr.data-status]="step.status"
+          >
+            <span class="service-catalog-apply__label">{{ step.label }}</span>
+            <span class="service-catalog-apply__badge" [attr.data-testid]="'service-catalog-create-apply-' + step.id + '-status'">{{ step.status }}</span>
+            @if (step.detail) {
+              <span class="service-catalog-apply__detail">{{ step.detail }}</span>
+            }
+            @if (step.id === 'scaffold' && createdScaffold()) {
+              <a
+                class="service-catalog-btn service-catalog-btn--secondary service-catalog-apply__archive"
+                [href]="archiveUrl()"
+                [attr.download]="createdScaffold()!.id + '-scaffold.zip'"
+                data-testid="service-catalog-create-archive-link"
+              >Download starter codebase (zip)</a>
+            }
+          </li>
+        }
+      </ol>
+    }
+
+    @if (federateOutcome(); as fo) {
+      @if (!fo.federationReal || fo.gitopsDescriptorPending) {
+        <p class="service-catalog-warning" role="status" data-testid="service-catalog-create-dark-note">
+          @if (!fo.federationReal) {
+            Federation registration shipped dark (app.appstore.federation.enabled=false) — the intent
+            was recorded but no real manifest registration was made.
+          }
+          @if (fo.gitopsDescriptorPending) {
+            The GitOps descriptor automation does not exist yet, so the descriptor stays pending — a
+            human still has to land the descriptor for ArgoCD to pick it up.
+          }
+        </p>
+      }
+    }
+
+    @if (applyDone()) {
+      <p class="service-catalog-success" role="status" data-testid="service-catalog-create-done">
+        The chain finished. Review each step’s result above; the starter codebase is downloadable
+        and any dark/pending legs are called out.
+      </p>
+    }
+  </section>
+}
+
+<!-- ── step navigation ─────────────────────────────────────────────────────── -->
+@if (currentStep() !== 'review' && error()) {
+  <p class="service-catalog-error" role="alert" data-testid="service-catalog-create-nav-error">{{ error() }}</p>
+}
+<nav class="service-catalog-wizard-nav" aria-label="Wizard steps">
+  <button
+    type="button"
+    class="service-catalog-btn service-catalog-btn--secondary"
+    [disabled]="stepIndex() === 0 || applying()"
+    (click)="back()"
+    data-testid="service-catalog-create-back"
+  >Back</button>
+  @if (!isLastStep()) {
+    <button
+      type="button"
+      class="service-catalog-btn"
+      (click)="next()"
+      data-testid="service-catalog-create-next"
+    >Next</button>
+  }
+</nav>

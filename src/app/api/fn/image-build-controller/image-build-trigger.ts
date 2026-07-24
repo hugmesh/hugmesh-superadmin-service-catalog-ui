@@ -11,6 +11,7 @@ import { TriggerImageBuildRequest } from '../../models/trigger-image-build-reque
 
 export interface ImageBuildTrigger$Params {
   'X-ImageGen-StepUp'?: string;
+  Authorization?: string;
       body: TriggerImageBuildRequest
 }
 
@@ -21,6 +22,7 @@ export function imageBuildTrigger(http: HttpClient, rootUrl: string, params: Ima
   const rb = new RequestBuilder(rootUrl, imageBuildTrigger.PATH, 'post');
   if (params) {
     rb.header('X-ImageGen-StepUp', params['X-ImageGen-StepUp'], {});
+    rb.header('Authorization', params.Authorization, {});
     rb.body(params.body, 'application/json');
   }
 

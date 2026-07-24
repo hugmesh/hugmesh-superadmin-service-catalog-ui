@@ -5,6 +5,7 @@ export interface RouteRuleRequest {
   allow?: boolean;
   casdoor_user?: string;
   gateway: string;
+  mfa_required?: boolean;
   role: string;
   url_pattern: string;
 }

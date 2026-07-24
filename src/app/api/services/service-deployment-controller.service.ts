@@ -9,6 +9,7 @@ import { BaseService } from '../base-service';
 import { ApiConfiguration } from '../api-configuration';
 import { StrictHttpResponse } from '../strict-http-response';
 
+import { ProvisionOutcome } from '../models/provision-outcome';
 import { ServiceDeployment } from '../models/service-deployment';
 import { serviceDeploymentCreate } from '../fn/service-deployment-controller/service-deployment-create';
 import { ServiceDeploymentCreate$Params } from '../fn/service-deployment-controller/service-deployment-create';
@@ -104,7 +105,7 @@ export class ServiceDeploymentControllerService extends BaseService {
    *
    * This method sends `application/json` and handles request body of type `application/json`.
    */
-  serviceDeploymentProvision$Response(params: ServiceDeploymentProvision$Params, context?: HttpContext): Promise<StrictHttpResponse<ServiceDeployment>> {
+  serviceDeploymentProvision$Response(params: ServiceDeploymentProvision$Params, context?: HttpContext): Promise<StrictHttpResponse<ProvisionOutcome>> {
     const obs = serviceDeploymentProvision(this.http, this.rootUrl, params, context);
     return firstValueFrom(obs);
   }
@@ -119,9 +120,9 @@ export class ServiceDeploymentControllerService extends BaseService {
    *
    * This method sends `application/json` and handles request body of type `application/json`.
    */
-  serviceDeploymentProvision(params: ServiceDeploymentProvision$Params, context?: HttpContext): Promise<ServiceDeployment> {
+  serviceDeploymentProvision(params: ServiceDeploymentProvision$Params, context?: HttpContext): Promise<ProvisionOutcome> {
     const resp = this.serviceDeploymentProvision$Response(params, context);
-    return resp.then((r: StrictHttpResponse<ServiceDeployment>): ServiceDeployment => r.body);
+    return resp.then((r: StrictHttpResponse<ProvisionOutcome>): ProvisionOutcome => r.body);
   }
 
   /** Path part for operation `serviceDeploymentEnd()` */

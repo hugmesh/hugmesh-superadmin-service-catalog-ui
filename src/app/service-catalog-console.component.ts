@@ -17,14 +17,15 @@ interface ServiceCatalogNavItem {
  * WAI-ARIA APG) over the SUPERADMIN-gated child views, plus the swappable content
  * outlet.
  *
- * The WHOLE console is SUPERADMIN (the infra control plane): all four nav items
- * are shown only to canManageStore (SUPERADMIN). A non-superadmin who reaches the
+ * The WHOLE console is SUPERADMIN (the infra control plane): all nav items are
+ * shown only to canManageStore (SUPERADMIN). A non-superadmin who reaches the
  * bundle sees an EMPTY menubar and the default route's superadminGuard sends them
  * to /service-catalog/forbidden.
- *   Add a service (add)         — provision a deployment via one of the 4 sources (effector PR #67).
- *   Curation     (curation)    — per-domain offered catalog (offer/withdraw a service_key).
- *   App profiles (profiles)    — app_profile deploy-template CRUD.
- *   Deployments  (deployments) — service_deployment lifecycle accounting.
+ *   Add a service   (add)         — provision a deployment via one of the 4 sources (effector PR #67).
+ *   Create service  (create)      — scaffold-and-federate a brand-new service (the create wizard).
+ *   Curation        (curation)    — per-domain offered catalog (offer/withdraw a service_key).
+ *   App profiles    (profiles)    — app_profile deploy-template CRUD.
+ *   Deployments     (deployments) — service_deployment lifecycle accounting.
  *
  * a11y: <nav role="menubar"> with roving tabindex + Arrow/Home/End keyboard
  * navigation; routerLinkActive marks the current view aria-current="page"; every
@@ -51,6 +52,13 @@ export class ServiceCatalogConsoleComponent {
       label: 'Add a service',
       aria: 'Add a service — provision a deployment from one of the four sources',
       help: 'Provision a recorded deployment into a real service from a catalog tile, a git/GitLab repo, a Dockerfile or a zip upload. Dockerfile and zip need the in-cluster builder and stay disabled until a live pre-flight confirms one is available. Requires the superadmin role.',
+      show: () => this.session.canManageStore(),
+    },
+    {
+      path: 'create',
+      label: 'Create service',
+      aria: 'Create service — scaffold and federate a brand-new service',
+      help: 'Stand up a brand-new service end to end: pick an identity and a starter archetype, choose a source, optionally federate its UI, then apply the chain (offer, record, scaffold, provision, federate). Scaffolding and federating each require a fresh step-up. Requires the superadmin role.',
       show: () => this.session.canManageStore(),
     },
     {

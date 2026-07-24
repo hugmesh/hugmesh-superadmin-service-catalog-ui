@@ -10,6 +10,7 @@ export interface ImageBuild {
   hardwareClass?: string;
   id?: string;
   imageRef?: string;
+  imageSpecJson?: string;
   imageType?: string;
   jobName?: string;
   keysRef?: string;

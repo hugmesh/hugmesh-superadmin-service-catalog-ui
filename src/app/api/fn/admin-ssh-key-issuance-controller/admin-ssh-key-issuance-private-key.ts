@@ -12,6 +12,7 @@ import { DataBuffer } from '../../models/data-buffer';
 export interface AdminSshKeyIssuancePrivateKey$Params {
   id: string;
   'X-SshKeyIssue-StepUp'?: string;
+  Authorization?: string;
 }
 
 export function adminSshKeyIssuancePrivateKey(http: HttpClient, rootUrl: string, params: AdminSshKeyIssuancePrivateKey$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<DataBuffer>>> {
@@ -19,6 +20,7 @@ export function adminSshKeyIssuancePrivateKey(http: HttpClient, rootUrl: string,
   if (params) {
     rb.path('id', params.id, {});
     rb.header('X-SshKeyIssue-StepUp', params['X-SshKeyIssue-StepUp'], {});
+    rb.header('Authorization', params.Authorization, {});
   }
 
   return http.request(

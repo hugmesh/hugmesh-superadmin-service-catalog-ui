@@ -340,4 +340,123 @@ describe('ServiceCatalogService (exact PR1 bff paths)', () => {
     expect((caught as ServiceCatalogApiError).isBadRequest).toBeTrue();
     expect((caught as ServiceCatalogApiError).message).toContain('Kaniko');
   });
+
+  // ── CREATE-AND-FEDERATE WIZARD (ServiceStoreWizardController) ────────────────
+
+  it('listArchetypes → GET /bff/superadmin/service-store/scaffold/archetypes', async () => {
+    const p = service.listArchetypes();
+    const req = httpMock.expectOne('/bff/superadmin/service-store/scaffold/archetypes');
+    expect(req.request.method).toBe('GET');
+    req.flush([
+      { name: 'spring-bff', displayName: 'Spring Boot BFF', description: 'd', kind: 'backend' },
+    ]);
+    const rows = await p;
+    expect(rows[0].name).toBe('spring-bff');
+    expect(rows[0].kind).toBe('backend');
+  });
+
+  it('createScaffold → POST /bff/superadmin/service-store/{domain}/scaffold with the body + X-ServiceStore-StepUp header', async () => {
+    const p = service.createScaffold(
+      'acme.test',
+      { serviceKey: 'owncast', displayName: 'Owncast', archetype: 'angular-mfe', mountAt: '/owncast', requiresRole: null },
+      'stepup-tok',
+    );
+    const req = httpMock.expectOne('/bff/superadmin/service-store/acme.test/scaffold');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      serviceKey: 'owncast', displayName: 'Owncast', archetype: 'angular-mfe', mountAt: '/owncast', requiresRole: null,
+    });
+    expect(req.request.headers.get('X-ServiceStore-StepUp')).withContext('step-up header carried').toBe('stepup-tok');
+    req.flush({ id: 'sca-1', domain: 'acme.test', serviceKey: 'owncast', archetype: 'angular-mfe',
+      displayName: 'Owncast', mountAt: '/owncast', requiresRole: null, state: 'requested',
+      createdBySubject: 'google:root', createdAt: 'T', updatedAt: 'T' }, { status: 201, statusText: 'Created' });
+    const row = await p;
+    expect(row.id).toBe('sca-1');
+    expect(row.state).toBe('requested');
+  });
+
+  it('createScaffold WITHOUT a token sends NO X-ServiceStore-StepUp header', async () => {
+    const p = service.createScaffold('acme.test', { serviceKey: 'owncast', archetype: 'angular-mfe' });
+    const req = httpMock.expectOne('/bff/superadmin/service-store/acme.test/scaffold');
+    expect(req.request.headers.has('X-ServiceStore-StepUp')).toBeFalse();
+    req.flush({ id: 'sca-1', domain: 'acme.test', serviceKey: 'owncast', archetype: 'angular-mfe',
+      displayName: null, mountAt: null, requiresRole: null, state: 'requested',
+      createdBySubject: 'google:root', createdAt: 'T', updatedAt: 'T' }, { status: 201, statusText: 'Created' });
+    await p;
+  });
+
+  it('a scaffold 403 with the "requires step-up" contract is ServiceCatalogApiError.isStepUpRequired', async () => {
+    const p = service.createScaffold('acme.test', { serviceKey: 'owncast', archetype: 'angular-mfe' });
+    httpMock
+      .expectOne('/bff/superadmin/service-store/acme.test/scaffold')
+      .flush(
+        { error: 'scaffolding a service requires step-up re-authentication (present X-ServiceStore-StepUp)' },
+        { status: 403, statusText: 'Forbidden' },
+      );
+    let caught: unknown;
+    try {
+      await p;
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught instanceof ServiceCatalogApiError).toBeTrue();
+    expect((caught as ServiceCatalogApiError).isStepUpRequired).withContext('step-up 403').toBeTrue();
+  });
+
+  it('an ordinary superadmin-denial 403 is NOT mistaken for a step-up 403', async () => {
+    const p = service.createScaffold('acme.test', { serviceKey: 'owncast', archetype: 'angular-mfe' });
+    httpMock
+      .expectOne('/bff/superadmin/service-store/acme.test/scaffold')
+      .flush({ error: 'forbidden' }, { status: 403, statusText: 'Forbidden' });
+    let caught: unknown;
+    try {
+      await p;
+    } catch (e) {
+      caught = e;
+    }
+    expect((caught as ServiceCatalogApiError).isForbidden).toBeTrue();
+    expect((caught as ServiceCatalogApiError).isStepUpRequired).withContext('plain deny, not step-up').toBeFalse();
+  });
+
+  it('federateDeployment → POST .../deployments/{id}/federate with the body + step-up header, mapping the outcome', async () => {
+    const p = service.federateDeployment(
+      'acme.test',
+      'dep-1',
+      {
+        slug: 'owncast', mountAt: '/owncast', exposedModule: './routes',
+        remoteEntryUrl: 'http://hugmesh-owncast:8080/remoteEntry.json',
+        kind: 'remote-shell', visibility: 'internal', requiresRole: null,
+      },
+      'stepup-tok',
+    );
+    const req = httpMock.expectOne('/bff/superadmin/service-store/acme.test/deployments/dep-1/federate');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      slug: 'owncast', mountAt: '/owncast', exposedModule: './routes',
+      remoteEntryUrl: 'http://hugmesh-owncast:8080/remoteEntry.json',
+      kind: 'remote-shell', visibility: 'internal', requiresRole: null,
+    });
+    expect(req.request.headers.get('X-ServiceStore-StepUp')).toBe('stepup-tok');
+    req.flush({ deployment: deployment, federationReal: false, gitopsDescriptorPending: true });
+    const outcome = await p;
+    expect(outcome.federationReal).withContext('honest: ships dark').toBeFalse();
+    expect(outcome.gitopsDescriptorPending).toBeTrue();
+    expect(outcome.deployment?.id).toBe('dep-1');
+  });
+
+  it('federationStatus → GET /bff/superadmin/service-store/federation → {enabled, warnings}', async () => {
+    const p = service.federationStatus();
+    const req = httpMock.expectOne('/bff/superadmin/service-store/federation');
+    expect(req.request.method).toBe('GET');
+    req.flush({ enabled: false, warnings: ['federation registration ships dark'] });
+    const status = await p;
+    expect(status.enabled).toBeFalse();
+    expect(status.warnings).toEqual(['federation registration ships dark']);
+  });
+
+  it('scaffoldArchiveUrl builds the direct same-origin GET href (encoded)', () => {
+    expect(service.scaffoldArchiveUrl('acme.test', 'sca-1')).toBe(
+      '/bff/superadmin/service-store/acme.test/scaffold/sca-1/archive',
+    );
+  });
 });

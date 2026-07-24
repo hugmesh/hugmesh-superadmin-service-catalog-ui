@@ -6,10 +6,15 @@
     "version" : "0.1.0"
   },
   "servers" : [ {
-    "url" : "",
-    "description" : "Generated server url"
+    "url" : ""
   } ],
   "tags" : [ {
+    "name" : "Mastodon appearance default admin",
+    "description" : "ADMIN-write-gated: set the platform-wide default appearance for the hugmesh-mastodon-ui remote (domain-scoped to the acting admin's own brand)."
+  }, {
+    "name" : "Mastodon appearance default",
+    "description" : "Read-only: the admin-configured platform-wide default appearance for the hugmesh-mastodon-ui remote (domain-scoped)."
+  }, {
     "name" : "Notifications (feature/infra triggers)",
     "description" : "ADMIN/SUPERADMIN trigger for feature-availability + infra-impacting @system notifications (domain from the validated JWT, fail-closed; neutral sender, no actor in the payload)."
   } ],
@@ -46,6 +51,126 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/WorkloadConsoleConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/phone-devices/{deviceId}/owner" : {
+      "put" : {
+        "tags" : [ "phone-management-superadmin-controller" ],
+        "summary" : "Assign phone owner",
+        "operationId" : "phoneManagementSetOwner",
+        "parameters" : [ {
+          "name" : "deviceId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-PhoneLock-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PhoneOwnerRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PhoneDevice"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/phone-devices/{deviceId}/management" : {
+      "put" : {
+        "tags" : [ "phone-management-superadmin-controller" ],
+        "summary" : "Set phone management mode",
+        "operationId" : "phoneManagementSetMode",
+        "parameters" : [ {
+          "name" : "deviceId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-PhoneLock-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PhoneManagementModeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PhoneDevice"
                 }
               }
             }
@@ -160,6 +285,179 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/GameCatalogEntryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/fleet-entitlements/{subject}" : {
+      "put" : {
+        "tags" : [ "fleet-entitlement-superadmin-controller" ],
+        "summary" : "Upsert fleet entitlement",
+        "operationId" : "fleetEntitlementUpsert",
+        "parameters" : [ {
+          "name" : "subject",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 400,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-PhoneLock-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FleetEntitlementRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FleetEntitlement"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "fleet-entitlement-superadmin-controller" ],
+        "summary" : "Delete fleet entitlement",
+        "operationId" : "fleetEntitlementDelete",
+        "parameters" : [ {
+          "name" : "subject",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 400,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-PhoneLock-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/backing-services/{id}/mode" : {
+      "put" : {
+        "tags" : [ "backing-service-controller" ],
+        "summary" : "Set backing-service mode",
+        "operationId" : "backingServicesSetMode",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-BackingServices-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetBackingServiceModeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
                 }
               }
             }
@@ -317,6 +615,38 @@
         }
       }
     },
+    "/bff/admin/mastodon/appearance-default" : {
+      "put" : {
+        "tags" : [ "Mastodon appearance default admin" ],
+        "summary" : "Set my brand's mastodon-ui appearance default.",
+        "operationId" : "mastodonAppearanceDefaultPut",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AppearanceDefaultUpdate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/admin/domains/{clusterDomain}" : {
       "get" : {
         "tags" : [ "domain-registry-controller" ],
@@ -376,6 +706,102 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/DomainResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/domain-capabilities/{domain}/{capability}" : {
+      "put" : {
+        "tags" : [ "domain-capability-admin-controller" ],
+        "summary" : "Set granted",
+        "operationId" : "domainCapabilitySetGranted",
+        "parameters" : [ {
+          "name" : "domain",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "capability",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DomainCapabilityGrantedRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DomainCapability"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/domain-capabilities/{domain}/{capability}/enabled" : {
+      "put" : {
+        "tags" : [ "domain-capability-admin-controller" ],
+        "summary" : "Set enabled",
+        "operationId" : "domainCapabilitySetEnabled",
+        "parameters" : [ {
+          "name" : "domain",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "capability",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DomainCapabilityEnabledRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DomainCapability"
                 }
               }
             }
@@ -892,6 +1318,66 @@
         }
       }
     },
+    "/bff/superadmin/service-store/{domain}/scaffold" : {
+      "post" : {
+        "tags" : [ "service-store-wizard-controller" ],
+        "summary" : "Create scaffold",
+        "operationId" : "serviceScaffoldCreate",
+        "parameters" : [ {
+          "name" : "domain",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 253,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-ServiceStore-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ScaffoldServiceRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceScaffold"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/superadmin/service-store/{domain}/offer" : {
       "post" : {
         "tags" : [ "service-curation-controller" ],
@@ -1040,7 +1526,76 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ServiceDeployment"
+                  "$ref" : "#/components/schemas/ProvisionOutcome"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/service-store/{domain}/deployments/{id}/federate" : {
+      "post" : {
+        "tags" : [ "service-store-wizard-controller" ],
+        "summary" : "Federate deployment",
+        "operationId" : "serviceDeploymentFederate",
+        "parameters" : [ {
+          "name" : "domain",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 253,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 36,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-ServiceStore-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FederateServiceRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederateOutcome"
                 }
               }
             }
@@ -1079,6 +1634,115 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ServiceDeployment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/phone-devices/{deviceId}/unlock" : {
+      "post" : {
+        "tags" : [ "phone-management-superadmin-controller" ],
+        "summary" : "Unlock phone",
+        "operationId" : "phoneManagementUnlock",
+        "parameters" : [ {
+          "name" : "deviceId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-PhoneLock-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PhoneDevice"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/phone-devices/{deviceId}/lock" : {
+      "post" : {
+        "tags" : [ "phone-management-superadmin-controller" ],
+        "summary" : "Lock phone",
+        "operationId" : "phoneManagementLock",
+        "parameters" : [ {
+          "name" : "deviceId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-PhoneLock-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PhoneLockRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PhoneDevice"
                 }
               }
             }
@@ -1225,6 +1889,20 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -1256,6 +1934,20 @@
           }
         }, {
           "name" : "X-Device-Terminal-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
           "in" : "header",
           "required" : false,
           "schema" : {
@@ -1547,19 +2239,12 @@
         }
       }
     },
-    "/bff/mfa/recovery/regenerate" : {
-      "post" : {
-        "tags" : [ "mfa-enrollment-controller" ],
-        "summary" : "Regenerate recovery",
-        "operationId" : "mfaEnrollmentRegenerateRecovery",
+    "/bff/me/appeal" : {
+      "get" : {
+        "tags" : [ "account-appeal-user-controller" ],
+        "summary" : "My appeals",
+        "operationId" : "accountAppealMine",
         "parameters" : [ {
-          "name" : "bff_session",
-          "in" : "cookie",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
           "name" : "Authorization",
           "in" : "header",
           "required" : false,
@@ -1573,160 +2258,20 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AccountAppeal"
                   }
                 }
               }
             }
           }
         }
-      }
-    },
-    "/bff/mfa/enroll/webauthn/verify" : {
+      },
       "post" : {
-        "tags" : [ "mfa-enrollment-controller" ],
-        "summary" : "Webauthn verify",
-        "operationId" : "mfaEnrollmentWebauthnVerify",
-        "parameters" : [ {
-          "name" : "bff_session",
-          "in" : "cookie",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "Authorization",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/WebAuthnAttestationRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/bff/mfa/enroll/webauthn/options" : {
-      "post" : {
-        "tags" : [ "mfa-enrollment-controller" ],
-        "summary" : "Webauthn options",
-        "operationId" : "mfaEnrollmentWebauthnOptions",
-        "parameters" : [ {
-          "name" : "bff_session",
-          "in" : "cookie",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "Authorization",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/bff/mfa/enroll/totp" : {
-      "post" : {
-        "tags" : [ "mfa-enrollment-controller" ],
-        "summary" : "Begin totp",
-        "operationId" : "mfaEnrollmentBeginTotp",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/bff/mfa/enroll/totp/verify" : {
-      "post" : {
-        "tags" : [ "mfa-enrollment-controller" ],
-        "summary" : "Verify totp",
-        "operationId" : "mfaEnrollmentVerifyTotp",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/MfaTotpVerifyRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/bff/mfa/challenge" : {
-      "post" : {
-        "tags" : [ "mfa-challenge-controller" ],
-        "summary" : "Challenge",
-        "operationId" : "mfaChallengeChallenge",
+        "tags" : [ "account-appeal-user-controller" ],
+        "summary" : "Submit appeal",
+        "operationId" : "accountAppealSubmit",
         "parameters" : [ {
           "name" : "Authorization",
           "in" : "header",
@@ -1739,44 +2284,19 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/MfaChallengeRequest"
+                "$ref" : "#/components/schemas/AccountAppealSubmit"
               }
             }
           },
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK",
+          "201" : {
+            "description" : "Created",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/bff/mfa/assert/webauthn/options" : {
-      "post" : {
-        "tags" : [ "mfa-enrollment-controller" ],
-        "summary" : "Webauthn assert options",
-        "operationId" : "mfaEnrollmentWebauthnAssertOptions",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
+                  "$ref" : "#/components/schemas/AccountAppeal"
                 }
               }
             }
@@ -1794,6 +2314,171 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/login/local" : {
+      "post" : {
+        "tags" : [ "auth-controller" ],
+        "summary" : "Login local",
+        "operationId" : "authLoginLocal",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LocalLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/sessions" : {
+      "post" : {
+        "tags" : [ "internal-account-controller" ],
+        "operationId" : "createSession",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateSessionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/session/exchange" : {
+      "post" : {
+        "tags" : [ "internal-account-controller" ],
+        "operationId" : "exchange",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExchangeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/oidc/first-login" : {
+      "post" : {
+        "tags" : [ "oidc-first-login-controller" ],
+        "summary" : "Apply OIDC default roles to a first-seen user",
+        "operationId" : "oidcFirstLoginApplyDefaultRoles",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FirstLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FirstLoginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/image-builds/{id}/progress" : {
+      "post" : {
+        "tags" : [ "image-build-ingest-controller" ],
+        "summary" : "Progress",
+        "operationId" : "imageBuildIngestProgress",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 36,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ImageBuildProgressRequest"
               }
             }
           },
@@ -1858,6 +2543,80 @@
         }
       }
     },
+    "/bff/internal/go-live/{intentId}/applied-ack" : {
+      "post" : {
+        "tags" : [ "go-live-internal-controller" ],
+        "summary" : "Applied ack",
+        "operationId" : "goLiveInternalAppliedAck",
+        "parameters" : [ {
+          "name" : "intentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 36,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GoLiveAppliedAckRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/device-registry/phone-ingest" : {
+      "post" : {
+        "tags" : [ "phone-ingest-controller" ],
+        "summary" : "Phone ingest",
+        "operationId" : "deviceRegistryPhoneIngest",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PhoneIngestRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/internal/device-enrollment/self-report" : {
       "post" : {
         "tags" : [ "device-enrollment-controller" ],
@@ -1883,6 +2642,81 @@
                   "additionalProperties" : {
                     "type" : "object"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/custody/stamp" : {
+      "post" : {
+        "tags" : [ "internal-account-controller" ],
+        "operationId" : "stampCustody",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StampCustodyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/bff/internal/accounts/{id}/complete" : {
+      "post" : {
+        "tags" : [ "internal-account-controller" ],
+        "operationId" : "complete",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AccountOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/accounts/ensure" : {
+      "post" : {
+        "tags" : [ "internal-account-controller" ],
+        "operationId" : "ensureAccount",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EnsureAccountRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AccountOut"
                 }
               }
             }
@@ -2201,6 +3035,20 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -2363,7 +3211,7 @@
           "in" : "path",
           "required" : true,
           "schema" : {
-            "pattern" : "ROLE_USER|ROLE_MOD|ROLE_ADMIN|ROLE_MATRIX|ROLE_MASTODON|ROLE_GAMES|ROLE_GAMES_ADMIN|ROLE_IMAGE_BUILDER|ROLE_MATRIX_DOMAINLOCKED|ROLE_MASTODON_DOMAINLOCKED|ROLE_MATRIX_EXTERNAL_CLIENT|ROLE_MASTODON_EXTERNAL_CLIENT",
+            "pattern" : "ROLE_USER|ROLE_MOD|ROLE_ADMIN|ROLE_MATRIX|ROLE_MASTODON|ROLE_GAMES|ROLE_GAMES_ADMIN|ROLE_IMAGE_BUILDER|ROLE_MATRIX_DOMAINLOCKED|ROLE_MASTODON_DOMAINLOCKED|ROLE_MATRIX_EXTERNAL_CLIENT|ROLE_MASTODON_EXTERNAL_CLIENT|ROLE_FLEET_ADMIN",
             "type" : "string"
           }
         }, {
@@ -2401,7 +3249,7 @@
           "in" : "path",
           "required" : true,
           "schema" : {
-            "pattern" : "ROLE_USER|ROLE_MOD|ROLE_ADMIN|ROLE_MATRIX|ROLE_MASTODON|ROLE_GAMES|ROLE_GAMES_ADMIN|ROLE_IMAGE_BUILDER|ROLE_MATRIX_DOMAINLOCKED|ROLE_MASTODON_DOMAINLOCKED|ROLE_MATRIX_EXTERNAL_CLIENT|ROLE_MASTODON_EXTERNAL_CLIENT",
+            "pattern" : "ROLE_USER|ROLE_MOD|ROLE_ADMIN|ROLE_MATRIX|ROLE_MASTODON|ROLE_GAMES|ROLE_GAMES_ADMIN|ROLE_IMAGE_BUILDER|ROLE_MATRIX_DOMAINLOCKED|ROLE_MASTODON_DOMAINLOCKED|ROLE_MATRIX_EXTERNAL_CLIENT|ROLE_MASTODON_EXTERNAL_CLIENT|ROLE_FLEET_ADMIN",
             "type" : "string"
           }
         }, {
@@ -2456,6 +3304,115 @@
                   "additionalProperties" : {
                     "type" : "object"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/phone-fleet/{deviceId}/unlock" : {
+      "post" : {
+        "tags" : [ "phone-fleet-owner-controller" ],
+        "summary" : "Unlock my phone",
+        "operationId" : "phoneFleetOwnerUnlock",
+        "parameters" : [ {
+          "name" : "deviceId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-PhoneLock-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PhoneDevice"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/phone-fleet/{deviceId}/lock" : {
+      "post" : {
+        "tags" : [ "phone-fleet-owner-controller" ],
+        "summary" : "Lock my phone",
+        "operationId" : "phoneFleetOwnerLock",
+        "parameters" : [ {
+          "name" : "deviceId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-PhoneLock-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PhoneLockRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PhoneDevice"
                 }
               }
             }
@@ -2619,6 +3576,8 @@
           "in" : "path",
           "required" : true,
           "schema" : {
+            "minimum" : 0,
+            "exclusiveMinimum" : true,
             "type" : "integer",
             "format" : "int64"
           }
@@ -2676,12 +3635,134 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/TriggerImageBuildRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/image-builds/batch" : {
+      "post" : {
+        "tags" : [ "image-build-controller" ],
+        "summary" : "Trigger batch",
+        "operationId" : "imageBuildTriggerBatch",
+        "parameters" : [ {
+          "name" : "X-ImageGen-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BatchTriggerImageBuildRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/go-live/intents" : {
+      "post" : {
+        "tags" : [ "go-live-controller" ],
+        "summary" : "Record intent",
+        "operationId" : "goLiveRecordIntent",
+        "parameters" : [ {
+          "name" : "X-GoLive-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RecordGoLiveIntentRequest"
               }
             }
           },
@@ -3327,6 +4408,45 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ServiceAssignment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/device-radios/{deviceId}/radios" : {
+      "post" : {
+        "tags" : [ "radio-device-controller" ],
+        "summary" : "Attach",
+        "operationId" : "deviceRadioAttach",
+        "parameters" : [ {
+          "name" : "deviceId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 36,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttachRadioRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RadioDevice"
                 }
               }
             }
@@ -4018,6 +5138,47 @@
         }
       }
     },
+    "/bff/admin/account-appeals/{id}/decide" : {
+      "post" : {
+        "tags" : [ "account-appeal-admin-controller" ],
+        "summary" : "Decide appeal",
+        "operationId" : "accountAppealAdminDecide",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 36,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 16,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/admin/access-roles/{role}/{user}" : {
       "post" : {
         "tags" : [ "admin-controller" ],
@@ -4253,11 +5414,189 @@
         }
       }
     },
+    "/bff/superadmin/service-store/{domain}/scaffold/{id}/archive" : {
+      "get" : {
+        "tags" : [ "service-store-wizard-controller" ],
+        "summary" : "Scaffold archive",
+        "operationId" : "serviceScaffoldArchive",
+        "parameters" : [ {
+          "name" : "domain",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 253,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 36,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/zip" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/service-store/scaffold/archetypes" : {
+      "get" : {
+        "tags" : [ "service-store-wizard-controller" ],
+        "summary" : "Scaffold archetypes",
+        "operationId" : "serviceScaffoldArchetypes",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ScaffoldArchetype"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/service-store/federation" : {
+      "get" : {
+        "tags" : [ "service-store-wizard-controller" ],
+        "summary" : "Federation status",
+        "operationId" : "serviceCatalogFederationStatus",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/service-store/effector" : {
+      "get" : {
+        "tags" : [ "service-catalog-effector-controller" ],
+        "summary" : "Effector mode: real ArgoCD client (true) or noop/dev (false).",
+        "operationId" : "serviceCatalogEffectorMode",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/superadmin/service-store/builder" : {
       "get" : {
         "tags" : [ "service-catalog-builder-controller" ],
         "summary" : "Kaniko builder capability: config flag + live x86 build-node presence.",
         "operationId" : "serviceCatalogBuilderStatus",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/phone-devices" : {
+      "get" : {
+        "tags" : [ "phone-fleet-superadmin-controller" ],
+        "summary" : "List phone fleet",
+        "operationId" : "phoneFleetSuperadminList",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/phone-devices/{deviceId}" : {
+      "get" : {
+        "tags" : [ "phone-fleet-superadmin-controller" ],
+        "summary" : "Get phone",
+        "operationId" : "phoneFleetSuperadminGet",
+        "parameters" : [ {
+          "name" : "deviceId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PhoneDevice"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/fleet-entitlements" : {
+      "get" : {
+        "tags" : [ "fleet-entitlement-superadmin-controller" ],
+        "summary" : "List fleet entitlements",
+        "operationId" : "fleetEntitlementList",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -4319,6 +5658,28 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/DeviceSshDialResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/backing-services" : {
+      "get" : {
+        "tags" : [ "backing-service-controller" ],
+        "summary" : "Backing-services catalog + state",
+        "operationId" : "backingServicesCatalog",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
                 }
               }
             }
@@ -4400,28 +5761,6 @@
         }
       }
     },
-    "/bff/mfa/factors" : {
-      "get" : {
-        "tags" : [ "mfa-enrollment-controller" ],
-        "summary" : "List factors",
-        "operationId" : "mfaEnrollmentListFactors",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/bff/me" : {
       "get" : {
         "tags" : [ "auth-controller" ],
@@ -4482,6 +5821,124 @@
         }
       }
     },
+    "/bff/mastodon/appearance-default" : {
+      "get" : {
+        "tags" : [ "Mastodon appearance default" ],
+        "summary" : "My brand's configured mastodon-ui appearance default.",
+        "operationId" : "mastodonAppearanceDefaultGet",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/sessions/{accountId}" : {
+      "get" : {
+        "tags" : [ "internal-account-controller" ],
+        "operationId" : "sessionsForAccount",
+        "parameters" : [ {
+          "name" : "accountId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BffSessionRow"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/session/introspect" : {
+      "get" : {
+        "tags" : [ "internal-account-controller" ],
+        "operationId" : "introspect",
+        "parameters" : [ {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IntrospectResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/domain-capabilities/{domain}/{capability}" : {
+      "get" : {
+        "tags" : [ "domain-capability-internal-controller" ],
+        "summary" : "Active",
+        "operationId" : "domainCapabilityInternalActive",
+        "parameters" : [ {
+          "name" : "domain",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "capability",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/internal/desktop/sudo/entitlement" : {
       "get" : {
         "tags" : [ "desktop-sudo-entitlement-controller" ],
@@ -4515,6 +5972,100 @@
                   "type" : "object",
                   "additionalProperties" : {
                     "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/allowlist/{provider}/{handle}" : {
+      "get" : {
+        "tags" : [ "internal-account-controller" ],
+        "operationId" : "allowlist",
+        "parameters" : [ {
+          "name" : "provider",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "handle",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/accounts/{id}" : {
+      "get" : {
+        "tags" : [ "internal-account-controller" ],
+        "operationId" : "account",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AccountOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/internal/accounts/{id}/namespaces" : {
+      "get" : {
+        "tags" : [ "internal-account-controller" ],
+        "operationId" : "namespaces",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "array",
+                    "items" : {
+                      "type" : "string"
+                    }
                   }
                 }
               }
@@ -5135,6 +6686,20 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -5219,6 +6784,57 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PlatformCapabilities"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/phone-fleet" : {
+      "get" : {
+        "tags" : [ "phone-fleet-owner-controller" ],
+        "summary" : "List my phone fleet",
+        "operationId" : "phoneFleetOwnerList",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/phone-fleet/{deviceId}" : {
+      "get" : {
+        "tags" : [ "phone-fleet-owner-controller" ],
+        "summary" : "Get my phone",
+        "operationId" : "phoneFleetOwnerGet",
+        "parameters" : [ {
+          "name" : "deviceId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PhoneDevice"
                 }
               }
             }
@@ -5320,6 +6936,20 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -5395,6 +7025,101 @@
                   "items" : {
                     "$ref" : "#/components/schemas/ServerSentEventImageBuildEvent"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/image-builds/catalog" : {
+      "get" : {
+        "tags" : [ "image-catalog-controller" ],
+        "summary" : "Catalog",
+        "operationId" : "imageBuildCatalog",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "$ref" : "#/components/schemas/JsonNode"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/go-live" : {
+      "get" : {
+        "tags" : [ "go-live-controller" ],
+        "summary" : "Status",
+        "operationId" : "goLiveStatus",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/go-live/providers" : {
+      "get" : {
+        "tags" : [ "go-live-controller" ],
+        "summary" : "Providers",
+        "operationId" : "goLiveProviders",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/go-live/export" : {
+      "get" : {
+        "tags" : [ "go-live-controller" ],
+        "summary" : "Export",
+        "operationId" : "goLiveExport",
+        "parameters" : [ {
+          "name" : "node",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SignedGoLiveExport"
                 }
               }
             }
@@ -5595,6 +7320,57 @@
         }
       }
     },
+    "/bff/admin/domains/status" : {
+      "get" : {
+        "tags" : [ "domain-registry-controller" ],
+        "summary" : "Status",
+        "operationId" : "domainRegistryStatus",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DomainResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/domains/export" : {
+      "get" : {
+        "tags" : [ "domain-registry-controller" ],
+        "summary" : "Export",
+        "operationId" : "domainRegistryExport",
+        "parameters" : [ {
+          "name" : "node",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SignedDomainExport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/admin/domain-lock" : {
       "get" : {
         "tags" : [ "admin-controller" ],
@@ -5609,6 +7385,28 @@
                   "type" : "object",
                   "additionalProperties" : {
                     "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/domain-capabilities" : {
+      "get" : {
+        "tags" : [ "domain-capability-admin-controller" ],
+        "summary" : "List",
+        "operationId" : "domainCapabilityList",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DomainCapability"
                   }
                 }
               }
@@ -5661,6 +7459,57 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SignedStorageExport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/device-radios" : {
+      "get" : {
+        "tags" : [ "radio-device-controller" ],
+        "summary" : "List",
+        "operationId" : "deviceRadioList",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/device-radios/export" : {
+      "get" : {
+        "tags" : [ "radio-device-controller" ],
+        "summary" : "Export",
+        "operationId" : "deviceRadioExport",
+        "parameters" : [ {
+          "name" : "node",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SignedRadioExport"
                 }
               }
             }
@@ -5956,6 +7805,28 @@
         }
       }
     },
+    "/bff/admin/account-appeals" : {
+      "get" : {
+        "tags" : [ "account-appeal-admin-controller" ],
+        "summary" : "List appeals",
+        "operationId" : "accountAppealAdminList",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AccountAppeal"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/admin/access-roles" : {
       "get" : {
         "tags" : [ "admin-controller" ],
@@ -6051,15 +7922,43 @@
         }
       }
     },
-    "/bff/mfa/factors/{id}" : {
+    "/bff/internal/sessions/{token}" : {
       "delete" : {
-        "tags" : [ "mfa-enrollment-controller" ],
-        "summary" : "Remove factor",
-        "operationId" : "mfaEnrollmentRemoveFactor",
+        "tags" : [ "internal-account-controller" ],
+        "operationId" : "deleteSession",
+        "parameters" : [ {
+          "name" : "token",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/bff/admin/ssh-issue/issued/{id}" : {
+      "delete" : {
+        "tags" : [ "admin-ssh-key-issuance-controller" ],
+        "summary" : "Revoke",
+        "operationId" : "adminSshKeyIssuanceRevoke",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
           "required" : true,
+          "schema" : {
+            "maxLength" : 36,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-SshKeyIssue-StepUp",
+          "in" : "header",
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
@@ -6095,25 +7994,18 @@
         }
       }
     },
-    "/bff/admin/ssh-issue/issued/{id}" : {
+    "/bff/admin/routes/{pathPrefix}" : {
       "delete" : {
-        "tags" : [ "admin-ssh-key-issuance-controller" ],
-        "summary" : "Revoke",
-        "operationId" : "adminSshKeyIssuanceRevoke",
+        "tags" : [ "admin-controller" ],
+        "summary" : "Remove route",
+        "operationId" : "adminRemoveRoute",
         "parameters" : [ {
-          "name" : "id",
+          "name" : "pathPrefix",
           "in" : "path",
           "required" : true,
           "schema" : {
-            "maxLength" : 36,
+            "maxLength" : 512,
             "minLength" : 0,
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-SshKeyIssue-StepUp",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
             "type" : "string"
           }
         } ],
@@ -6134,18 +8026,39 @@
         }
       }
     },
-    "/bff/admin/routes/{pathPrefix}" : {
+    "/bff/admin/go-live/intents/{id}" : {
       "delete" : {
-        "tags" : [ "admin-controller" ],
-        "summary" : "Remove route",
-        "operationId" : "adminRemoveRoute",
+        "tags" : [ "go-live-controller" ],
+        "summary" : "Withdraw intent",
+        "operationId" : "goLiveWithdrawIntent",
         "parameters" : [ {
-          "name" : "pathPrefix",
+          "name" : "id",
           "in" : "path",
           "required" : true,
           "schema" : {
-            "maxLength" : 512,
+            "maxLength" : 36,
             "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-GoLive-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
             "type" : "string"
           }
         } ],
@@ -6269,6 +8182,38 @@
         "operationId" : "storagePoolRevoke",
         "parameters" : [ {
           "name" : "assignmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 36,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/device-radios/radios/{radioId}" : {
+      "delete" : {
+        "tags" : [ "radio-device-controller" ],
+        "summary" : "Detach",
+        "operationId" : "deviceRadioDetach",
+        "parameters" : [ {
+          "name" : "radioId",
           "in" : "path",
           "required" : true,
           "schema" : {
@@ -6464,6 +8409,176 @@
           }
         }
       },
+      "PhoneOwnerRequest" : {
+        "required" : [ "ownerDomain", "physicalOwner" ],
+        "type" : "object",
+        "properties" : {
+          "physicalOwner" : {
+            "maxLength" : 400,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "ownerDomain" : {
+            "maxLength" : 253,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
+      "PhoneDevice" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "deviceId" : {
+            "type" : "string"
+          },
+          "deviceClass" : {
+            "type" : "string"
+          },
+          "serial" : {
+            "type" : "string"
+          },
+          "codename" : {
+            "type" : "string"
+          },
+          "marketingName" : {
+            "type" : "string"
+          },
+          "os" : {
+            "type" : "string"
+          },
+          "osVersion" : {
+            "type" : "string"
+          },
+          "superdomain" : {
+            "type" : "string"
+          },
+          "loginServer" : {
+            "type" : "string"
+          },
+          "tailscaleIp" : {
+            "type" : "string"
+          },
+          "tailscaleHostname" : {
+            "type" : "string"
+          },
+          "role" : {
+            "type" : "string"
+          },
+          "attachedDomain" : {
+            "type" : "string"
+          },
+          "enterpriseProfilePresent" : {
+            "type" : "boolean"
+          },
+          "enterpriseProfileUserId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "enterpriseProfileCredentialCustody" : {
+            "type" : "string"
+          },
+          "mdmEnrolled" : {
+            "type" : "boolean"
+          },
+          "mdmDpcPackage" : {
+            "type" : "string"
+          },
+          "mdmHeadwindUrl" : {
+            "type" : "string"
+          },
+          "mdmSetVia" : {
+            "type" : "string"
+          },
+          "mdmEnrolledAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "attestationUrl" : {
+            "type" : "string"
+          },
+          "auditorPackage" : {
+            "type" : "string"
+          },
+          "attestationVerdict" : {
+            "type" : "string"
+          },
+          "enrolledAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "generatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "firstIngestedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastIngestedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "ingestCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "managementMode" : {
+            "type" : "string"
+          },
+          "lockState" : {
+            "type" : "string"
+          },
+          "lockPropagationState" : {
+            "type" : "string"
+          },
+          "lockGeneration" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "lockReason" : {
+            "type" : "string"
+          },
+          "lockActor" : {
+            "type" : "string"
+          },
+          "lockUpdatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "physicalOwner" : {
+            "type" : "string"
+          },
+          "ownerDomain" : {
+            "type" : "string"
+          },
+          "mdmProvider" : {
+            "type" : "string"
+          },
+          "intuneDeviceId" : {
+            "type" : "string"
+          },
+          "locked" : {
+            "type" : "boolean"
+          },
+          "managed" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PhoneManagementModeRequest" : {
+        "required" : [ "mode" ],
+        "type" : "object",
+        "properties" : {
+          "mode" : {
+            "minLength" : 1,
+            "pattern" : "unmanaged|mesh_owned",
+            "type" : "string"
+          }
+        }
+      },
       "GameDomainOfferRequest" : {
         "type" : "object",
         "properties" : {
@@ -6613,6 +8728,67 @@
           }
         }
       },
+      "FleetEntitlementRequest" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "seats" : {
+            "minimum" : 0,
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "FleetEntitlement" : {
+        "type" : "object",
+        "properties" : {
+          "subject" : {
+            "type" : "string"
+          },
+          "active" : {
+            "type" : "boolean"
+          },
+          "seats" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "SetBackingServiceModeRequest" : {
+        "required" : [ "mode" ],
+        "type" : "object",
+        "properties" : {
+          "mode" : {
+            "maxLength" : 16,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "endpoint" : {
+            "maxLength" : 512,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "credsRef" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
       "AppProfileRequest" : {
         "required" : [ "name" ],
         "type" : "object",
@@ -6666,6 +8842,19 @@
               "minLength" : 0,
               "pattern" : "[a-z0-9_-]+",
               "type" : "string"
+            }
+          }
+        }
+      },
+      "AppearanceDefaultUpdate" : {
+        "required" : [ "prefs" ],
+        "type" : "object",
+        "properties" : {
+          "prefs" : {
+            "minProperties" : 1,
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
             }
           }
         }
@@ -6748,6 +8937,63 @@
           "updatedAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "caProvisioned" : {
+            "type" : "boolean"
+          },
+          "appsetRegistered" : {
+            "type" : "boolean"
+          },
+          "lastReconciledGeneration" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "DomainCapabilityGrantedRequest" : {
+        "type" : "object",
+        "properties" : {
+          "granted" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "DomainCapability" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "domain" : {
+            "type" : "string"
+          },
+          "capability" : {
+            "type" : "string"
+          },
+          "granted" : {
+            "type" : "boolean"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "generation" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "DomainCapabilityEnabledRequest" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
           }
         }
       },
@@ -7148,6 +9394,78 @@
           }
         }
       },
+      "ScaffoldServiceRequest" : {
+        "required" : [ "archetype", "serviceKey" ],
+        "type" : "object",
+        "properties" : {
+          "serviceKey" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "displayName" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "archetype" : {
+            "minLength" : 1,
+            "pattern" : "^[a-z0-9-]{1,64}$",
+            "type" : "string"
+          },
+          "mountAt" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "pattern" : "^/[A-Za-z0-9/_-]*$",
+            "type" : "string"
+          },
+          "requiresRole" : {
+            "maxLength" : 32,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
+      "ServiceScaffold" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "domain" : {
+            "type" : "string"
+          },
+          "serviceKey" : {
+            "type" : "string"
+          },
+          "archetype" : {
+            "type" : "string"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "mountAt" : {
+            "type" : "string"
+          },
+          "requiresRole" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "createdBySubject" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
       "ServiceDeploymentRequest" : {
         "required" : [ "serviceKey" ],
         "type" : "object",
@@ -7229,15 +9547,95 @@
           "repoUrl" : {
             "maxLength" : 512,
             "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9._:/#?=&@~+-]{1,512}$",
             "type" : "string"
           },
           "path" : {
             "maxLength" : 256,
             "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9._/-]{1,256}$",
             "type" : "string"
           },
           "targetRevision" : {
             "maxLength" : 128,
+            "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9._/-]{1,128}$",
+            "type" : "string"
+          }
+        }
+      },
+      "ProvisionOutcome" : {
+        "type" : "object",
+        "properties" : {
+          "deployment" : {
+            "$ref" : "#/components/schemas/ServiceDeployment"
+          },
+          "effectorReal" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "FederateServiceRequest" : {
+        "required" : [ "exposedModule", "mountAt", "remoteEntryUrl", "slug" ],
+        "type" : "object",
+        "properties" : {
+          "slug" : {
+            "minLength" : 1,
+            "pattern" : "^[a-z0-9-]{1,64}$",
+            "type" : "string"
+          },
+          "mountAt" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "pattern" : "^/[A-Za-z0-9/_-]*$",
+            "type" : "string"
+          },
+          "exposedModule" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "remoteEntryUrl" : {
+            "maxLength" : 512,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "kind" : {
+            "maxLength" : 32,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "visibility" : {
+            "maxLength" : 16,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "requiresRole" : {
+            "maxLength" : 32,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
+      "FederateOutcome" : {
+        "type" : "object",
+        "properties" : {
+          "deployment" : {
+            "$ref" : "#/components/schemas/ServiceDeployment"
+          },
+          "federationReal" : {
+            "type" : "boolean"
+          },
+          "gitopsDescriptorPending" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PhoneLockRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "maxLength" : 512,
             "minLength" : 0,
             "type" : "string"
           }
@@ -7385,7 +9783,8 @@
           "email" : {
             "maxLength" : 320,
             "minLength" : 0,
-            "type" : "string"
+            "type" : "string",
+            "format" : "email"
           },
           "displayName" : {
             "maxLength" : 255,
@@ -7438,40 +9837,57 @@
           }
         }
       },
-      "WebAuthnAttestationRequest" : {
-        "required" : [ "attestation" ],
+      "AccountAppealSubmit" : {
+        "required" : [ "reason" ],
         "type" : "object",
         "properties" : {
-          "attestation" : {
-            "maxLength" : 16384,
-            "minLength" : 0,
-            "type" : "string"
-          }
-        }
-      },
-      "MfaTotpVerifyRequest" : {
-        "required" : [ "passcode" ],
-        "type" : "object",
-        "properties" : {
-          "passcode" : {
-            "maxLength" : 8,
-            "minLength" : 6,
-            "type" : "string"
-          }
-        }
-      },
-      "MfaChallengeRequest" : {
-        "required" : [ "credential", "factor" ],
-        "type" : "object",
-        "properties" : {
-          "factor" : {
-            "maxLength" : 32,
+          "reason" : {
+            "maxLength" : 2000,
             "minLength" : 0,
             "type" : "string"
           },
-          "credential" : {
-            "maxLength" : 4096,
+          "contactEmail" : {
+            "maxLength" : 320,
             "minLength" : 0,
+            "type" : "string",
+            "format" : "email",
+            "nullable" : true
+          }
+        }
+      },
+      "AccountAppeal" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "userSub" : {
+            "type" : "string"
+          },
+          "handle" : {
+            "type" : "string"
+          },
+          "domain" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "contactEmail" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "submittedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "decidedBy" : {
             "type" : "string"
           }
         }
@@ -7495,11 +9911,112 @@
           }
         }
       },
+      "LocalLoginRequest" : {
+        "required" : [ "secret", "username" ],
+        "type" : "object",
+        "properties" : {
+          "roleId" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "username" : {
+            "maxLength" : 320,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "secret" : {
+            "maxLength" : 4096,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
+      "CreateSessionRequest" : {
+        "required" : [ "accountId" ],
+        "type" : "object",
+        "properties" : {
+          "accountId" : {
+            "minLength" : 1,
+            "type" : "string"
+          }
+        }
+      },
+      "ExchangeRequest" : {
+        "required" : [ "token" ],
+        "type" : "object",
+        "properties" : {
+          "token" : {
+            "minLength" : 1,
+            "type" : "string"
+          }
+        }
+      },
+      "FirstLoginRequest" : {
+        "required" : [ "casdoorUsername", "domain", "provider" ],
+        "type" : "object",
+        "properties" : {
+          "domain" : {
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "provider" : {
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "casdoorUsername" : {
+            "maxLength" : 400,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
+      "FirstLoginResponse" : {
+        "type" : "object",
+        "properties" : {
+          "assignedRoles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "ImageBuildProgressRequest" : {
+        "type" : "object",
+        "properties" : {
+          "percent" : {
+            "maximum" : 99,
+            "minimum" : 0,
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "phaseIndex" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "phaseCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "phaseLabel" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "indeterminate" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "ImageBuildIngestRequest" : {
         "required" : [ "status" ],
         "type" : "object",
         "properties" : {
           "status" : {
+            "minLength" : 1,
             "pattern" : "COMPLETED|FAILED|ERROR",
             "type" : "string"
           },
@@ -7573,6 +10090,179 @@
           }
         }
       },
+      "GoLiveAppliedAckRequest" : {
+        "required" : [ "appliedBy", "generation" ],
+        "type" : "object",
+        "properties" : {
+          "generation" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "appliedBy" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
+      "EnterpriseProfile" : {
+        "type" : "object",
+        "properties" : {
+          "present" : {
+            "type" : "boolean"
+          },
+          "user_id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "credential_custody" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
+      "Mdm" : {
+        "type" : "object",
+        "properties" : {
+          "enrolled" : {
+            "type" : "boolean"
+          },
+          "dpc_package" : {
+            "maxLength" : 253,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "headwind_url" : {
+            "maxLength" : 512,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "set_via" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "enrolled_at" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "PhoneIngestRequest" : {
+        "required" : [ "device_class", "device_id", "schema" ],
+        "type" : "object",
+        "properties" : {
+          "schema" : {
+            "minLength" : 1,
+            "pattern" : "phone-ingest/v1|phone-ingest/v2",
+            "type" : "string"
+          },
+          "device_id" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "device_class" : {
+            "minLength" : 1,
+            "pattern" : "phone",
+            "type" : "string"
+          },
+          "serial" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "codename" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "marketing_name" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "os" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "os_version" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "superdomain" : {
+            "maxLength" : 253,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "login_server" : {
+            "maxLength" : 512,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "tailscale_ip" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "tailscale_hostname" : {
+            "maxLength" : 253,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "role" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "attached_domain" : {
+            "maxLength" : 253,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "enterprise_profile" : {
+            "$ref" : "#/components/schemas/EnterpriseProfile"
+          },
+          "mdm" : {
+            "$ref" : "#/components/schemas/Mdm"
+          },
+          "attestation_url" : {
+            "maxLength" : 512,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "auditor_package" : {
+            "maxLength" : 253,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "attestation_verdict" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "enrolled_at" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "generated_at" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "mdm_provider" : {
+            "pattern" : "headwind|azure-intune|",
+            "type" : "string"
+          },
+          "intune_device_id" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
       "SelfReportRequest" : {
         "required" : [ "machineKeyFp" ],
         "type" : "object",
@@ -7595,6 +10285,70 @@
           "tailnetId" : {
             "maxLength" : 128,
             "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
+      "StampCustodyRequest" : {
+        "required" : [ "encAccess", "sessionToken" ],
+        "type" : "object",
+        "properties" : {
+          "sessionToken" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "encAccess" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "encRefresh" : {
+            "type" : "string"
+          },
+          "expiresInSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "AccountOut" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "provider" : {
+            "type" : "string"
+          },
+          "handle" : {
+            "type" : "string"
+          },
+          "registrationComplete" : {
+            "type" : "boolean"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "localpart" : {
+            "type" : "string"
+          },
+          "mastodonLocalpart" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EnsureAccountRequest" : {
+        "required" : [ "handle", "provider" ],
+        "type" : "object",
+        "properties" : {
+          "provider" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "handle" : {
+            "minLength" : 1,
             "type" : "string"
           }
         }
@@ -7722,6 +10476,7 @@
         "type" : "object",
         "properties" : {
           "kind" : {
+            "minLength" : 1,
             "pattern" : "SUITE|RUN",
             "type" : "string"
           },
@@ -7736,6 +10491,7 @@
             "type" : "string"
           },
           "state" : {
+            "minLength" : 1,
             "pattern" : "running|passed|failed|skipped|error",
             "type" : "string"
           },
@@ -7846,6 +10602,9 @@
           },
           "allow" : {
             "type" : "boolean"
+          },
+          "mfa_required" : {
+            "type" : "boolean"
           }
         }
       },
@@ -7854,6 +10613,7 @@
         "type" : "object",
         "properties" : {
           "backupId" : {
+            "minLength" : 1,
             "pattern" : "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
             "type" : "string"
           },
@@ -7952,19 +10712,112 @@
           "targetUser" : {
             "maxLength" : 400,
             "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9._@/-]{1,400}$",
             "type" : "string"
           },
           "imageType" : {
+            "minLength" : 1,
             "pattern" : "primary|mesh-extension|client",
             "type" : "string"
           },
           "hardwareClass" : {
             "maxLength" : 64,
             "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9._-]{1,64}$",
             "type" : "string"
           },
           "sshKeysAllowed" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "BatchImageSpec" : {
+        "required" : [ "hardwareClass", "imageType", "targetUser" ],
+        "type" : "object",
+        "properties" : {
+          "targetUser" : {
+            "maxLength" : 400,
+            "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9._@/-]{1,400}$",
+            "type" : "string"
+          },
+          "imageType" : {
+            "minLength" : 1,
+            "pattern" : "primary|mesh-extension|client",
+            "type" : "string"
+          },
+          "hardwareClass" : {
+            "minLength" : 1,
+            "pattern" : "x86|rpi5|frite|jetson|orangepi5|orangepizero2",
+            "type" : "string"
+          },
+          "sshKeysAllowed" : {
+            "type" : "boolean"
+          },
+          "imageSpec" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          }
+        }
+      },
+      "BatchTriggerImageBuildRequest" : {
+        "required" : [ "entries", "schema" ],
+        "type" : "object",
+        "properties" : {
+          "schema" : {
+            "minLength" : 1,
+            "pattern" : "hugmesh-worklist/v1",
+            "type" : "string"
+          },
+          "base" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "entries" : {
+            "maxItems" : 16,
+            "minItems" : 1,
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BatchImageSpec"
+            }
+          },
+          "maxConcurrent" : {
+            "maximum" : 16,
+            "minimum" : 1,
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "JsonNode" : {
+        "type" : "object"
+      },
+      "RecordGoLiveIntentRequest" : {
+        "required" : [ "clusterDomain", "targetState" ],
+        "type" : "object",
+        "properties" : {
+          "clusterDomain" : {
+            "maxLength" : 253,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "targetState" : {
+            "maxLength" : 16,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "exposureModel" : {
+            "maxLength" : 32,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "provider" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "note" : {
+            "maxLength" : 512,
+            "minLength" : 0,
+            "type" : "string"
           }
         }
       },
@@ -7973,6 +10826,7 @@
         "type" : "object",
         "properties" : {
           "group" : {
+            "minLength" : 1,
             "pattern" : "ADMINISTRATORS|GLOBAL_MODERATORS|REGISTERED",
             "type" : "string"
           }
@@ -8391,6 +11245,126 @@
           }
         }
       },
+      "AttachRadioRequest" : {
+        "required" : [ "radioId", "transport" ],
+        "type" : "object",
+        "properties" : {
+          "transport" : {
+            "minLength" : 1,
+            "pattern" : "serial|tcp|mqtt",
+            "type" : "string"
+          },
+          "serialPath" : {
+            "pattern" : "^/dev/[A-Za-z0-9/._:+-]{1,200}$",
+            "type" : "string"
+          },
+          "host" : {
+            "maxLength" : 253,
+            "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9]([A-Za-z0-9-]{0,62})?(\\.[A-Za-z0-9]([A-Za-z0-9-]{0,62})?)*$",
+            "type" : "string"
+          },
+          "port" : {
+            "maximum" : 65535,
+            "minimum" : 1,
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "topicRoot" : {
+            "pattern" : "^[A-Za-z0-9/._-]{1,64}$",
+            "type" : "string"
+          },
+          "channelName" : {
+            "pattern" : "^[A-Za-z0-9._-]{1,32}$",
+            "type" : "string"
+          },
+          "gatewayNodeId" : {
+            "pattern" : "^![0-9a-f]{8}$",
+            "type" : "string"
+          },
+          "radioId" : {
+            "minLength" : 1,
+            "pattern" : "^[A-Za-z0-9._-]{1,64}$",
+            "type" : "string"
+          },
+          "meshChannel" : {
+            "maximum" : 7,
+            "minimum" : 0,
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "RadioDevice" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "deviceId" : {
+            "type" : "string"
+          },
+          "transport" : {
+            "type" : "string"
+          },
+          "serialPath" : {
+            "type" : "string"
+          },
+          "host" : {
+            "type" : "string"
+          },
+          "port" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "topicRoot" : {
+            "type" : "string"
+          },
+          "channelName" : {
+            "type" : "string"
+          },
+          "gatewayNodeId" : {
+            "type" : "string"
+          },
+          "radioId" : {
+            "type" : "string"
+          },
+          "meshChannel" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "domain" : {
+            "type" : "string"
+          },
+          "propagationState" : {
+            "type" : "string"
+          },
+          "generation" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "detachedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "detachedBy" : {
+            "type" : "string"
+          },
+          "active" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "GrantLicenseRequest" : {
         "required" : [ "keyFingerprints", "operator" ],
         "type" : "object",
@@ -8680,6 +11654,7 @@
           "appRef" : {
             "maxLength" : 512,
             "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9][A-Za-z0-9._+/:@-]*$",
             "type" : "string"
           }
         }
@@ -8691,6 +11666,7 @@
           "appRef" : {
             "maxLength" : 512,
             "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9][A-Za-z0-9._+/:@-]*$",
             "type" : "string"
           },
           "displayName" : {
@@ -8743,6 +11719,7 @@
         "type" : "object",
         "properties" : {
           "scope" : {
+            "minItems" : 1,
             "type" : "array",
             "items" : {
               "pattern" : "(?i)etcd|secrets|postgres|pvc|config",
@@ -8774,7 +11751,8 @@
           "email" : {
             "maxLength" : 320,
             "minLength" : 0,
-            "type" : "string"
+            "type" : "string",
+            "format" : "email"
           },
           "discord" : {
             "maxLength" : 64,
@@ -8866,6 +11844,74 @@
       },
       "ServerSentEventLogLine" : {
         "type" : "object"
+      },
+      "ScaffoldArchetype" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          }
+        }
+      },
+      "BffSessionRow" : {
+        "type" : "object",
+        "properties" : {
+          "token" : {
+            "type" : "string"
+          },
+          "accountId" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "IntrospectResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "provider" : {
+            "type" : "string"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "registrationComplete" : {
+            "type" : "boolean"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "mfaSatisfied" : {
+            "type" : "boolean"
+          },
+          "casdoorSub" : {
+            "type" : "string"
+          },
+          "issuer" : {
+            "type" : "string"
+          }
+        }
       },
       "GameInstanceConnectionResponse" : {
         "type" : "object",
@@ -9242,11 +12288,79 @@
           },
           "error" : {
             "type" : "string"
+          },
+          "imageSpecJson" : {
+            "type" : "string"
           }
         }
       },
       "ServerSentEventImageBuildEvent" : {
         "type" : "object"
+      },
+      "GoLiveExportBody" : {
+        "type" : "object",
+        "properties" : {
+          "node" : {
+            "type" : "string"
+          },
+          "generation" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "entries" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/GoLiveIntentEntry"
+            }
+          }
+        }
+      },
+      "GoLiveIntentEntry" : {
+        "type" : "object",
+        "properties" : {
+          "clusterDomain" : {
+            "type" : "string"
+          },
+          "targetState" : {
+            "type" : "string"
+          },
+          "exposureModel" : {
+            "type" : "string"
+          },
+          "provider" : {
+            "type" : "string"
+          },
+          "requestedBy" : {
+            "type" : "string"
+          },
+          "intentId" : {
+            "type" : "string"
+          },
+          "generation" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "SignedGoLiveExport" : {
+        "type" : "object",
+        "properties" : {
+          "body" : {
+            "$ref" : "#/components/schemas/GoLiveExportBody"
+          },
+          "contentHash" : {
+            "type" : "string"
+          },
+          "signature" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : "string"
+          },
+          "signed" : {
+            "type" : "boolean"
+          }
+        }
       },
       "SignedVpnExport" : {
         "type" : "object",
@@ -9306,6 +12420,80 @@
             "items" : {
               "$ref" : "#/components/schemas/VpnEgressEntry"
             }
+          }
+        }
+      },
+      "DomainEntry" : {
+        "type" : "object",
+        "properties" : {
+          "clusterDomain" : {
+            "type" : "string"
+          },
+          "brand" : {
+            "type" : "string"
+          },
+          "org" : {
+            "type" : "string"
+          },
+          "caRef" : {
+            "type" : "string"
+          },
+          "nsPrefix" : {
+            "type" : "string"
+          },
+          "casdoorOrg" : {
+            "type" : "string"
+          },
+          "meshTag" : {
+            "type" : "string"
+          },
+          "caProvisioned" : {
+            "type" : "boolean"
+          },
+          "appsetRegistered" : {
+            "type" : "boolean"
+          },
+          "generation" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "DomainExportBody" : {
+        "type" : "object",
+        "properties" : {
+          "node" : {
+            "type" : "string"
+          },
+          "generation" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "entries" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DomainEntry"
+            }
+          }
+        }
+      },
+      "SignedDomainExport" : {
+        "type" : "object",
+        "properties" : {
+          "body" : {
+            "$ref" : "#/components/schemas/DomainExportBody"
+          },
+          "contentHash" : {
+            "type" : "string"
+          },
+          "signature" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : "string"
+          },
+          "signed" : {
+            "type" : "boolean"
           }
         }
       },
@@ -9389,6 +12577,78 @@
             "items" : {
               "$ref" : "#/components/schemas/PoolEntry"
             }
+          }
+        }
+      },
+      "RadioEntry" : {
+        "type" : "object",
+        "properties" : {
+          "radioId" : {
+            "type" : "string"
+          },
+          "transport" : {
+            "type" : "string"
+          },
+          "serialPath" : {
+            "type" : "string"
+          },
+          "host" : {
+            "type" : "string"
+          },
+          "port" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "topicRoot" : {
+            "type" : "string"
+          },
+          "channelName" : {
+            "type" : "string"
+          },
+          "gatewayNodeId" : {
+            "type" : "string"
+          },
+          "meshChannel" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "RadioExportBody" : {
+        "type" : "object",
+        "properties" : {
+          "nodeFp" : {
+            "type" : "string"
+          },
+          "generation" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "radios" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RadioEntry"
+            }
+          }
+        }
+      },
+      "SignedRadioExport" : {
+        "type" : "object",
+        "properties" : {
+          "body" : {
+            "$ref" : "#/components/schemas/RadioExportBody"
+          },
+          "contentHash" : {
+            "type" : "string"
+          },
+          "signature" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : "string"
+          },
+          "signed" : {
+            "type" : "boolean"
           }
         }
       },
@@ -9510,6 +12770,7 @@
         "type" : "object",
         "properties" : {
           "id" : {
+            "minLength" : 1,
             "pattern" : "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
             "type" : "string"
           }

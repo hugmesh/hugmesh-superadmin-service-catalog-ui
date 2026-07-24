@@ -9,51 +9,51 @@ import { BaseService } from '../base-service';
 import { ApiConfiguration } from '../api-configuration';
 import { StrictHttpResponse } from '../strict-http-response';
 
-import { mfaChallengeChallenge } from '../fn/mfa-challenge-controller/mfa-challenge-challenge';
-import { MfaChallengeChallenge$Params } from '../fn/mfa-challenge-controller/mfa-challenge-challenge';
+import { deviceRegistryPhoneIngest } from '../fn/phone-ingest-controller/device-registry-phone-ingest';
+import { DeviceRegistryPhoneIngest$Params } from '../fn/phone-ingest-controller/device-registry-phone-ingest';
 
 @Injectable({ providedIn: 'root' })
-export class MfaChallengeControllerService extends BaseService {
+export class PhoneIngestControllerService extends BaseService {
   constructor(config: ApiConfiguration, http: HttpClient) {
     super(config, http);
   }
 
-  /** Path part for operation `mfaChallengeChallenge()` */
-  static readonly MfaChallengeChallengePath = '/bff/mfa/challenge';
+  /** Path part for operation `deviceRegistryPhoneIngest()` */
+  static readonly DeviceRegistryPhoneIngestPath = '/bff/internal/device-registry/phone-ingest';
 
   /**
-   * Challenge.
+   * Phone ingest.
    *
    *
    *
    * This method provides access to the full `HttpResponse`, allowing access to response headers.
-   * To access only the response body, use `mfaChallengeChallenge()` instead.
+   * To access only the response body, use `deviceRegistryPhoneIngest()` instead.
    *
    * This method sends `application/json` and handles request body of type `application/json`.
    */
-  mfaChallengeChallenge$Response(params: MfaChallengeChallenge$Params, context?: HttpContext): Promise<StrictHttpResponse<{
+  deviceRegistryPhoneIngest$Response(params: DeviceRegistryPhoneIngest$Params, context?: HttpContext): Promise<StrictHttpResponse<{
 [key: string]: {
 };
 }>> {
-    const obs = mfaChallengeChallenge(this.http, this.rootUrl, params, context);
+    const obs = deviceRegistryPhoneIngest(this.http, this.rootUrl, params, context);
     return firstValueFrom(obs);
   }
 
   /**
-   * Challenge.
+   * Phone ingest.
    *
    *
    *
    * This method provides access only to the response body.
-   * To access the full response (for headers, for example), `mfaChallengeChallenge$Response()` instead.
+   * To access the full response (for headers, for example), `deviceRegistryPhoneIngest$Response()` instead.
    *
    * This method sends `application/json` and handles request body of type `application/json`.
    */
-  mfaChallengeChallenge(params: MfaChallengeChallenge$Params, context?: HttpContext): Promise<{
+  deviceRegistryPhoneIngest(params: DeviceRegistryPhoneIngest$Params, context?: HttpContext): Promise<{
 [key: string]: {
 };
 }> {
-    const resp = this.mfaChallengeChallenge$Response(params, context);
+    const resp = this.deviceRegistryPhoneIngest$Response(params, context);
     return resp.then((r: StrictHttpResponse<{
 [key: string]: {
 };

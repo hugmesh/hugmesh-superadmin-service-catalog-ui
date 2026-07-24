@@ -13,6 +13,8 @@ import { authComplete } from '../fn/auth-controller/auth-complete';
 import { AuthComplete$Params } from '../fn/auth-controller/auth-complete';
 import { authLogin } from '../fn/auth-controller/auth-login';
 import { AuthLogin$Params } from '../fn/auth-controller/auth-login';
+import { authLoginLocal } from '../fn/auth-controller/auth-login-local';
+import { AuthLoginLocal$Params } from '../fn/auth-controller/auth-login-local';
 import { authMeEndpoint } from '../fn/auth-controller/auth-me-endpoint';
 import { AuthMeEndpoint$Params } from '../fn/auth-controller/auth-me-endpoint';
 import { authMyNamespaces } from '../fn/auth-controller/auth-my-namespaces';
@@ -342,6 +344,51 @@ export class AuthControllerService extends BaseService {
 };
 }> {
     const resp = this.authLogin$Response(params, context);
+    return resp.then((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body);
+  }
+
+  /** Path part for operation `authLoginLocal()` */
+  static readonly AuthLoginLocalPath = '/bff/login/local';
+
+  /**
+   * Login local.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `authLoginLocal()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  authLoginLocal$Response(params: AuthLoginLocal$Params, context?: HttpContext): Promise<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    const obs = authLoginLocal(this.http, this.rootUrl, params, context);
+    return firstValueFrom(obs);
+  }
+
+  /**
+   * Login local.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `authLoginLocal$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  authLoginLocal(params: AuthLoginLocal$Params, context?: HttpContext): Promise<{
+[key: string]: {
+};
+}> {
+    const resp = this.authLoginLocal$Response(params, context);
     return resp.then((r: StrictHttpResponse<{
 [key: string]: {
 };

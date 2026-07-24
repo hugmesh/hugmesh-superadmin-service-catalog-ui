@@ -11,11 +11,58 @@ import { StrictHttpResponse } from '../strict-http-response';
 
 import { imageBuildIngestIngest } from '../fn/image-build-ingest-controller/image-build-ingest-ingest';
 import { ImageBuildIngestIngest$Params } from '../fn/image-build-ingest-controller/image-build-ingest-ingest';
+import { imageBuildIngestProgress } from '../fn/image-build-ingest-controller/image-build-ingest-progress';
+import { ImageBuildIngestProgress$Params } from '../fn/image-build-ingest-controller/image-build-ingest-progress';
 
 @Injectable({ providedIn: 'root' })
 export class ImageBuildIngestControllerService extends BaseService {
   constructor(config: ApiConfiguration, http: HttpClient) {
     super(config, http);
+  }
+
+  /** Path part for operation `imageBuildIngestProgress()` */
+  static readonly ImageBuildIngestProgressPath = '/bff/internal/image-builds/{id}/progress';
+
+  /**
+   * Progress.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `imageBuildIngestProgress()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  imageBuildIngestProgress$Response(params: ImageBuildIngestProgress$Params, context?: HttpContext): Promise<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    const obs = imageBuildIngestProgress(this.http, this.rootUrl, params, context);
+    return firstValueFrom(obs);
+  }
+
+  /**
+   * Progress.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `imageBuildIngestProgress$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  imageBuildIngestProgress(params: ImageBuildIngestProgress$Params, context?: HttpContext): Promise<{
+[key: string]: {
+};
+}> {
+    const resp = this.imageBuildIngestProgress$Response(params, context);
+    return resp.then((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body);
   }
 
   /** Path part for operation `imageBuildIngestIngest()` */

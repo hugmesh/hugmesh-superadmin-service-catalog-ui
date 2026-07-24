@@ -12,6 +12,7 @@ import { DeviceSshDialResponse } from '../../models/device-ssh-dial-response';
 export interface DesktopDialAdminRevoke$Params {
   deviceId: string;
   'X-Device-Terminal-StepUp'?: string;
+  Authorization?: string;
 }
 
 export function desktopDialAdminRevoke(http: HttpClient, rootUrl: string, params: DesktopDialAdminRevoke$Params, context?: HttpContext): Observable<StrictHttpResponse<DeviceSshDialResponse>> {
@@ -19,6 +20,7 @@ export function desktopDialAdminRevoke(http: HttpClient, rootUrl: string, params
   if (params) {
     rb.path('deviceId', params.deviceId, {});
     rb.header('X-Device-Terminal-StepUp', params['X-Device-Terminal-StepUp'], {});
+    rb.header('Authorization', params.Authorization, {});
   }
 
   return http.request(

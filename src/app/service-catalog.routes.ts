@@ -4,6 +4,7 @@ import { ServiceCatalogCurationComponent } from './service-catalog-curation.comp
 import { ServiceCatalogProfilesComponent } from './service-catalog-profiles.component';
 import { ServiceCatalogDeploymentsComponent } from './service-catalog-deployments.component';
 import { ServiceCatalogAddServiceComponent } from './service-catalog-add-service.component';
+import { ServiceCatalogCreateServiceComponent } from './service-catalog-create-service.component';
 import { ServiceCatalogForbiddenComponent } from './service-catalog-forbidden.component';
 import { superadminGuard } from './service-catalog.guard';
 
@@ -17,9 +18,10 @@ import { superadminGuard } from './service-catalog.guard';
  * reaches the bundle still lands on the forbidden screen.
  *
  * View → role gate (mirrors hugmesh-admin-bff-api serviceCatalog controllers):
- *   ''            ServiceCatalogConsole      — shell + nav (gated to SUPERADMIN by the children)
- *   add           ServiceCatalogAddService   — provision a deployment via one of the 4 sources (superadminGuard)
- *   curation      ServiceCatalogCuration     — per-domain offered catalog (superadminGuard)
+ *   ''            ServiceCatalogConsole        — shell + nav (gated to SUPERADMIN by the children)
+ *   add           ServiceCatalogAddService     — provision a deployment via one of the 4 sources (superadminGuard)
+ *   create        ServiceCatalogCreateService  — create-and-federate a brand-new service (scaffold wizard, superadminGuard)
+ *   curation      ServiceCatalogCuration       — per-domain offered catalog (superadminGuard)
  *   profiles      ServiceCatalogProfiles     — app_profile deploy-template CRUD (superadminGuard)
  *   deployments   ServiceCatalogDeployments  — service_deployment accounting (superadminGuard)
  *   forbidden     ServiceCatalogForbidden    — the within-service privilege-boundary screen
@@ -35,6 +37,7 @@ export const SERVICE_CATALOG_ROUTES: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'add' },
       { path: 'add', component: ServiceCatalogAddServiceComponent, canActivate: [superadminGuard] },
+      { path: 'create', component: ServiceCatalogCreateServiceComponent, canActivate: [superadminGuard] },
       { path: 'curation', component: ServiceCatalogCurationComponent, canActivate: [superadminGuard] },
       { path: 'profiles', component: ServiceCatalogProfilesComponent, canActivate: [superadminGuard] },
       { path: 'deployments', component: ServiceCatalogDeploymentsComponent, canActivate: [superadminGuard] },

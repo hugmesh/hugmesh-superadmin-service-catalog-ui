@@ -12,6 +12,7 @@ import { DataBuffer } from '../../models/data-buffer';
 export interface ImageBuildKeys$Params {
   id: string;
   'X-ImageGen-StepUp'?: string;
+  Authorization?: string;
 }
 
 export function imageBuildKeys(http: HttpClient, rootUrl: string, params: ImageBuildKeys$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<DataBuffer>>> {
@@ -19,6 +20,7 @@ export function imageBuildKeys(http: HttpClient, rootUrl: string, params: ImageB
   if (params) {
     rb.path('id', params.id, {});
     rb.header('X-ImageGen-StepUp', params['X-ImageGen-StepUp'], {});
+    rb.header('Authorization', params.Authorization, {});
   }
 
   return http.request(

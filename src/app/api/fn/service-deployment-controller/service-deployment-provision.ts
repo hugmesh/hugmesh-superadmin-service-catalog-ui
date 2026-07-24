@@ -7,8 +7,8 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { ProvisionOutcome } from '../../models/provision-outcome';
 import { ProvisionServiceRequest } from '../../models/provision-service-request';
-import { ServiceDeployment } from '../../models/service-deployment';
 
 export interface ServiceDeploymentProvision$Params {
   domain: string;
@@ -16,7 +16,7 @@ export interface ServiceDeploymentProvision$Params {
       body: ProvisionServiceRequest
 }
 
-export function serviceDeploymentProvision(http: HttpClient, rootUrl: string, params: ServiceDeploymentProvision$Params, context?: HttpContext): Observable<StrictHttpResponse<ServiceDeployment>> {
+export function serviceDeploymentProvision(http: HttpClient, rootUrl: string, params: ServiceDeploymentProvision$Params, context?: HttpContext): Observable<StrictHttpResponse<ProvisionOutcome>> {
   const rb = new RequestBuilder(rootUrl, serviceDeploymentProvision.PATH, 'post');
   if (params) {
     rb.path('domain', params.domain, {});
@@ -29,7 +29,7 @@ export function serviceDeploymentProvision(http: HttpClient, rootUrl: string, pa
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<ServiceDeployment>;
+      return r as StrictHttpResponse<ProvisionOutcome>;
     })
   );
 }

@@ -11,13 +11,18 @@ import { StrictHttpResponse } from '../strict-http-response';
 
 import { domainRegistryCreate } from '../fn/domain-registry-controller/domain-registry-create';
 import { DomainRegistryCreate$Params } from '../fn/domain-registry-controller/domain-registry-create';
+import { domainRegistryExport } from '../fn/domain-registry-controller/domain-registry-export';
+import { DomainRegistryExport$Params } from '../fn/domain-registry-controller/domain-registry-export';
 import { domainRegistryGet } from '../fn/domain-registry-controller/domain-registry-get';
 import { DomainRegistryGet$Params } from '../fn/domain-registry-controller/domain-registry-get';
 import { domainRegistryList } from '../fn/domain-registry-controller/domain-registry-list';
 import { DomainRegistryList$Params } from '../fn/domain-registry-controller/domain-registry-list';
+import { domainRegistryStatus } from '../fn/domain-registry-controller/domain-registry-status';
+import { DomainRegistryStatus$Params } from '../fn/domain-registry-controller/domain-registry-status';
 import { domainRegistryUpdate } from '../fn/domain-registry-controller/domain-registry-update';
 import { DomainRegistryUpdate$Params } from '../fn/domain-registry-controller/domain-registry-update';
 import { DomainResponse } from '../models/domain-response';
+import { SignedDomainExport } from '../models/signed-domain-export';
 
 @Injectable({ providedIn: 'root' })
 export class DomainRegistryControllerService extends BaseService {
@@ -155,6 +160,72 @@ export class DomainRegistryControllerService extends BaseService {
   domainRegistryCreate(params: DomainRegistryCreate$Params, context?: HttpContext): Promise<DomainResponse> {
     const resp = this.domainRegistryCreate$Response(params, context);
     return resp.then((r: StrictHttpResponse<DomainResponse>): DomainResponse => r.body);
+  }
+
+  /** Path part for operation `domainRegistryStatus()` */
+  static readonly DomainRegistryStatusPath = '/bff/admin/domains/status';
+
+  /**
+   * Status.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `domainRegistryStatus()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  domainRegistryStatus$Response(params?: DomainRegistryStatus$Params, context?: HttpContext): Promise<StrictHttpResponse<Array<DomainResponse>>> {
+    const obs = domainRegistryStatus(this.http, this.rootUrl, params, context);
+    return firstValueFrom(obs);
+  }
+
+  /**
+   * Status.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `domainRegistryStatus$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  domainRegistryStatus(params?: DomainRegistryStatus$Params, context?: HttpContext): Promise<Array<DomainResponse>> {
+    const resp = this.domainRegistryStatus$Response(params, context);
+    return resp.then((r: StrictHttpResponse<Array<DomainResponse>>): Array<DomainResponse> => r.body);
+  }
+
+  /** Path part for operation `domainRegistryExport()` */
+  static readonly DomainRegistryExportPath = '/bff/admin/domains/export';
+
+  /**
+   * Export.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `domainRegistryExport()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  domainRegistryExport$Response(params?: DomainRegistryExport$Params, context?: HttpContext): Promise<StrictHttpResponse<SignedDomainExport>> {
+    const obs = domainRegistryExport(this.http, this.rootUrl, params, context);
+    return firstValueFrom(obs);
+  }
+
+  /**
+   * Export.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `domainRegistryExport$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  domainRegistryExport(params?: DomainRegistryExport$Params, context?: HttpContext): Promise<SignedDomainExport> {
+    const resp = this.domainRegistryExport$Response(params, context);
+    return resp.then((r: StrictHttpResponse<SignedDomainExport>): SignedDomainExport => r.body);
   }
 
 }

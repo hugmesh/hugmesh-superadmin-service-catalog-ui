@@ -6,6 +6,7 @@ import { AppProfileControllerService } from './api/services/app-profile-controll
 import { ServiceDeploymentControllerService } from './api/services/service-deployment-controller.service';
 import { AdminServiceStoreControllerService } from './api/services/admin-service-store-controller.service';
 import { ServiceCatalogBuilderControllerService } from './api/services/service-catalog-builder-controller.service';
+import { ServiceStoreWizardControllerService } from './api/services/service-store-wizard-controller.service';
 
 /** Base URL of the admin BFF. The fe-gateway proxies same-origin /bff/** to
  *  hugmesh-admin-bff-api, so the default is the empty string = same origin.
@@ -171,6 +172,110 @@ export interface ProvisionService {
   targetRevision?: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// CREATE-AND-FEDERATE WIZARD — the SUPERADMIN scaffold + federate surface
+// (admin-bff ServiceStoreWizardController, /bff/superadmin/service-store/**). The
+// wizard SCAFFOLDS a starter codebase from an embedded archetype catalog, records
+// the intent, and (optionally) FEDERATES the deployment's UI into the federation
+// manifest. Both scaffold + federate are step-up-gated (X-ServiceStore-StepUp).
+// ---------------------------------------------------------------------------
+
+/** ScaffoldArchetype — one embedded starter-codebase template offered by
+ *  GET .../scaffold/archetypes. `kind` is the archetype family
+ *  (backend|remote-shell|host|fragment); the spring-bff archetype relocates a Java
+ *  package, so its derived slug must be Java-package-safe (see {@link ARCHETYPE_JAVA_PACKAGE}). */
+export interface ScaffoldArchetype {
+  name: string;
+  displayName: string;
+  description: string;
+  kind: string;
+}
+
+/** ServiceScaffold — a service_scaffold row: the persisted per-{domain} scaffold intent
+ *  (state = 'requested' | 'archived'). */
+export interface ServiceScaffold {
+  id: string;
+  domain: string;
+  serviceKey: string;
+  archetype: string;
+  displayName: string | null;
+  mountAt: string | null;
+  requiresRole: string | null;
+  state: string;
+  createdBySubject: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Body for scaffold create — POST .../{domain}/scaffold. Mirrors the admin-bff
+ *  ScaffoldServiceRequest: serviceKey (@NotBlank @Size(128)), displayName (nullable),
+ *  archetype (@Pattern ^[a-z0-9-]{1,64}$, a catalog member), mountAt (nullable,
+ *  @Pattern ^/[A-Za-z0-9/_-]*$), requiresRole (nullable @Size(32)). */
+export interface ScaffoldRequest {
+  serviceKey: string;
+  displayName?: string | null;
+  archetype: string;
+  mountAt?: string | null;
+  requiresRole?: string | null;
+}
+
+/** Body for federate — POST .../deployments/{id}/federate. Mirrors the admin-bff
+ *  FederateServiceRequest: slug (@Pattern ^[a-z0-9-]{1,64}$), mountAt (@Pattern
+ *  ^/[A-Za-z0-9/_-]*$), exposedModule (e.g. ./routes), remoteEntryUrl (validated like
+ *  repoUrl), kind (default remote-shell), visibility (default internal), requiresRole. */
+export interface FederateRequest {
+  slug: string;
+  mountAt: string;
+  exposedModule: string;
+  remoteEntryUrl: string;
+  kind?: string | null;
+  visibility?: string | null;
+  requiresRole?: string | null;
+}
+
+/** FederateOutcome — POST .../federate result. `federationReal` is false while the
+ *  federation registration ships dark (app.appstore.federation.enabled=false — the
+ *  NoopFederationModuleClient makes no real registration); `gitopsDescriptorPending` is
+ *  always true until the GitOps descriptor automation exists. The wizard renders BOTH
+ *  honestly (never fakes a real federation). */
+export interface FederateOutcome {
+  deployment: ServiceDeployment | null;
+  federationReal: boolean;
+  gitopsDescriptorPending: boolean;
+}
+
+/** FederationStatus — GET .../federation. `enabled` is whether the federation
+ *  registration is REAL (the RestFederationModuleClient is wired); `warnings` carries the
+ *  ships-dark explanation when it is not. */
+export interface FederationStatus {
+  enabled: boolean;
+  warnings: string[];
+}
+
+/** The DNS-label / k8s slug of a serviceKey — mirrors the admin-bff PerServiceIdentity.slug
+ *  used to derive APP_SLUG + the default federation slug. Lowercase, dots→'-', any other
+ *  char→'-', collapsed + trimmed; empty → 'x'. */
+export function serviceSlug(raw: string): string {
+  const s = (raw ?? '')
+    .toLowerCase()
+    .replace(/\./g, '-')
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/(^-+)|(-+$)/g, '');
+  return s.length === 0 ? 'x' : s;
+}
+
+/** The archetype names whose rendered APP_SLUG must be Java-package-safe (^[a-z0-9]+$,
+ *  no hyphens) — mirrors admin-bff ScaffoldCatalog.JAVA_PACKAGE_ARCHETYPES. The wizard
+ *  surfaces this constraint before submit so the operator isn't surprised by the bff 400. */
+export const ARCHETYPE_JAVA_PACKAGE: readonly string[] = ['spring-bff'] as const;
+
+/** True when the archetype relocates a Java package, so the derived slug must be
+ *  ^[a-z0-9]+$ (no hyphens). */
+export function archetypeNeedsJavaPackageSlug(archetype: string): boolean {
+  return ARCHETYPE_JAVA_PACKAGE.includes(archetype);
+}
+
 /** A typed error the service raises so components can surface the EXACT failure
  *  the bff returned — in particular the 403 the SUPERADMIN gate returns (the
  *  canonical default-deny signal), the 404 (a profile/deployment that is gone),
@@ -202,6 +307,15 @@ export class ServiceCatalogApiError extends Error {
    *  reason, which the UI surfaces verbatim. */
   get isBadRequest(): boolean {
     return this.status === 400;
+  }
+  /** A step-up-required 403 — the ServiceStoreStepUpGate on the scaffold/federate
+   *  writes. The platform's contract is a 403 whose message contains "requires
+   *  step-up" (there is no separate structured signal — the free-text phrase IS the
+   *  contract, matched narrowly so an ordinary superadmin-denial 403, which never
+   *  carries that phrase, is NOT mistaken for it). The wizard offers the step-up
+   *  token challenge + retry instead of a bare error. */
+  get isStepUpRequired(): boolean {
+    return this.status === 403 && /requires step-up/i.test(this.message);
   }
 }
 
@@ -243,6 +357,7 @@ export class ServiceCatalogService {
   private readonly deploymentApi = inject(ServiceDeploymentControllerService);
   private readonly adminApi = inject(AdminServiceStoreControllerService);
   private readonly builderApi = inject(ServiceCatalogBuilderControllerService);
+  private readonly wizardApi = inject(ServiceStoreWizardControllerService);
 
   constructor() {
     // Point every generated client at the configured base (default '' = same
@@ -253,6 +368,7 @@ export class ServiceCatalogService {
     this.deploymentApi.rootUrl = this.base;
     this.adminApi.rootUrl = this.base;
     this.builderApi.rootUrl = this.base;
+    this.wizardApi.rootUrl = this.base;
   }
 
   /** Map a caught error to a {@link ServiceCatalogApiError} so the 400/403/404/409
@@ -459,6 +575,106 @@ export class ServiceCatalogService {
       };
     } catch (e) {
       return this.toApiError('GET', '/bff/superadmin/service-store/builder', e);
+    }
+  }
+
+  // ----- CREATE-AND-FEDERATE WIZARD (SUPERADMIN): /bff/superadmin/service-store/** ---
+
+  /** GET /bff/superadmin/service-store/scaffold/archetypes → {@link ScaffoldArchetype}[] —
+   *  the embedded starter-codebase catalog the archetype step renders as cards. */
+  async listArchetypes(): Promise<ScaffoldArchetype[]> {
+    try {
+      const rows = await this.wizardApi.serviceScaffoldArchetypes();
+      return (rows ?? []).map((a) => ({
+        name: a.name ?? '',
+        displayName: a.displayName ?? a.name ?? '',
+        description: a.description ?? '',
+        kind: a.kind ?? '',
+      }));
+    } catch (e) {
+      return this.toApiError('GET', '/bff/superadmin/service-store/scaffold/archetypes', e);
+    }
+  }
+
+  /** POST /bff/superadmin/service-store/{domain}/scaffold {serviceKey, displayName?,
+   *  archetype, mountAt?, requiresRole?} → {@link ServiceScaffold} (201) — mint the starter
+   *  codebase intent. STEP-UP-GATED: a fresh token is carried in the X-ServiceStore-StepUp
+   *  header; a missing/invalid one is a 403 with the "requires step-up" contract
+   *  ({@link ServiceCatalogApiError.isStepUpRequired}). A bad archetype / non-package-safe
+   *  slug is a 400 whose message is surfaced verbatim. */
+  async createScaffold(
+    domain: string,
+    body: ScaffoldRequest,
+    stepUpToken?: string,
+  ): Promise<ServiceScaffold> {
+    try {
+      const row = await this.wizardApi.serviceScaffoldCreate({
+        domain,
+        'X-ServiceStore-StepUp': stepUpToken?.trim() || undefined,
+        body: body as any,
+      });
+      return row as unknown as ServiceScaffold;
+    } catch (e) {
+      return this.toApiError('POST', `/bff/superadmin/service-store/${domain}/scaffold`, e);
+    }
+  }
+
+  /** The direct, same-origin GET href for the rendered scaffold archive
+   *  (application/zip). The download rides the HttpOnly bff_ cookie, so a plain
+   *  anchor href works — no in-JS blob fetch needed. */
+  scaffoldArchiveUrl(domain: string, id: string): string {
+    return (
+      `${this.base}/bff/superadmin/service-store/` +
+      `${encodeURIComponent(domain)}/scaffold/${encodeURIComponent(id)}/archive`
+    );
+  }
+
+  /** POST /bff/superadmin/service-store/{domain}/deployments/{id}/federate {slug, mountAt,
+   *  exposedModule, remoteEntryUrl, kind?, visibility?, requiresRole?} → {@link FederateOutcome}
+   *  — register the deployment's UI into the federation manifest. STEP-UP-GATED (same
+   *  X-ServiceStore-StepUp contract as scaffold). The outcome reports federationReal +
+   *  gitopsDescriptorPending HONESTLY (both dark/pending by default) — the wizard renders
+   *  them as explicit notices, never faking a real federation. */
+  async federateDeployment(
+    domain: string,
+    id: string,
+    body: FederateRequest,
+    stepUpToken?: string,
+  ): Promise<FederateOutcome> {
+    try {
+      const out = await this.wizardApi.serviceDeploymentFederate({
+        domain,
+        id,
+        'X-ServiceStore-StepUp': stepUpToken?.trim() || undefined,
+        body: body as any,
+      });
+      return {
+        deployment: (out?.deployment as unknown as ServiceDeployment) ?? null,
+        federationReal: Boolean(out?.federationReal),
+        gitopsDescriptorPending: out?.gitopsDescriptorPending !== false,
+      };
+    } catch (e) {
+      return this.toApiError(
+        'POST',
+        `/bff/superadmin/service-store/${domain}/deployments/${id}/federate`,
+        e,
+      );
+    }
+  }
+
+  /** GET /bff/superadmin/service-store/federation → {@link FederationStatus} — the LIVE
+   *  federate-leg pre-flight the federation step consults: `enabled` false (with a
+   *  ships-dark `warnings` entry) means a federate call still records the intent but makes
+   *  no real manifest registration. */
+  async federationStatus(): Promise<FederationStatus> {
+    try {
+      const body = await this.wizardApi.serviceCatalogFederationStatus();
+      return {
+        enabled: Boolean((body as any)?.enabled),
+        warnings: Array.isArray((body as any)?.warnings) ? (body as any).warnings : [],
+      };
+    } catch (e) {
+      return this.toApiError('GET', '/bff/superadmin/service-store/federation', e);
     }
   }
 }

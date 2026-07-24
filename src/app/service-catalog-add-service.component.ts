@@ -7,26 +7,12 @@ import {
   AppProfile,
   ProvisionService,
   ServiceSourceKind,
-  SERVICE_SOURCE_KINDS,
   requiresBuilder,
   builderReady as isBuilderReady,
   BuilderStatus,
   ServiceCatalogApiError,
 } from './service-catalog.service';
-
-/** A source-kind option rendered in the radio group: the four Service Catalog sources
- *  with their copy + the builder-gated flag (DOCKERFILE/ZIP). */
-interface SourceOption {
-  kind: ServiceSourceKind;
-  label: string;
-  /** One-line description of what the source provisions from. */
-  blurb: string;
-  /** True when the source needs the in-cluster Kaniko builder (DOCKERFILE/ZIP) AND
-   *  the LIVE pre-flight ({@link ServiceCatalogAddServiceComponent.builderIsReady})
-   *  hasn't confirmed one is actually available — the option is disabled with
-   *  helptext until it is. */
-  builderGated: boolean;
-}
+import { SourceOption, buildSourceOptions } from './service-source-options';
 
 /**
  * The ADD-A-SERVICE view — the SUPERADMIN flow that drives a per-domain
@@ -115,12 +101,7 @@ export class ServiceCatalogAddServiceComponent {
    *  recomputed whenever the live builder pre-flight resolves — DOCKERFILE/ZIP un-gate
    *  the moment {@link builderIsReady} confirms a real build is possible. */
   readonly sourceOptions = computed<readonly SourceOption[]>(() =>
-    SERVICE_SOURCE_KINDS.map((kind) => ({
-      kind,
-      label: SOURCE_LABELS[kind],
-      blurb: SOURCE_BLURBS[kind],
-      builderGated: requiresBuilder(kind) && !this.builderIsReady(),
-    })),
+    buildSourceOptions(this.builderIsReady()),
   );
 
   /** The currently-selected deployment row (or null). */
@@ -280,17 +261,3 @@ export class ServiceCatalogAddServiceComponent {
     return 'Could not provision the service. Please try again.';
   }
 }
-
-const SOURCE_LABELS: Record<ServiceSourceKind, string> = {
-  SELECT: 'Catalog (select)',
-  GIT: 'Git / GitLab URL',
-  DOCKERFILE: 'Dockerfile',
-  ZIP: 'Zip repo upload',
-};
-
-const SOURCE_BLURBS: Record<ServiceSourceKind, string> = {
-  SELECT: 'A curated catalog tile referencing a pre-built image. Deploys today.',
-  GIT: 'A git/GitLab repo that builds its own image via its own CI. Deploys today.',
-  DOCKERFILE: 'A dropped Dockerfile built in-cluster first. Needs the Kaniko builder.',
-  ZIP: 'An uploaded zip-as-repo built in-cluster first. Needs the Kaniko builder.',
-};

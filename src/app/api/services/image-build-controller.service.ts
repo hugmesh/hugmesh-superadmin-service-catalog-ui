@@ -23,6 +23,8 @@ import { imageBuildKeys } from '../fn/image-build-controller/image-build-keys';
 import { ImageBuildKeys$Params } from '../fn/image-build-controller/image-build-keys';
 import { imageBuildTrigger } from '../fn/image-build-controller/image-build-trigger';
 import { ImageBuildTrigger$Params } from '../fn/image-build-controller/image-build-trigger';
+import { imageBuildTriggerBatch } from '../fn/image-build-controller/image-build-trigger-batch';
+import { ImageBuildTriggerBatch$Params } from '../fn/image-build-controller/image-build-trigger-batch';
 import { ServerSentEventImageBuildEvent } from '../models/server-sent-event-image-build-event';
 
 @Injectable({ providedIn: 'root' })
@@ -112,6 +114,51 @@ export class ImageBuildControllerService extends BaseService {
 };
 }> {
     const resp = this.imageBuildTrigger$Response(params, context);
+    return resp.then((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body);
+  }
+
+  /** Path part for operation `imageBuildTriggerBatch()` */
+  static readonly ImageBuildTriggerBatchPath = '/bff/admin/image-builds/batch';
+
+  /**
+   * Trigger batch.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `imageBuildTriggerBatch()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  imageBuildTriggerBatch$Response(params: ImageBuildTriggerBatch$Params, context?: HttpContext): Promise<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    const obs = imageBuildTriggerBatch(this.http, this.rootUrl, params, context);
+    return firstValueFrom(obs);
+  }
+
+  /**
+   * Trigger batch.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `imageBuildTriggerBatch$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  imageBuildTriggerBatch(params: ImageBuildTriggerBatch$Params, context?: HttpContext): Promise<{
+[key: string]: {
+};
+}> {
+    const resp = this.imageBuildTriggerBatch$Response(params, context);
     return resp.then((r: StrictHttpResponse<{
 [key: string]: {
 };
