@@ -4,8 +4,10 @@ The **Superadmin Service Catalog console** — an Angular **native-federation re
 the `hugmesh.systems` host mounts at the apex path **`/service-catalog`**. It is the
 SUPERADMIN console that makes the `hugmesh-admin-bff-api` Service Catalog **data
 layer** (PR #56, `feat/superadmin-service-catalog-data-layer`) usable: per-domain service
-**curation**, **app-profile** deploy-template CRUD, and **service-deployment**
-lifecycle **accounting**.
+**curation**, **app-profile** deploy-template CRUD, **service-deployment**
+lifecycle **accounting**, and (PR #24) a **create-and-federate wizard** that scaffolds a
+brand-new service from a starter archetype and optionally registers its UI into the
+federation manifest.
 
 ## Federation contract
 
@@ -146,6 +148,11 @@ in-remote target.)
 | `POST` | `/bff/superadmin/service-store/{domain}/deployments/{id}/provision` | `{sourceKind, repoUrl, path?, targetRevision?}` | SUPERADMIN |
 | `GET` | `/bff/admin/service-store` | — | ADMIN \| SUPERADMIN |
 | `GET` | `/bff/superadmin/service-store/builder` | — | SUPERADMIN |
+| `GET` | `/bff/superadmin/service-store/scaffold/archetypes` | — | SUPERADMIN |
+| `POST` | `/bff/superadmin/service-store/{domain}/scaffold` | `{serviceKey, displayName?, archetype, mountAt?, requiresRole?}` (`X-ServiceStore-StepUp`) | SUPERADMIN |
+| `GET` | `/bff/superadmin/service-store/{domain}/scaffold/{id}/archive` | — (`application/zip`) | SUPERADMIN |
+| `POST` | `/bff/superadmin/service-store/{domain}/deployments/{id}/federate` | `{slug, mountAt, exposedModule, remoteEntryUrl, kind?, visibility?, requiresRole?}` (`X-ServiceStore-StepUp`) | SUPERADMIN |
+| `GET` | `/bff/superadmin/service-store/federation` | — | SUPERADMIN |
 
 The `/provision` row is the **Service Catalog effector** (hugmesh-admin-bff-api PR #67,
 `feat/superadmin-service-catalog-effector`, merged): it drives an existing
@@ -166,6 +173,20 @@ flag AND a live, fail-safe x86 build-node probe. The Add-a-service view consults
 (alongside `requiresBuilder()`, the static per-kind fact) to un-gate `DOCKERFILE`/`ZIP`
 the moment a real build is actually possible, instead of leaving them statically
 disabled forever. A failed/loading pre-flight fails safe (never a faked "ready").
+
+The `scaffold`/`archive`/`federate`/`federation` rows are the **create-and-federate
+wizard** surface (`ServiceStoreWizardController`, PR #24). `POST .../scaffold` and
+`POST .../deployments/{id}/federate` are **step-up-gated**: each call carries a fresh
+token in the `X-ServiceStore-StepUp` header, and a missing/expired one comes back as a
+403 with the platform "requires step-up" contract (`ServiceCatalogApiError.isStepUpRequired`)
+rather than an ordinary superadmin-denial 403. `GET .../scaffold/{id}/archive` streams the
+rendered starter codebase as a zip over the same `bff_` cookie (a plain anchor href, no
+in-JS blob fetch). `POST .../federate` returns `{deployment, federationReal,
+gitopsDescriptorPending}` **honestly** — both flags are dark/pending by default (the bff's
+`NoopFederationModuleClient` makes no real manifest registration yet), and the wizard
+renders that as an explicit notice rather than faking success. `GET .../federation` is the
+live pre-flight the federation step consults up front (`enabled` + `warnings`), mirroring
+how the builder pre-flight gates DOCKERFILE/ZIP.
 
 The `{domain}` is always the explicit **path** target (never a body field) — the
 infra control plane picks the brand. The two-tier admin read resolves the domain
@@ -189,6 +210,27 @@ from the validated JWT issuer, never the request.
   bff's authoritative `400` is surfaced verbatim. `repoUrl` is required (the bff
   `@NotBlank`); `path`/`targetRevision` are optional. The `{domain}` and `{id}`
   are the explicit PATH targets.
+- **Create service** (PR #24) — a five-step wizard (**Identity → Archetype → Source →
+  Federation → Review & apply**) that stands up a brand-new service from scratch and
+  optionally federates its UI, over the `ServiceStoreWizardController`:
+  - **Identity** — domain, `serviceKey`, display name, optional app-profile reference.
+  - **Archetype** — pick a starter codebase from the embedded catalog
+    (`GET .../scaffold/archetypes`); the view validates the derived slug against the
+    per-archetype rule (e.g. the spring-bff archetype needs a Java-package-safe
+    `^[a-z0-9]+$` slug) before submit.
+  - **Source** — the same four SELECT/GIT/DOCKERFILE/ZIP options as Add a service,
+    sharing the exact same live builder pre-flight gating (`service-source-options.ts`).
+  - **Federation** — slug/mountAt/exposedModule/remoteEntryUrl/visibility/requiresRole,
+    with the live `GET .../federation` pre-flight shown as a ships-dark note when
+    registration isn't real yet.
+  - **Review & apply** — an optional "offer to the domain catalog" toggle, then runs the
+    apply chain **sequentially**, each step surfaced with its own status: offer? → record
+    deployment → scaffold → \[archive download link] → provision → federate. `scaffold`
+    and `federate` are **step-up-gated**: a 403 with the "requires step-up" contract pauses
+    the chain and shows a token challenge; confirming a token **resumes the same chain**
+    from the paused step. A bff `400` is surfaced verbatim, and the federate outcome's
+    `federationReal=false` / `gitopsDescriptorPending=true` are rendered as explicit
+    pending/dark notices — the wizard never fakes success.
 - **Curation** — type/select a domain, load its offered catalog, and offer or
   withdraw a `service_key` for it. Shows the current offered set per domain.
 - **App profiles** — CRUD the global deploy-template library (a name + a JSON
@@ -261,12 +303,19 @@ is defence-in-depth.
 ## Current State
 
 - **Console shipped** — the SUPERADMIN Service Catalog remote (Add a service /
-  Curation / App profiles / Deployments) is wired against the committed PR #56
-  data-layer surface and the committed `openapi.json` typed client; karma tests +
-  the Playwright/BDD e2e harness (wave 2b) are merged to `main`. All 29 e2e
+  Create service / Curation / App profiles / Deployments) is wired against the
+  committed PR #56 data-layer surface and the committed `openapi.json` typed client;
+  karma tests + the Playwright/BDD e2e harness (wave 2b) are merged to `main`. All 29 e2e
   scenarios are tagged `@cluster` and **SKIP** unless `E2E_CLUSTER=1` (the remote
   served at a `baseURL` + a reachable admin-bff `/bff/superadmin/service-store`).
   The offline contract is proven by the Karma specs.
+- **Create-and-federate wizard shipped, scaffold + federate ship dark** (PR #24) —
+  the five-step wizard's apply chain runs for real (offer/record/provision are the
+  same live calls as "Add a service"), but `scaffold` and `federate` are step-up-gated
+  and their outcomes are honestly reported as dark: the archive is a real rendered
+  zip, but `federateDeployment()`'s result always carries `gitopsDescriptorPending`
+  until the GitOps descriptor automation exists, and `federationReal` stays `false`
+  until the admin-bff's `NoopFederationModuleClient` is swapped for the real one.
 - **Effector wired, ships dark** — `/provision` drives the Casdoor role +
   `gateway_route_access` leg; the real ArgoCD apply is behind a `NoopArgoCdClient`
   until the effector is enabled. `SELECT` and `GIT` provision today.
@@ -316,6 +365,10 @@ is defence-in-depth.
   (resource/role/cert/exposure defaults) instead of storing it opaque.
 - **MFA step-up** — superadmin Service Catalog mutations (offer/withdraw/provision)
   are candidate step-up actions under the platform MFA rollout (WebAuthn+TOTP).
+- **Enable real federation registration** — swap the admin-bff's
+  `NoopFederationModuleClient` for a real one (and land the GitOps descriptor
+  automation) so the create-and-federate wizard's `federate` step actually
+  registers a new remote's UI instead of recording dark intent.
 
 ## Known Gaps / TODO
 
@@ -326,7 +379,7 @@ Verified directly against the current source (not from the roadmap narrative alo
   per-kind fact (`src/app/service-catalog.service.ts:128-130`), but since PR #17
   it is combined with the LIVE `BuilderStatus`/`builderReady()` signal
   (`src/app/service-catalog.service.ts:132-158`, fetched by the
-  `builderStatus()` method at `:452-463`) to decide `opt.builderGated`;
+  `builderStatus()` method at `:567-577`) to decide `opt.builderGated`;
   the add-service form renders the gated options disabled with a help text that
   explains why (`src/app/service-catalog-add-service.component.html:103-141`).
   Only `SELECT`/`GIT` provision today, but the gate itself is now live/automatic,
@@ -336,6 +389,12 @@ Verified directly against the current source (not from the roadmap narrative alo
   ArgoCD `Application` apply; the UI states this explicitly rather than promising a
   live deploy (`src/app/service-catalog-add-service.component.ts:47-60`,
   `src/app/service-catalog.service.ts:411`).
+- **Create-service wizard's federate step ships dark — no real manifest registration
+  yet** — `federateDeployment()` (`src/app/service-catalog.service.ts:638-661`) always
+  returns `federationReal=false` while the bff's `NoopFederationModuleClient` is wired,
+  and `gitopsDescriptorPending=true` until the GitOps descriptor automation exists; the
+  wizard's Review & apply step renders both as explicit dark/pending notices rather than
+  a completed federation (`src/app/service-catalog-create-service.component.ts:482`).
 - **App-profile JSON is stored opaque, not yet parsed/validated for content** — the
   editor validates only that the value is well-formed JSON; a later effector is
   needed to resolve the resource/role/cert/exposure defaults it encodes
