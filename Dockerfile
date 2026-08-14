@@ -1,6 +1,6 @@
 # hugmesh-superadmin-service-catalog-ui — builds the Superadmin Service Catalog
 # native-federation REMOTE (src → dist/service-catalog/browser) and serves it via nginx
-# with CORS so the hugmesh.systems host can fetch its remoteEntry.json
+# with CORS so the hugmesh.net host can fetch its remoteEntry.json
 # cross-origin.
 #
 # Serves on :8080 to MATCH the federation-api service-catalog module registration:

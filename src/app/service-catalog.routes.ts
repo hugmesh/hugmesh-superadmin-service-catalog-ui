@@ -9,7 +9,7 @@ import { ServiceCatalogForbiddenComponent } from './service-catalog-forbidden.co
 import { superadminGuard } from './service-catalog.guard';
 
 /**
- * The exposed `./ServiceCatalog` module — mounted by the hugmesh.systems host at the
+ * The exposed `./ServiceCatalog` module — mounted by the hugmesh.net host at the
  * apex path /service-catalog (the federation-api serviceCatalog module row: mountAt '/service-catalog',
  * remote_entry_url http://hugmesh-superadmin-service-catalog-ui:8080/remoteEntry.json,
  * requiresRole 'superadmin', visibility internal). The host gates the WHOLE

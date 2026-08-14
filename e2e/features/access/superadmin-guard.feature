@@ -1,6 +1,6 @@
 # superadminGuard ALLOW / DENY matrix for the Superadmin Service Catalog console.
 #
-# The console is a host-mounted federated remote; the hugmesh.systems host
+# The console is a host-mounted federated remote; the hugmesh.net host
 # gates the WHOLE /service-catalog mount behind route-access superadmin. THESE in-remote
 # child guards (src/app/service-catalog.guard.ts) enforce the SAME boundary as
 # defence-in-depth: a non-superadmin who reaches the bundle still lands on the

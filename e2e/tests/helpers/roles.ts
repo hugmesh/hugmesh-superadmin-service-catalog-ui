@@ -147,7 +147,7 @@ export function passwordFor(user: SeedUser): string {
  * /bff/admin/service-store two-tier read).
  *
  * Unlike {@link loginAs} (which only seeds `localStorage['hug.session']`), this
- * drives the hugmesh.systems host shell's federated login remote so the
+ * drives the hugmesh.net host shell's federated login remote so the
  * gateway sets the HttpOnly `bff_` cookie via Set-Cookie. The `bffAuthInterceptor`
  * sends that cookie (`withCredentials`) on every request, so a subsequent
  * `provision` / `offer` / `record` / profile write actually authenticates —

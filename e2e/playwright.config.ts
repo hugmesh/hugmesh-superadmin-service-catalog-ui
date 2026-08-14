@@ -5,7 +5,7 @@ import { defineBddConfig } from 'playwright-bdd';
 // (`ng serve service-catalog` mounts SERVICE_CATALOG_ROUTES at /service-catalog — see src/app/app.routes.ts)
 // so the e2e harness drives the SAME mount path the host uses, which makes the
 // in-remote guard redirect to /service-catalog/forbidden resolve identically here and
-// under the hugmesh.systems host.
+// under the hugmesh.net host.
 const baseURL = process.env.E2E_BASE_URL ?? 'https://host.docker.internal:8443';
 
 // playwright-bdd compiles every .feature in features/ into a generated

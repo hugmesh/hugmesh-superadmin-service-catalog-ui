@@ -1,7 +1,7 @@
 // Real host-shell Casdoor login steps — the HONEST path for every scenario that
 // makes a server-authoritative BFF call (all /bff/superadmin/** reads + writes and
 // the /bff/admin/service-store two-tier read). See tests/helpers/roles.ts `login()`:
-// it drives the hugmesh.systems host's federated login remote so the gateway
+// it drives the hugmesh.net host's federated login remote so the gateway
 // sets the HttpOnly `bff_` cookie the bffAuthInterceptor rides. Contrast with the
 // seeded `loginAs()` (access-steps.ts) which is honest ONLY for pure client-side
 // guard/nav/session behaviour — a seeded session carries no `bff_` cookie, so a

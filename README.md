@@ -1,7 +1,7 @@
 # hugmesh-superadmin-service-catalog-ui
 
 The **Superadmin Service Catalog console** — an Angular **native-federation remote** that
-the `hugmesh.systems` host mounts at the apex path **`/service-catalog`**. It is the
+the `hugmesh.net` host mounts at the apex path **`/service-catalog`**. It is the
 SUPERADMIN console that makes the `hugmesh-admin-bff-api` Service Catalog **data
 layer** (PR #56, `feat/superadmin-service-catalog-data-layer`) usable: per-domain service
 **curation**, **app-profile** deploy-template CRUD, **service-deployment**
@@ -33,7 +33,7 @@ So this remote:
   gateway's `/service-catalog=superadmin` route-access gate and the Tailscale-VPN-only
   superadmin surface. It is **not** a public UI.
 
-`federation-base.js` is **byte-identical** to the `hugmesh.systems` host (the
+`federation-base.js` is **byte-identical** to the `hugmesh.net` host (the
 single source of truth for the shared-deps surface + RxJS skip list) so this
 remote can't drift from the host or the other HugMesh remotes.
 
@@ -47,7 +47,7 @@ builder pre-flight):
 ```mermaid
 flowchart TD
     subgraph Browser["Superadmin browser"]
-        Host["hugmesh.systems host shell"]
+        Host["hugmesh.net host shell"]
     end
 
     subgraph Remote["hugmesh-superadmin-service-catalog-ui (this repo, served on :8080)"]
