@@ -24,6 +24,12 @@
   --hug-text-muted:  #a8acc4; /*  8.77:1 AAA */
   --hug-accent:      #7c4dff; /* backgrounds/borders only — 3.22:1 as text */
   --hug-accent-soft: #b388ff; /*  7.38:1 AAA — use this for accent text */
+  --hug-accent-on:   #ffffff; /* text ON a filled accent — 4.81:1 vs #7c4dff (black
+                                 would be 4.36:1, so white is the correct pick here).
+                                 An injected theme re-picks pure #000/#fff by luminance,
+                                 which is the only way AA survives a retint: a hardcoded
+                                 white measures 1.16:1 on the nonbinary preset's #fcf434
+                                 and 1.25:1 on high-contrast's #00ffff. */
   --hug-success:     #4caf50;
   --hug-warning:     #ffb74d;
   --hug-error:       #ff6b6b;
@@ -36,6 +42,7 @@
   --service-catalog-text-muted:  var(--hug-text-muted);
   --service-catalog-accent:      var(--hug-accent);
   --service-catalog-accent-soft: var(--hug-accent-soft);
+  --service-catalog-accent-on:   var(--hug-accent-on, #ffffff);
   --service-catalog-success:     var(--hug-success);
   --service-catalog-warning:     var(--hug-warning);
   --service-catalog-error:       var(--hug-error);

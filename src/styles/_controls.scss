@@ -10,7 +10,13 @@
   padding: 0.5rem 1rem;
   border-radius: var(--service-catalog-radius);
   background: var(--service-catalog-accent);
-  color: #ffffff;
+  // Never a hardcoded hex on an accent FILL: the accent is operator-retintable, and the
+  // #ffffff this replaces failed AA on 24 of the 38 shipped presets (1.16:1 on the
+  // nonbinary flag's #fcf434, 1.25:1 on high-contrast's #00ffff — invisible label on a
+  // solid button). The token is pure #000/#fff auto-picked by luminance, so it clears AA
+  // for every sRGB accent. The #ffffff stays as the FALLBACK so an un-themed standalone
+  // build renders byte-identically to today (white is 4.81:1 on the shipped #7c4dff).
+  color: var(--service-catalog-accent-on, #ffffff);
   border: 1px solid var(--service-catalog-accent);
   text-decoration: none;
   font-weight: 600;
