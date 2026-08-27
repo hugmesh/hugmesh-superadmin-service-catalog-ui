@@ -5,3 +5,8 @@ results/
 node_modules/
 test-results/
 playwright-report/
+
+# run-state e2e credentials file (hugmesh-generator's `make stack-seed`
+# writes it; roles.ts's passwordFor() reads it) — never committed, this repo
+# only reads it but it can still land here depending on cwd.
+.e2e-credentials
