@@ -3,6 +3,7 @@ import { ServiceCatalogConsoleComponent } from './service-catalog-console.compon
 import { ServiceCatalogCurationComponent } from './service-catalog-curation.component';
 import { ServiceCatalogProfilesComponent } from './service-catalog-profiles.component';
 import { ServiceCatalogDeploymentsComponent } from './service-catalog-deployments.component';
+import { ServiceCatalogOptionalServicesComponent } from './service-catalog-optional-services.component';
 import { ServiceCatalogAddServiceComponent } from './service-catalog-add-service.component';
 import { ServiceCatalogCreateServiceComponent } from './service-catalog-create-service.component';
 import { ServiceCatalogForbiddenComponent } from './service-catalog-forbidden.component';
@@ -24,6 +25,9 @@ import { superadminGuard } from './service-catalog.guard';
  *   curation      ServiceCatalogCuration       — per-domain offered catalog (superadminGuard)
  *   profiles      ServiceCatalogProfiles     — app_profile deploy-template CRUD (superadminGuard)
  *   deployments   ServiceCatalogDeployments  — service_deployment accounting (superadminGuard)
+ *   optional-services ServiceCatalogOptionalServices — post-deploy on/off for the optional
+ *                 cluster services (superadminGuard). The second half of "an image ships with
+ *                 only its selected services UNTIL a superadmin enables others".
  *   forbidden     ServiceCatalogForbidden    — the within-service privilege-boundary screen
  *
  * The guard `false`-paths route to /service-catalog/forbidden (the IN-REMOTE mount-path
@@ -41,6 +45,11 @@ export const SERVICE_CATALOG_ROUTES: Routes = [
       { path: 'curation', component: ServiceCatalogCurationComponent, canActivate: [superadminGuard] },
       { path: 'profiles', component: ServiceCatalogProfilesComponent, canActivate: [superadminGuard] },
       { path: 'deployments', component: ServiceCatalogDeploymentsComponent, canActivate: [superadminGuard] },
+      {
+        path: 'optional-services',
+        component: ServiceCatalogOptionalServicesComponent,
+        canActivate: [superadminGuard],
+      },
       { path: 'forbidden', component: ServiceCatalogForbiddenComponent },
     ],
   },

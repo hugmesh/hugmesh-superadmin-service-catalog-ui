@@ -53,7 +53,7 @@ flowchart TD
     subgraph Remote["hugmesh-superadmin-service-catalog-ui (this repo, served on :8080)"]
         RE["remoteEntry.json exposes ./ServiceCatalog"]
         Guard["superadminGuard (SessionService.canManageStore)"]
-        Console["Console: Add a service / Curation / App profiles / Deployments"]
+        Console["Console: Add a service / Curation / App profiles / Deployments / Optional services"]
         Forbidden["Forbidden screen (/service-catalog/forbidden)"]
     end
 
@@ -67,6 +67,7 @@ flowchart TD
         Deploy["ServiceDeploymentController"]
         AdminRead["AdminServiceStoreController (two-tier read)"]
         BuilderCtl["ServiceCatalogBuilderController"]
+        OptSvc["OptionalService controller (CR patch)"]
         Effector["AddServiceEffector (PR #67)"]
     end
 
@@ -75,6 +76,7 @@ flowchart TD
         RouteAccess["gateway_route_access rule"]
         ArgoCD["ArgoCD Application (NoopArgoCdClient by default)"]
         Kaniko["Kaniko builder (x86 build-node probe)"]
+        OptSvcCr["OptionalService CR (ApplicationSet element + greying ConfigMap)"]
     end
 
     Host -->|"loadRemoteModule"| RE
@@ -93,6 +95,8 @@ flowchart TD
     Effector --> RouteAccess
     Effector -.->|"ships dark by default"| ArgoCD
     BuilderCtl --> Kaniko
+    Gateway --> OptSvc
+    OptSvc -.->|"reconciler ships dark"| OptSvcCr
 ```
 
 The `BuilderCtl`/`Kaniko` leg (`GET /bff/superadmin/service-store/builder`) is
@@ -153,6 +157,8 @@ in-remote target.)
 | `GET` | `/bff/superadmin/service-store/{domain}/scaffold/{id}/archive` | — (`application/zip`) | SUPERADMIN |
 | `POST` | `/bff/superadmin/service-store/{domain}/deployments/{id}/federate` | `{slug, mountAt, exposedModule, remoteEntryUrl, kind?, visibility?, requiresRole?}` (`X-ServiceStore-StepUp`) | SUPERADMIN |
 | `GET` | `/bff/superadmin/service-store/federation` | — | SUPERADMIN |
+| `GET` | `/bff/superadmin/optional-services` | — | SUPERADMIN |
+| `PUT` | `/bff/superadmin/optional-services/{slug}` | `{enabled, reason?}` | SUPERADMIN |
 
 The `/provision` row is the **Service Catalog effector** (hugmesh-admin-bff-api PR #67,
 `feat/superadmin-service-catalog-effector`, merged): it drives an existing
@@ -191,6 +197,25 @@ how the builder pre-flight gates DOCKERFILE/ZIP.
 The `{domain}` is always the explicit **path** target (never a body field) — the
 infra control plane picks the brand. The two-tier admin read resolves the domain
 from the validated JWT issuer, never the request.
+
+The two `optional-services` rows are the **post-deploy service toggle** (the
+`Optional services` view below). They are the ONLY calls in this service that do not go
+through the generated `ng-openapi-gen` client: the admin-bff handler landed after this
+repo's committed `openapi.json`, so `npm run gen:spec` cannot see it yet and
+`listOptionalServices()` / `setOptionalServiceEnabled()` call `HttpClient` directly. They
+hit the same same-origin `/bff/**` path through the same `bffAuthInterceptor`, and
+`service-catalog.service.spec.ts` asserts URL + method + body + credentials, so swapping
+them onto the generated client after the next `npm run gen:spec` is a no-op for the
+contract. **This UI half has not been exercised against a running admin-bff** — see
+"Known Gaps".
+
+The response shape this console reads is deliberately two-valued per service:
+`enabled` is the **requested** `spec.enabled`, and `installed` is the **confirmed**
+`status.installed` the controller reports it actually wrote. Everything the screen claims
+about a service's state is derived from `installed` alone; `toggleable` (+ `reason`) tells
+the console whether the server can actuate that slug at all. A row that omits `installed`
+reads as *not confirmed*, and a row that omits `toggleable` is treated as **not**
+toggleable — both fail safe, loudly.
 
 ## The console
 
@@ -246,7 +271,30 @@ from the validated JWT issuer, never the request.
   `AddService` effector) happens from the **Add a service** tab above (SELECT/GIT
   provision today; DOCKERFILE/ZIP stay gated on the live builder pre-flight).
 
-Every view has loading / empty / error states; a 403/404 degrades gracefully.
+- **Optional services** — the post-deploy on/off control for the optional cluster
+  services (`GET`/`PUT /bff/superadmin/optional-services`). An image ships with only
+  the services it was built with; this view is where a superadmin enables the rest.
+  It is built to be unable to overstate what it knows:
+  - The controls are two explicit **actions** (Enable / Disable), not a switch whose
+    position mirrors state. State is a separate read-only badge derived **only** from
+    the controller-reported `installed` — so an accepted request can never move it.
+    A `PUT` returning `2xx` produces a notice worded as a *request*, and the row stays
+    *Not confirmed* until the controller reports it.
+  - *Not confirmed* is a first-class reading, with the cause named (never observed vs.
+    a stale `observedGeneration`). This is what a slug the reconciler silently ignores
+    actually looks like, and the view makes it visible instead of showing it as on.
+  - A slug the server reports as **not toggleable** — or does not report on — has both
+    actions disabled with the server's reason rendered beside them and wired via
+    `aria-describedby`. Every disabled action on the screen carries a reason; there is
+    no bare disabled control.
+  - A failed `PUT` renders the server's message **verbatim** alongside the
+    plain-language prefix, never instead of it.
+  - Unlike every other view here, a `403`/`404` on the load does **not** degrade to an
+    empty state: "this domain offers nothing" is a truthful empty reading, "this mesh has
+    no optional services" never is. A denied or missing endpoint is explained instead.
+
+Every view has loading / empty / error states; a 403/404 degrades gracefully (with the
+one deliberate exception noted under "Optional services").
 
 ## Typed API client (ng-openapi-gen)
 
@@ -316,6 +364,11 @@ is defence-in-depth.
   zip, but `federateDeployment()`'s result always carries `gitopsDescriptorPending`
   until the GitOps descriptor automation exists, and `federationReal` stays `false`
   until the admin-bff's `NoopFederationModuleClient` is swapped for the real one.
+- **Optional-services toggle screen shipped, UNINTEGRATED** — the sixth console view
+  (`/service-catalog/optional-services`) is wired against the documented
+  `GET`/`PUT /bff/superadmin/optional-services` contract and covered by karma specs, but
+  it has never been run against a live admin-bff and the reconciler behind it ships dark.
+  See "Known Gaps" for exactly what is and is not proven.
 - **Effector wired, ships dark** — `/provision` drives the Casdoor role +
   `gateway_route_access` leg; the real ArgoCD apply is behind a `NoopArgoCdClient`
   until the effector is enabled. `SELECT` and `GIT` provision today.
@@ -369,10 +422,65 @@ is defence-in-depth.
   `NoopFederationModuleClient` for a real one (and land the GitOps descriptor
   automation) so the create-and-federate wizard's `federate` step actually
   registers a new remote's UI instead of recording dark intent.
+- **Make the optional-services toggle actuate** — three things, none of them in this
+  repo: land the admin-bff `/bff/superadmin/optional-services` handler, give the
+  reconciler a supported way to be switched on (an `ignoreDifferences` entry on
+  `apps/31-admin-bff-api.yaml`, or the flag set in a manifest rather than only as a
+  `:false` default), and close the registry/enum/`ignoreDifferences` gaps listed under
+  "Known Gaps". Until then this view is an honest read-only window plus a request button.
 
 ## Known Gaps / TODO
 
 Verified directly against the current source (not from the roadmap narrative alone):
+
+- **The optional-services view has NEVER been run against a live admin-bff.** The
+  endpoint pair (`GET`/`PUT /bff/superadmin/optional-services`) was built in parallel
+  with this UI; the UI was written to the documented contract
+  (`hugmesh-generator` `docs/OPTIONAL-SERVICES.md` §10 "natural next wave") and is
+  proven only against Angular's `HttpTestingController`. Nothing here has exchanged a
+  byte with a running server. If the shipped DTO differs, the view fails **safe**, not
+  silently: an unknown field is dropped, a missing `installed` reads as *not confirmed*,
+  a missing `toggleable` disables the row with "the server did not report whether this
+  service can be toggled", and a non-array body raises rather than rendering an empty
+  mesh. First integration should diff the real payload against
+  `OptionalServiceView` in `src/app/optional-service-state.ts`.
+- **The gateway route + `ROLE_SUPERADMIN` floor for `/bff/superadmin/optional-services`
+  already exist**, so no new `gateway_route_access` row is needed for this view. A
+  superadmin hitting the path before the handler lands gets a `404` from admin-bff — which
+  is exactly what this view renders and explains, rather than showing an empty list.
+- **The admin-bff reconciler ships dark and there is no supported way to switch it on.**
+  `APP_OPTIONAL_SERVICES_RECONCILE_ENABLED` appears exactly once in the platform — as the
+  `:false` default in admin-bff's `application.yml` — and `specs/cluster/apps/31-admin-bff-api.yaml`
+  carries `automated:{prune:true,selfHeal:true}` with no `ignoreDifferences`, so a manual
+  `kubectl set env` is reverted on the next selfHeal pass. **With the flag off, a toggle
+  that this view reports as accepted actuates nothing** — and the view will keep reporting
+  it as *not confirmed*, which is the correct reading, not a UI bug.
+- **Three data defects upstream of this view (recorded here, not fixed here — they are
+  not this repo's files):**
+  - `character-forge` is accepted by the CRD `spec.slug` enum and has a seed CR, a 13a
+    ApplicationSet element and a ConfigMap key, but is **absent from the admin-bff
+    `OptionalServiceRegistry`** (12 entries). The API accepts the write, the reconciler
+    logs "unknown slug — ignoring", writes neither target, and **skips the CR's `/status`
+    entirely** — leaving no observable trace. This view is designed so that shape reads as
+    *Not confirmed* with the cause named, instead of as on.
+  - `specs/cluster/apps/16-reserved-prefixes-policy.yaml` lists 12 `ignoreDifferences`
+    jsonPointers and is missing `/data/character-forge`, `/data/headwind`,
+    `/data/attestation-server` and `/data/meshbridge` — a superadmin toggle of those four
+    would be selfHealed back to git even with a working reconciler.
+  - `meshbridge` has a 13a element and a ConfigMap key but is absent from the CRD
+    `spec.slug` enum, the seed CRs and the Java registry, so the API server rejects it
+    outright. That one at least fails loud; this view renders the rejection verbatim.
+- **The `installed-services` ConfigMap is WRITE-ONLY.** A grep for the literal
+  `installed-services` across every `.java`/`.ts`/`.py`/`.go` in the org returns exactly
+  one distinct line — `CONFIGMAP_NAME` in the writer itself. No Deployment mounts it and no
+  `configMapKeyRef` references it; the user-facing greying reads `federation_modules` in
+  Postgres instead. Half of every reconcile pass therefore writes an artefact with no
+  consumer. Recorded, deliberately **not** "fixed" by inventing a consumer.
+- **This repo has no i18n pipeline**, so no extraction was run for the new view. There is
+  no `@angular/localize` dependency, no `extract-i18n` architect target in `angular.json`,
+  and no `i18n=`/`$localize` usage anywhere under `src/` — all copy in all six views is
+  inline English. The new view matches that; introducing `$localize` here would be a new
+  pattern for one screen.
 
 - **`DOCKERFILE` / `ZIP` provisioning sources need a live in-cluster builder that
   doesn't exist on any deployment yet** — `requiresBuilder()` is the static
@@ -419,6 +527,8 @@ npm ci
 npm start          # ng serve service-catalog — standalone dev shell at /service-catalog
 npm run build      # ng build service-catalog — dist/service-catalog/browser (remoteEntry.json exposes ./ServiceCatalog)
 npm test           # headless karma (ChromeHeadlessCI)
+npm run verify:artefact   # assert the BUILT exposed chunk really carries every route
+npm run build:verify      # build, then verify the artefact (use this, not a bare build)
 ```
 
 ### e2e
