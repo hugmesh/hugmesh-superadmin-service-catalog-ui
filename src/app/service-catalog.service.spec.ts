@@ -33,6 +33,8 @@ import { bffAuthInterceptor } from './auth.interceptor';
  *   POST   /bff/superadmin/service-store/{domain}/deployments/{id}/end
  *   POST   /bff/superadmin/service-store/{domain}/deployments/{id}/provision {sourceKind, repoUrl, path, targetRevision}  (PR #67 effector)
  *   GET    /bff/admin/service-store                            (the two-tier read)
+ *   GET    /bff/superadmin/optional-services                    (the optional-service toggle screen)
+ *   PUT    /bff/superadmin/optional-services/{slug}             {enabled, reason?}
  *
  * Since the ng-openapi-gen migration the service DELEGATES to the generated typed
  * clients (HttpClient), so the transport is exercised with Angular's
@@ -458,5 +460,159 @@ describe('ServiceCatalogService (exact PR1 bff paths)', () => {
     expect(service.scaffoldArchiveUrl('acme.test', 'sca-1')).toBe(
       '/bff/superadmin/service-store/acme.test/scaffold/sca-1/archive',
     );
+  });
+  // ── OPTIONAL SERVICES ─────────────────────────────────────────────────────
+  //
+  // These two call the bff DIRECTLY (HttpClient) rather than through a generated
+  // client, because the endpoint is not in the committed openapi.json yet — the
+  // admin-bff handler is being built in parallel. The assertions below are the wire
+  // contract (URL + method + body + auth), so they stay valid unchanged when these
+  // methods are swapped onto the generated client after the next `npm run gen:spec`.
+
+  it('listOptionalServices → GET /bff/superadmin/optional-services', async () => {
+    const p = service.listOptionalServices();
+    const req = httpMock.expectOne('/bff/superadmin/optional-services');
+    expect(req.request.method).toBe('GET');
+    expect(req.request.withCredentials).withContext('the bff_ cookie must ride along').toBeTrue();
+    expect(req.request.headers.has('Authorization')).withContext('no browser-held Bearer').toBeFalse();
+    req.flush([
+      {
+        slug: 'owncast',
+        enabled: true,
+        installed: true,
+        phase: 'Enabled',
+        generation: 2,
+        observedGeneration: 2,
+        applicationName: 'optional-owncast',
+        toggleable: true,
+      },
+    ]);
+    const rows = await p;
+    expect(rows.length).toBe(1);
+    expect(rows[0].slug).toBe('owncast');
+    expect(rows[0].installed).toBeTrue();
+    expect(rows[0].toggleable).toBeTrue();
+  });
+
+  it('listOptionalServices normalises an ABSENT status.installed to null, not false', async () => {
+    const p = service.listOptionalServices();
+    httpMock
+      .expectOne('/bff/superadmin/optional-services')
+      .flush([{ slug: 'character-forge', enabled: true, toggleable: true }]);
+    const rows = await p;
+    expect(rows[0].enabled).withContext('the request was accepted').toBeTrue();
+    expect(rows[0].installed).withContext('but nothing confirmed it').toBeNull();
+  });
+
+  it('listOptionalServices REJECTS an UNREADABLE body instead of returning an empty list', async () => {
+    // Was flushing `{ services: [] }` and demanding a rejection -- which is exactly the
+    // shape hugmesh-admin-bff-api actually sends, so this spec was pinning the very
+    // mismatch that made the screen render zero rows against the real BFF. The invariant
+    // it MEANT to hold is "a payload we cannot read must not become an empty mesh", so
+    // assert that with a body that genuinely has no services array.
+    const p = service.listOptionalServices();
+    httpMock.expectOne('/bff/superadmin/optional-services').flush({ items: [] });
+    await expectAsync(p).toBeRejectedWithError(/services array/i);
+  });
+
+  it('listOptionalServices ACCEPTS the admin-bff envelope {reconcilerEnabled, services, note}', async () => {
+    const p = service.listOptionalServices();
+    httpMock.expectOne('/bff/superadmin/optional-services').flush({
+      reconcilerEnabled: false,
+      note: 'not wired to a cluster',
+      services: [{ slug: 'akkoma', toggleable: true, enabled: true }],
+    });
+    const rows = await p;
+    expect(rows.length).withContext('the real BFF body must parse').toBe(1);
+    expect(rows[0].slug).toBe('akkoma');
+  });
+
+  it('listOptionalServiceCatalogue carries reconcilerEnabled through to the caller', async () => {
+    // A dark reconciler accepts a PUT and actuates NOTHING. A screen that cannot see this
+    // flag cannot tell the operator the difference between "done" and "recorded".
+    const p = service.listOptionalServiceCatalogue();
+    httpMock.expectOne('/bff/superadmin/optional-services').flush({
+      reconcilerEnabled: false,
+      services: [],
+    });
+    expect((await p).reconcilerEnabled).toBeFalse();
+  });
+
+  it('listOptionalServices surfaces a 404 as ServiceCatalogApiError.isNotFound', async () => {
+    const p = service.listOptionalServices();
+    httpMock
+      .expectOne('/bff/superadmin/optional-services')
+      .flush({ message: 'no handler' }, { status: 404, statusText: 'Not Found' });
+    let caught: unknown;
+    try {
+      await p;
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught instanceof ServiceCatalogApiError).toBeTrue();
+    expect((caught as ServiceCatalogApiError).isNotFound).toBeTrue();
+    expect((caught as ServiceCatalogApiError).message).toBe('no handler');
+  });
+
+  it('setOptionalServiceEnabled → PUT /bff/superadmin/optional-services/{slug} with {enabled}', async () => {
+    const p = service.setOptionalServiceEnabled('games', true);
+    const req = httpMock.expectOne('/bff/superadmin/optional-services/games');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ enabled: true });
+    expect((req.request.body as any).slug).withContext('slug is the PATH, never the body').toBeUndefined();
+    req.flush({ slug: 'games', enabled: true, installed: false, toggleable: true });
+    const row = await p;
+    expect(row.enabled).toBeTrue();
+    expect(row.installed).withContext('the echo still describes the previous generation').toBeFalse();
+  });
+
+  it('setOptionalServiceEnabled sends a trimmed audit reason when one is given', async () => {
+    const p = service.setOptionalServiceEnabled('games', false, '  retiring the pilot  ');
+    const req = httpMock.expectOne('/bff/superadmin/optional-services/games');
+    expect(req.request.body).toEqual({ enabled: false, reason: 'retiring the pilot' });
+    req.flush({ slug: 'games', enabled: false, toggleable: true });
+    await p;
+  });
+
+  it('setOptionalServiceEnabled omits `reason` entirely when it is blank', async () => {
+    const p = service.setOptionalServiceEnabled('games', true, '   ');
+    const req = httpMock.expectOne('/bff/superadmin/optional-services/games');
+    expect(req.request.body).toEqual({ enabled: true });
+    req.flush({ slug: 'games', enabled: true, toggleable: true });
+    await p;
+  });
+
+  it('setOptionalServiceEnabled encodes the {slug} path segment safely', async () => {
+    const p = service.setOptionalServiceEnabled('a/b edge-ai', true);
+    const req = httpMock.expectOne('/bff/superadmin/optional-services/a%2Fb%20edge-ai');
+    req.flush({ slug: 'a/b edge-ai', enabled: true, toggleable: true });
+    await p;
+  });
+
+  it('setOptionalServiceEnabled keeps the slug when the echo omits it', async () => {
+    const p = service.setOptionalServiceEnabled('phpbb', true);
+    httpMock
+      .expectOne('/bff/superadmin/optional-services/phpbb')
+      .flush({ enabled: true, toggleable: true });
+    const row = await p;
+    expect(row.slug).toBe('phpbb');
+  });
+
+  it('setOptionalServiceEnabled surfaces a 400 with the server message intact', async () => {
+    const p = service.setOptionalServiceEnabled('meshbridge', true);
+    httpMock
+      .expectOne('/bff/superadmin/optional-services/meshbridge')
+      .flush(
+        { message: 'spec.slug: Unsupported value: "meshbridge"' },
+        { status: 400, statusText: 'Bad Request' },
+      );
+    let caught: unknown;
+    try {
+      await p;
+    } catch (e) {
+      caught = e;
+    }
+    expect((caught as ServiceCatalogApiError).isBadRequest).toBeTrue();
+    expect((caught as ServiceCatalogApiError).message).toBe('spec.slug: Unsupported value: "meshbridge"');
   });
 });

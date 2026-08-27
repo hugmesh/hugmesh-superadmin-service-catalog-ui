@@ -26,6 +26,9 @@ interface ServiceCatalogNavItem {
  *   Curation        (curation)    — per-domain offered catalog (offer/withdraw a service_key).
  *   App profiles    (profiles)    — app_profile deploy-template CRUD.
  *   Deployments     (deployments) — service_deployment lifecycle accounting.
+ *   Optional services (optional-services) — post-deploy on/off for the optional cluster
+ *                                   services (the superadmin half of "an image ships with
+ *                                   only its selected services").
  *
  * a11y: <nav role="menubar"> with roving tabindex + Arrow/Home/End keyboard
  * navigation; routerLinkActive marks the current view aria-current="page"; every
@@ -80,6 +83,13 @@ export class ServiceCatalogConsoleComponent {
       label: 'Deployments',
       aria: 'Deployments — view the deployment accounting and record a new deployment',
       help: 'Review the service deployment rows (state, created and ending clocks, enforce actions) and record a new deployment. This records lifecycle/accounting only — actual provision and teardown happens from the Add a service tab. Requires the superadmin role.',
+      show: () => this.session.canManageStore(),
+    },
+    {
+      path: 'optional-services',
+      label: 'Optional services',
+      aria: 'Optional services — turn optional cluster services on or off after deployment',
+      help: 'Enable or disable the optional cluster services on a mesh that shipped without them. Each row shows the requested state and, separately, the state the controller reports it actually applied — an accepted request is never shown as a running service. A service the server cannot actuate is disabled with the reason shown. Requires the superadmin role.',
       show: () => this.session.canManageStore(),
     },
   ];

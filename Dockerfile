@@ -20,6 +20,12 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build:service-catalog
+# ASSERT THE ARTEFACT, not the builder's exit code. scripts/assert-artefact-routes.mjs
+# existed and was wired into NOTHING -- present in package.json and the README, run by no
+# CI job and no image build -- so the defect class it was written to catch (a route that
+# compiles but never reaches the emitted bundle) still shipped green. An unwired guard is
+# a comment. This is the one place every deployable artefact passes through.
+RUN npm run verify:artefact
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf

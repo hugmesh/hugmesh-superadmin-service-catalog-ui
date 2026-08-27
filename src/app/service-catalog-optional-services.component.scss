@@ -1,0 +1,57 @@
+@use 'controls';
+
+:host {
+  display: grid;
+  gap: 1rem;
+}
+
+.service-catalog-optional-row {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--service-catalog-border);
+  border-radius: var(--service-catalog-radius);
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  &__slug {
+    font-weight: 600;
+    min-width: 10rem;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+}
+
+/* The state badge. Default (no modifier) is the UNCONFIRMED reading, and it is
+   deliberately the warning colour: "we have not been told" is the state a superadmin
+   most needs to notice, not the one to style as neutral. */
+.service-catalog-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--service-catalog-radius);
+  border: 1px solid var(--service-catalog-warning);
+  color: var(--service-catalog-warning);
+
+  &--on {
+    border-color: var(--service-catalog-success);
+    color: var(--service-catalog-success);
+  }
+
+  &--off {
+    border-color: var(--service-catalog-border);
+    color: var(--service-catalog-text-muted);
+  }
+}

@@ -9,6 +9,8 @@
     "start": "ng serve service-catalog",
     "build": "ng build service-catalog",
     "build:service-catalog": "ng build service-catalog",
+    "verify:artefact": "node scripts/assert-artefact-routes.mjs",
+    "build:verify": "npm run build && npm run verify:artefact",
     "test": "ng test service-catalog --watch=false --browsers=ChromeHeadlessCI",
     "test:watch": "ng test service-catalog",
     "gen": "ng-openapi-gen",

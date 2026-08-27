@@ -1,0 +1,166 @@
+<section class="service-catalog-panel" aria-labelledby="service-catalog-optional-title">
+  <h2 id="service-catalog-optional-title">Optional services</h2>
+  <p class="service-catalog-muted" id="service-catalog-optional-help">
+    Turn optional cluster services on or off after the image has shipped. An image boots with only
+    the services it was built with; this is where a superadmin enables the rest.
+  </p>
+  <p class="service-catalog-muted">
+    Each row shows two different things. <strong>Requested</strong> is what the desired-state record
+    says. <strong>Confirmed</strong> is what the controller reports it actually wrote. A request that
+    is accepted but never acted on shows here as
+    <em>Not confirmed</em> — this console never reads an accepted request as a running service.
+  </p>
+
+  <div class="service-catalog-field">
+    <label for="service-catalog-optional-note">Reason for the next change (optional)</label>
+    <input
+      id="service-catalog-optional-note"
+      name="note"
+      type="text"
+      autocomplete="off"
+      [ngModel]="note()"
+      (ngModelChange)="note.set($event)"
+      aria-describedby="service-catalog-optional-note-help"
+      placeholder="enabling forum for the pilot brand"
+    />
+    <span id="service-catalog-optional-note-help" class="service-catalog-field__help">
+      Recorded on the service record as an audit note alongside your identity.
+    </span>
+  </div>
+
+  <button
+    type="button"
+    class="service-catalog-btn service-catalog-btn--secondary"
+    [disabled]="listLoading()"
+    data-testid="service-catalog-optional-refresh"
+    (click)="reload()"
+  >Refresh</button>
+
+  @if (notice()) {
+    <p class="service-catalog-success" role="status" data-testid="service-catalog-optional-notice">{{ notice() }}</p>
+  }
+  @if (actionError()) {
+    <p class="service-catalog-error" role="alert" data-testid="service-catalog-optional-action-error">{{ actionError() }}</p>
+  }
+</section>
+
+<section class="service-catalog-panel" aria-labelledby="service-catalog-optional-list-title">
+  <h3 id="service-catalog-optional-list-title">Services</h3>
+
+  @if (listLoading()) {
+    <p role="status" data-testid="service-catalog-optional-loading">Loading the optional services…</p>
+  } @else if (listError()) {
+    <p class="service-catalog-error" role="alert" data-testid="service-catalog-optional-list-error">{{ listError() }}</p>
+    <button
+      type="button"
+      class="service-catalog-btn service-catalog-btn--secondary"
+      data-testid="service-catalog-optional-retry"
+      (click)="reload()"
+    >Retry</button>
+  } @else if ((rows() ?? []).length === 0) {
+    <p class="service-catalog-warning" role="status" data-testid="service-catalog-optional-empty">
+      The server returned no optional services at all. That is not an expected reading for a mesh —
+      check that the admin-bff registry is populated before concluding nothing is available.
+    </p>
+  } @else {
+    <ul class="service-catalog-list" data-testid="service-catalog-optional-list">
+      @for (row of rows() ?? []; track trackSlug($index, row)) {
+        <li
+          class="service-catalog-optional-row"
+          [attr.data-testid]="'service-catalog-optional-row-' + row.slug"
+        >
+          <div class="service-catalog-optional-row__head">
+            <span class="service-catalog-optional-row__slug">{{ row.displayName ?? row.slug }}</span>
+            @if (row.displayName) {
+              <code class="service-catalog-muted">{{ row.slug }}</code>
+            }
+            <span
+              class="service-catalog-badge"
+              [class.service-catalog-badge--on]="confirmation(row) === 'on'"
+              [class.service-catalog-badge--off]="confirmation(row) === 'off'"
+              [attr.data-testid]="'service-catalog-optional-confirmed-' + row.slug"
+            >{{ confirmationLabel(row) }}</span>
+          </div>
+
+          <p class="service-catalog-field__help" [attr.data-testid]="'service-catalog-optional-requested-' + row.slug">
+            Requested: {{ requestedLabel(row) }}.
+            @if (row.phase) {
+              <span> Controller phase: {{ row.phase }}.</span>
+            }
+            @if (row.applicationName) {
+              <span> Application: {{ row.applicationName }}.</span>
+            }
+            @if (row.lastReconcileTime) {
+              <span> Last reconciled: {{ row.lastReconcileTime }}.</span>
+            }
+          </p>
+
+          @if (unconfirmedDetail(row); as detail) {
+            <p
+              class="service-catalog-warning"
+              [attr.data-testid]="'service-catalog-optional-unconfirmed-' + row.slug"
+            >{{ detail }}</p>
+          }
+
+          @if (driftDetail(row); as drift) {
+            <p
+              class="service-catalog-warning"
+              [attr.data-testid]="'service-catalog-optional-drift-' + row.slug"
+            >{{ drift }}</p>
+          }
+
+          @if (notToggleableReason(row); as blocked) {
+            <p
+              class="service-catalog-error"
+              [id]="'service-catalog-optional-blocked-' + row.slug"
+              [attr.data-testid]="'service-catalog-optional-blocked-' + row.slug"
+            >Cannot be toggled from here. {{ blocked }}</p>
+          }
+
+          @if (row.message) {
+            <p
+              class="service-catalog-muted"
+              [attr.data-testid]="'service-catalog-optional-message-' + row.slug"
+            >{{ row.message }}</p>
+          }
+
+          <div class="service-catalog-optional-row__actions">
+            <button
+              type="button"
+              class="service-catalog-btn"
+              [disabled]="blockedReason(row, true) !== null"
+              [attr.aria-label]="'Enable ' + row.slug"
+              [attr.aria-describedby]="blockedReason(row, true) !== null ? 'service-catalog-optional-why-enable-' + row.slug : null"
+              [attr.data-testid]="'service-catalog-optional-enable-' + row.slug"
+              (click)="setEnabled(row, true)"
+            >Enable</button>
+            @if (blockedReason(row, true); as why) {
+              <span
+                class="service-catalog-field__help"
+                [id]="'service-catalog-optional-why-enable-' + row.slug"
+                [attr.data-testid]="'service-catalog-optional-why-enable-' + row.slug"
+              >{{ why }}</span>
+            }
+
+            <button
+              type="button"
+              class="service-catalog-btn service-catalog-btn--secondary"
+              [disabled]="blockedReason(row, false) !== null"
+              [attr.aria-label]="'Disable ' + row.slug"
+              [attr.aria-describedby]="blockedReason(row, false) !== null ? 'service-catalog-optional-why-disable-' + row.slug : null"
+              [attr.data-testid]="'service-catalog-optional-disable-' + row.slug"
+              (click)="setEnabled(row, false)"
+            >Disable</button>
+            @if (blockedReason(row, false); as why) {
+              <span
+                class="service-catalog-field__help"
+                [id]="'service-catalog-optional-why-disable-' + row.slug"
+                [attr.data-testid]="'service-catalog-optional-why-disable-' + row.slug"
+              >{{ why }}</span>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>
