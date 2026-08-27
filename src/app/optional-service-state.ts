@@ -183,11 +183,66 @@ export function normalizeOptionalService(raw: unknown, fallbackSlug?: string): O
  * it would additionally read to a superadmin as "this mesh has no optional services",
  * which is never true.
  */
-export function normalizeOptionalServices(raw: unknown): OptionalServiceView[] {
-  if (!Array.isArray(raw)) {
-    throw new Error('optional-services: expected a JSON array of services.');
+/**
+ * The catalogue as the admin-bff actually sends it.
+ *
+ * <p>`reconcilerEnabled` is not decoration. When it is false the BFF is wired to
+ * NoopOptionalServiceClient: a PUT is accepted, `kubectl` will report `enabled: true`,
+ * and NOTHING actuates. A screen that hid that would be the character-forge defect
+ * wearing a UI — the operator's whole question is "did this take effect".
+ */
+export interface OptionalServiceCatalogue {
+  reconcilerEnabled: boolean;
+  note: string | null;
+  services: OptionalServiceView[];
+}
+
+/**
+ * Accept the admin-bff's OBJECT body, and a bare array too.
+ *
+ * <p>WHY BOTH. This UI and the BFF endpoint were written in parallel against a described
+ * contract and disagreed: the UI demanded a top-level array, the BFF sends
+ * `{reconcilerEnabled, services[], note}`. `Array.isArray` therefore threw on every real
+ * response and the screen rendered its error with ZERO rows — a feature that was green on
+ * both sides and worked on neither. The object form is the right one (it carries the
+ * dark-reconciler fact a superadmin needs), so it is what this reads; the array form stays
+ * accepted because a normaliser that can only parse one shape is how this broke.
+ *
+ * <p>Still THROWS on anything else. An empty list would read as "this mesh has no optional
+ * services" — never true — so an unreadable payload must surface as an error, not silence.
+ */
+export function normalizeOptionalServiceCatalogue(raw: unknown): OptionalServiceCatalogue {
+  if (Array.isArray(raw)) {
+    return {
+      reconcilerEnabled: true,
+      note: null,
+      services: raw.map((row) => normalizeOptionalService(row)),
+    };
   }
-  return raw.map((row) => normalizeOptionalService(row));
+  if (raw === null || typeof raw !== 'object') {
+    throw new Error(
+      'optional-services: expected a JSON object with a services array (or a bare array).',
+    );
+  }
+  const body = raw as Record<string, unknown>;
+  if (!Array.isArray(body['services'])) {
+    throw new Error(
+      'optional-services: expected a JSON object with a services array (or a bare array).',
+    );
+  }
+  const note = body['note'];
+  return {
+    // Absent is NOT "fine": a body that omits the flag cannot prove the reconciler is
+    // live, and claiming it is would tell the operator a dark toggle took effect.
+    reconcilerEnabled: body['reconcilerEnabled'] === true,
+    note: typeof note === 'string' && note.trim() !== '' ? note : null,
+    services: (body['services'] as unknown[]).map((row) => normalizeOptionalService(row)),
+  };
+}
+
+/** The rows alone. Kept for callers that do not need the envelope. */
+export function normalizeOptionalServices(raw: unknown): OptionalServiceView[] {
+  return normalizeOptionalServiceCatalogue(raw).services;
 }
 
 /**

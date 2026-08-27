@@ -10,6 +10,7 @@ import {
   isStale,
   normalizeOptionalService,
   normalizeOptionalServices,
+  normalizeOptionalServiceCatalogue,
   notToggleableReason,
   unconfirmedDetail,
 } from './optional-service-state';
@@ -136,9 +137,9 @@ describe('normalizeOptionalServices (an unreadable payload is not an empty mesh)
   });
 
   it('THROWS on a non-array body instead of yielding []', () => {
-    expect(() => normalizeOptionalServices({ items: [] })).toThrowError(/array/i);
-    expect(() => normalizeOptionalServices(null)).toThrowError(/array/i);
-    expect(() => normalizeOptionalServices('')).toThrowError(/array/i);
+    expect(() => normalizeOptionalServices({ items: [] })).toThrowError(/services array/i);
+    expect(() => normalizeOptionalServices(null)).toThrowError(/services array/i);
+    expect(() => normalizeOptionalServices('')).toThrowError(/services array/i);
   });
 
   it('THROWS rather than dropping one unusable row from an otherwise good list', () => {
@@ -359,5 +360,56 @@ describe('actionBlockedReason (every disabled action carries its reason)', () =>
       }
     }
     expect(blocked).withContext('every case above must actually block').toBe(cases.length);
+  });
+});
+
+// ── the shape the admin-bff actually sends ───────────────────────────────────
+// REGRESSION PIN. This UI and hugmesh-admin-bff-api's
+// OptionalServiceSuperadminController were written in parallel against a described
+// contract and disagreed on the top level: the UI demanded an array, the BFF sends
+// {reconcilerEnabled, services[], note}. Array.isArray threw on every real response, so
+// the screen showed its error and ZERO rows — green on both sides, working on neither.
+// The body below is the shape OptionalServiceAdminService.catalogueBlocking() builds.
+describe('normalizeOptionalServiceCatalogue (the BFF envelope, not a bare array)', () => {
+  const bffBody = {
+    reconcilerEnabled: false,
+    note: 'The reconciler is not wired to a cluster; writes are recorded and not actuated.',
+    services: [
+      { slug: 'akkoma', displayName: 'Akkoma', toggleable: true, enabled: true },
+      { slug: 'meshbridge', displayName: 'Meshbridge', toggleable: false },
+    ],
+  };
+
+  it('parses the admin-bff object body', () => {
+    const cat = normalizeOptionalServiceCatalogue(bffBody);
+    expect(cat.services.length).toBe(2);
+    expect(cat.services[0].slug).toBe('akkoma');
+  });
+
+  it('carries reconcilerEnabled through — a dark reconciler must reach the screen', () => {
+    expect(normalizeOptionalServiceCatalogue(bffBody).reconcilerEnabled).toBeFalse();
+  });
+
+  it('treats an ABSENT reconcilerEnabled as false, never as fine', () => {
+    // A body that omits the flag cannot prove the reconciler is live. Defaulting to true
+    // would tell a superadmin that a toggle which actuates nothing took effect.
+    const cat = normalizeOptionalServiceCatalogue({ services: [] });
+    expect(cat.reconcilerEnabled).toBeFalse();
+  });
+
+  it('keeps the note when present and nulls a blank one', () => {
+    expect(normalizeOptionalServiceCatalogue(bffBody).note).toContain('not wired');
+    expect(normalizeOptionalServiceCatalogue({ services: [], note: '   ' }).note).toBeNull();
+  });
+
+  it('still accepts a bare array (the older shape)', () => {
+    const cat = normalizeOptionalServiceCatalogue([{ slug: 'games' }]);
+    expect(cat.services[0].slug).toBe('games');
+  });
+
+  it('still THROWS on an unreadable body rather than yielding an empty mesh', () => {
+    expect(() => normalizeOptionalServiceCatalogue({ items: [] })).toThrowError(/services array/i);
+    expect(() => normalizeOptionalServiceCatalogue(null)).toThrowError(/services array/i);
+    expect(() => normalizeOptionalServiceCatalogue('')).toThrowError(/services array/i);
   });
 });

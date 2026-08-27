@@ -504,10 +504,38 @@ describe('ServiceCatalogService (exact PR1 bff paths)', () => {
     expect(rows[0].installed).withContext('but nothing confirmed it').toBeNull();
   });
 
-  it('listOptionalServices REJECTS a non-array body instead of returning an empty list', async () => {
+  it('listOptionalServices REJECTS an UNREADABLE body instead of returning an empty list', async () => {
+    // Was flushing `{ services: [] }` and demanding a rejection -- which is exactly the
+    // shape hugmesh-admin-bff-api actually sends, so this spec was pinning the very
+    // mismatch that made the screen render zero rows against the real BFF. The invariant
+    // it MEANT to hold is "a payload we cannot read must not become an empty mesh", so
+    // assert that with a body that genuinely has no services array.
     const p = service.listOptionalServices();
-    httpMock.expectOne('/bff/superadmin/optional-services').flush({ services: [] });
-    await expectAsync(p).toBeRejectedWithError(/array/i);
+    httpMock.expectOne('/bff/superadmin/optional-services').flush({ items: [] });
+    await expectAsync(p).toBeRejectedWithError(/services array/i);
+  });
+
+  it('listOptionalServices ACCEPTS the admin-bff envelope {reconcilerEnabled, services, note}', async () => {
+    const p = service.listOptionalServices();
+    httpMock.expectOne('/bff/superadmin/optional-services').flush({
+      reconcilerEnabled: false,
+      note: 'not wired to a cluster',
+      services: [{ slug: 'akkoma', toggleable: true, enabled: true }],
+    });
+    const rows = await p;
+    expect(rows.length).withContext('the real BFF body must parse').toBe(1);
+    expect(rows[0].slug).toBe('akkoma');
+  });
+
+  it('listOptionalServiceCatalogue carries reconcilerEnabled through to the caller', async () => {
+    // A dark reconciler accepts a PUT and actuates NOTHING. A screen that cannot see this
+    // flag cannot tell the operator the difference between "done" and "recorded".
+    const p = service.listOptionalServiceCatalogue();
+    httpMock.expectOne('/bff/superadmin/optional-services').flush({
+      reconcilerEnabled: false,
+      services: [],
+    });
+    expect((await p).reconcilerEnabled).toBeFalse();
   });
 
   it('listOptionalServices surfaces a 404 as ServiceCatalogApiError.isNotFound', async () => {

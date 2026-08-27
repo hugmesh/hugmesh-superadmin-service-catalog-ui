@@ -13,6 +13,8 @@ import {
   OptionalServiceView,
   OptionalServiceToggle,
   normalizeOptionalService,
+  OptionalServiceCatalogue,
+  normalizeOptionalServiceCatalogue,
   normalizeOptionalServices,
 } from './optional-service-state';
 
@@ -719,10 +721,19 @@ export class ServiceCatalogService {
    * true — so an unreadable payload must surface as an error, not as silence.
    */
   async listOptionalServices(): Promise<OptionalServiceView[]> {
+    return (await this.listOptionalServiceCatalogue()).services;
+  }
+
+  /**
+   * The same GET, keeping the ENVELOPE. `reconcilerEnabled` decides whether a toggle on
+   * this screen actuates anything at all, so a caller that wants to tell the operator the
+   * truth needs it — dropping it is how "accepted" gets shown as "done".
+   */
+  async listOptionalServiceCatalogue(): Promise<OptionalServiceCatalogue> {
     const path = '/bff/superadmin/optional-services';
     try {
       const body = await firstValueFrom(this.http.get<unknown>(`${this.base}${path}`));
-      return normalizeOptionalServices(body);
+      return normalizeOptionalServiceCatalogue(body);
     } catch (e) {
       return this.toApiError('GET', path, e);
     }
