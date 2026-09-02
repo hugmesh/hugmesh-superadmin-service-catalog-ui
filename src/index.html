@@ -10,6 +10,14 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
 </head>
 <body>
-  <hug-service-catalog-root></hug-service-catalog-root>
+  <!-- ngCspNonce is REQUIRED, not decoration: @angular/build only takes its
+       CSP-safe critical-CSS path when this attribute is present. Without it the
+       build defers the stylesheet with an inline event handler, which our
+       nonce-based script-src blocks outright (nonces do not apply to event
+       handlers) — measured: the stylesheet then stayed at media="print" and
+       never applied. The value is a marker the nginx sub_filter rewrites to the
+       same per-request $cspnonce that goes into the CSP header, so Angular's
+       runtime style nonce and the header nonce are ONE value. See nginx.conf. -->
+  <hug-service-catalog-root ngCspNonce="__HUG_CSP_NONCE__"></hug-service-catalog-root>
 </body>
 </html>

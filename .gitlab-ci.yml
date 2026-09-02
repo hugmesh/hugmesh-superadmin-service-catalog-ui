@@ -70,6 +70,48 @@ test:
       junit: test-results/results.xml
     expire_in: 7 days
 
+# Response-header contract (issue #5). TWO checks that answer different questions and
+# are NOT interchangeable:
+#   verify:headers — static. Does nginx.conf still SAY the right thing, per BLOCK?
+#                    (nginx drops every inherited add_header the moment a location sets
+#                    one of its own, so this is a structural question, not a grep.)
+#   verify:page    — behavioural. Does the BUILT page still render under those headers
+#                    with a clean console and nothing blocked, and are COEP and
+#                    Permissions-Policy actually ENFORCED rather than merely present?
+# A conf can pass the first and blank the page under the second; that is the whole
+# reason both exist. Neither is allow_failure: unlike the pentest DAST stage (whose
+# allow_failure is deliberate policy — a FINDING must not red an onboarded repo), these
+# assert a contract this repo owns end to end, and a broken one ships a broken console.
+# Runs in replay mode: this container has chromium but no docker-in-docker, so the
+# script replays the header set parsed out of the real nginx.conf. openssl mints the
+# throwaway cert for the cross-origin COEP sentinel (see the script's comment for why
+# plain http cannot measure it).
+headers:
+  stage: test
+  needs: []
+  tags: [hugmesh-x86, privileged]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_TAG'
+  script:
+    # Same read-only-checkout / writable-workspace shape as the test job above, and for
+    # the same reason: this container runs as root and must not leave root-owned files
+    # in the shell runner's persistent $CI_PROJECT_DIR.
+    - >-
+      docker run --rm --shm-size=1gb
+      -v "${CI_PROJECT_DIR}:/src:ro"
+      -w /workspace node:24-alpine sh -c '
+        set -e;
+        apk add --no-cache chromium openssl;
+        cp -a /src/. /workspace/;
+        rm -rf /workspace/node_modules /workspace/test-results /workspace/coverage;
+        npm ci;
+        npm run verify:headers;
+        npm run build:service-catalog;
+        CHROME_BIN=/usr/bin/chromium npm run verify:page -- --server=replay;
+      '
+
 # Playwright + playwright-bdd e2e harness (e2e/). This job runs the OFFLINE
 # contract only — install deps, generate the BDD specs from the .feature files,
 # and list every scenario — which proves the Gherkin compiles and every step is

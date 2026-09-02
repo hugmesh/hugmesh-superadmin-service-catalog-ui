@@ -402,8 +402,24 @@ is defence-in-depth.
   the served `index.html` to carry `nonce="$cspnonce"`, and a
   `Content-Security-Policy` header with NO `unsafe-inline` in `script-src`
   (only `'self' 'nonce-…' blob:`; `style-src` keeps `'unsafe-inline'` because
-  Angular inlines component styles). COEP/CORP and Permissions-Policy remain
-  deferred pending per-UI tuning + live-cluster browser validation.
+  Angular inlines component styles). Since issue #5 it also ships
+  `Cross-Origin-Embedder-Policy: require-corp`, `Cross-Origin-Resource-Policy:
+  same-origin` and a `Permissions-Policy` that denies all 23 features Chrome
+  recognises — structure ported from `hugmesh-games/frontend/nginx.conf` (the only
+  nginx front in the org that already shipped all three), values re-derived for this
+  console. `same-origin` rather than games' `same-site`: the superadmin gateway mounts
+  this console at a path on its OWN origin (`/superadmin/service-catalog/**`,
+  `StripPrefix=2`), the host shell refuses a cross-origin `remoteEntry` outright, and
+  `hugmesh-gateway`'s own `SecurityConfig` already defaults every proxied response to
+  CORP `same-origin` — so this only makes explicit at the origin what the edge
+  already asserted. Empty `()` allowlists rather than games' `(self)` grants: this
+  console has no camera / microphone / geolocation / fullscreen / WebAuthn code path.
+  COOP stays the gateway's (`same-origin`, set at the TLS edge); COEP is enforced here
+  because the gateway deliberately declines it platform-wide (it would break
+  module-federation remotes that are not CORP-tagged) and this remote's subresources
+  are all same-origin. Two guards pin it — `npm run verify:headers` (static, per
+  BLOCK, also run inside the image build) and `npm run verify:page` (headless Chrome
+  over the real conf; CI `headers` job).
 
 ## Roadmap
 
@@ -510,10 +526,12 @@ Verified directly against the current source (not from the roadmap narrative alo
 - **Deployment lifecycle is accounting-only** — recording/ending a `service_deployment`
   row does not itself provision or tear down a real service; that is the separate
   `AddService`/provision effector path (`src/app/service-catalog-deployments.component.ts:16`).
-- **CSP / COEP / CORP / Permissions-Policy are deliberately deferred** — only the
-  baseline header set (`nosniff`, `X-Frame-Options`, `Referrer-Policy`, HSTS) is
-  shipped in `nginx.conf`; stricter policies await per-UI tuning and live-cluster
-  validation (see "Current State" above).
+- **COOP is the gateway's, not this image's** — CSP, COEP, CORP and
+  Permissions-Policy all ship in `nginx.conf` as of issue #5 (see "Current State"),
+  but `Cross-Origin-Opener-Policy` is emitted by `hugmesh-gateway` at the TLS edge and
+  is therefore absent on a direct in-cluster pod hit. Nothing here uses
+  `SharedArrayBuffer`, so the console is not cross-origin ISOLATED and does not need
+  to be; COEP enforces the subresource opt-in on its own.
 
 No `TODO`/`FIXME`/stub markers were found in the hand-written `src/app` source
 (the API client under `src/app/api/` is generated and excluded from this audit);
@@ -528,7 +546,12 @@ npm start          # ng serve service-catalog — standalone dev shell at /servi
 npm run build      # ng build service-catalog — dist/service-catalog/browser (remoteEntry.json exposes ./ServiceCatalog)
 npm test           # headless karma (ChromeHeadlessCI)
 npm run verify:artefact   # assert the BUILT exposed chunk really carries every route
-npm run build:verify      # build, then verify the artefact (use this, not a bare build)
+npm run verify:headers    # assert nginx.conf's response-header contract, per BLOCK
+npm run verify:page       # load the BUILT page in headless Chrome behind the real
+                          # nginx.conf: nothing blocked, console clean, COEP +
+                          # Permissions-Policy proven ENFORCED (needs chromium +
+                          # openssl; --server=replay when there is no docker)
+npm run build:verify      # build, then verify the artefact AND the headers
 ```
 
 ### e2e
