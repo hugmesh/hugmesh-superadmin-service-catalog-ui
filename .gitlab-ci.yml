@@ -95,9 +95,23 @@ headers:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_TAG'
   script:
-    # Same read-only-checkout / writable-workspace shape as the test job above, and for
-    # the same reason: this container runs as root and must not leave root-owned files
-    # in the shell runner's persistent $CI_PROJECT_DIR.
+    # FIRST: prove nginx will actually ACCEPT this conf. Nothing else here does.
+    # `verify:headers` only reads the file, and `verify:page --server=replay` is this
+    # repo's own Node re-implementation of the header set — explicitly not nginx. So a
+    # conf nginx REFUSES would sail through both, produce a green image (the Dockerfile
+    # only COPYs the conf; it never starts the server), and first surface as a
+    # crash-looping pod. This runs on the shell runner, which has docker, and pulls the
+    # same image the Dockerfile's runtime stage already uses, so it adds no new
+    # dependency. `nginx -t` exits 0 on warnings, so this fails only on a real syntax or
+    # directive error.
+    - >-
+      docker run --rm
+      -v "${CI_PROJECT_DIR}/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+      nginxinc/nginx-unprivileged:1.27-alpine nginx -t
+    # Then the static + browser halves. Same read-only-checkout / writable-workspace
+    # shape as the test job above, and for the same reason: this container runs as root
+    # and must not leave root-owned files in the shell runner's persistent
+    # $CI_PROJECT_DIR.
     - >-
       docker run --rm --shm-size=1gb
       -v "${CI_PROJECT_DIR}:/src:ro"
@@ -141,7 +155,18 @@ e2e:bdd:
     expire_in: 7 days
 
 build:image:
-  needs: [test]
+  # `headers` as well as `test`, and that is load-bearing rather than tidy. With
+  # `needs:`, GitLab starts a job the moment its OWN needs are satisfied — it does not
+  # wait for its stage's predecessors to finish, and an unrelated red job in an earlier
+  # stage does not hold it back. So `needs: [test]` alone meant a RED `headers` job
+  # still let this job build and push both `:$TAG` and the moving `:$CI_COMMIT_REF_SLUG`
+  # tag the deploy kustomize tracks: pipeline failed, image shipped. That is precisely
+  # what the "neither is allow_failure … a broken one ships a broken console" note above
+  # promises does not happen, and it matters most for `verify:page`, which is the
+  # BEHAVIOURAL half and runs in NO other place — the Dockerfile's `RUN npm run
+  # verify:headers` covers only the static half, so a policy that renders the console
+  # blank at HTTP 200 had nothing standing between it and the registry.
+  needs: [test, headers]
   stage: build
   tags: [hugmesh-x86, privileged]
   rules:

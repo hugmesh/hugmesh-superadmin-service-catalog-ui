@@ -11,19 +11,24 @@
  * from what ships), and it is why every check below is asked per BLOCK, through the
  * parser in ./nginx-conf.mjs.
  *
- * WHAT IT CANNOT DO. It reads a file. It cannot prove nginx accepts the conf, that the
+ * WHAT IT CANNOT DO. It reads two files (nginx.conf and, for the marker half of the
+ * nonce contract, src/index.html). It cannot prove nginx accepts the conf, that the
  * browser accepts the policy, or that the page still renders under it — a
  * Permissions-Policy naming a feature Chrome dropped, or a COEP that starves a
  * subresource, leaves this guard perfectly green and the console full of violations.
  * `scripts/verify-served-page.mjs` is the half that drives a real browser; the two are
  * a pair and neither is sufficient. Wired: `npm run verify:headers` (also run inside
- * the image build) and `npm run verify:page` (CI `headers` job).
+ * the image build, the one place every deployable artefact passes) and
+ * `npm run verify:page` (CI `headers` job, which `build:image` needs — a red one
+ * therefore blocks the image push, not just the pipeline's colour).
  *
- *   node scripts/assert-nginx-headers.mjs [nginx.conf]
+ *   node scripts/assert-nginx-headers.mjs [nginx.conf] [src/index.html]
  */
+import { readFileSync } from 'node:fs';
 import { parseNginxConf, serverBlock, locationBlock, emittedHeaders, subFilters } from './nginx-conf.mjs';
 
 const CONF = process.argv[2] ?? 'nginx.conf';
+const INDEX = process.argv[3] ?? 'src/index.html';
 
 /**
  * The pinned values, written down HERE rather than derived from the file under test.
@@ -140,8 +145,44 @@ for (const want of REQUIRED_SUB_FILTERS) {
   }
 }
 
+// THE OTHER HALF OF THE NONCE CONTRACT, which lives outside nginx.conf entirely.
+// Filters 2 and 3 above rewrite a build-time MARKER, and a sub_filter whose pattern
+// never occurs is a silent no-op — nginx does not care, and neither did this guard
+// until now. Measured, not argued: deleting ` ngCspNonce="__HUG_CSP_NONCE__"` from
+// src/index.html left this script reporting `27 pinned assertion(s) hold … 3/3 nonce
+// sub_filters present`, exit 0. That mutation is not academic: without the attribute
+// @angular/build falls back to its non-CSP critical-CSS path and defers the stylesheet
+// with an inline `onload="this.media='all'"` handler, which `script-src` (no
+// unsafe-inline, no unsafe-hashes) blocks outright — so styles-*.css stays at
+// media="print" and the console renders on inlined critical CSS alone, at HTTP 200,
+// with nothing in the log. That is the exact latent defect this contract was added to
+// fix, and it is reachable by any edit to the root element: a rebrand, a merge that
+// takes the other side, an Angular upgrade that renames the attribute.
+//
+// The marker is DERIVED from the pinned filter rather than retyped, so the two sides
+// cannot drift apart. Matched case-insensitively on purpose: nginx's sub_filter is
+// itself case-insensitive, and parse5 lowercases the attribute to `ngcspnonce` when
+// @angular/build rewrites index.html, so both spellings are legitimate in source and
+// both are what nginx will actually match.
+const MARKER = /__[A-Z0-9_]+__/.exec(REQUIRED_SUB_FILTERS[2].from)?.[0];
+checks.push(`${INDEX}:ngCspNonce marker`);
+if (!MARKER) {
+  problems.push(`could not derive the build-time nonce marker from the pinned sub_filter '${REQUIRED_SUB_FILTERS[2].from}' — the derivation above is broken, so the ${INDEX} check would pass vacuously.`);
+} else {
+  let indexSrc;
+  try {
+    indexSrc = readFileSync(INDEX, 'utf8');
+  } catch (err) {
+    // A hard failure, never a silent skip: "could not read it" must not read as "fine".
+    problems.push(`cannot read ${INDEX} (${err.code ?? err.message}), so the ngCspNonce half of the nonce contract is unverified. Pass the path as argv[3] if it moved.`);
+  }
+  if (indexSrc !== undefined && !new RegExp(`ngcspnonce\\s*=\\s*"${MARKER}"`, 'i').test(indexSrc)) {
+    problems.push(`${INDEX} does not carry ngCspNonce="${MARKER}" on its root element, so the sub_filter that rewrites it matches nothing and Angular never gets a runtime nonce. @angular/build then defers styles-*.css with an inline onload= handler this CSP blocks, the sheet stays at media="print", and the console renders unstyled at HTTP 200 — while every nginx.conf assertion above stays green.`);
+  }
+}
+
 // Guard the guard. Counting the checks SCHEDULED proves nothing — that number is fixed
-// by this file and would stay 27 against an empty conf. What can go vacuous is the
+// by this file and would stay 28 against an empty conf. What can go vacuous is the
 // PARSE, so the floor is on what was actually read out of the file: the directives
 // themselves. A parser that silently stops recognising `add_header` would otherwise
 // turn every assertion above into "missing", or — worse, if the failure were in block
@@ -168,5 +209,6 @@ if (problems.length > 0) {
 console.log(
   `assert-nginx-headers: ${checks.length} pinned assertion(s) hold in ${CONF} across ` +
   `server + ${server.blocks.filter((b) => b.header.startsWith('location')).length} location block(s); ` +
-  `${REQUIRED_SUB_FILTERS.length}/${REQUIRED_SUB_FILTERS.length} nonce sub_filters present.`,
+  `${REQUIRED_SUB_FILTERS.length}/${REQUIRED_SUB_FILTERS.length} nonce sub_filters present, ` +
+  `and ${INDEX} carries the ${MARKER} marker they rewrite.`,
 );

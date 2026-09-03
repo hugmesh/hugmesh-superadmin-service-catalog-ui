@@ -404,12 +404,18 @@ is defence-in-depth.
   (only `'self' 'nonce-…' blob:`; `style-src` keeps `'unsafe-inline'` because
   Angular inlines component styles). Since issue #5 it also ships
   `Cross-Origin-Embedder-Policy: require-corp`, `Cross-Origin-Resource-Policy:
-  same-origin` and a `Permissions-Policy` that denies all 23 features Chrome
-  recognises — structure ported from `hugmesh-games/frontend/nginx.conf` (the only
-  nginx front in the org that already shipped all three), values re-derived for this
-  console. `same-origin` rather than games' `same-site`: the superadmin gateway mounts
-  this console at a path on its OWN origin (`/superadmin/service-catalog/**`,
-  `StripPrefix=2`), the host shell refuses a cross-origin `remoteEntry` outright, and
+  same-origin` and a `Permissions-Policy` denying 23 features — structure ported from
+  `hugmesh-games/frontend/nginx.conf` (the only nginx front in the org that already
+  shipped all three), values re-derived for this console. Those 23 are the features
+  this console could plausibly reach, NOT every feature the browser knows about:
+  `document.featurePolicy.features()` on Chrome 149.0.7827.55 returns **82** names, and
+  the other 59 — client hints, the Privacy Sandbox set, `clipboard-read` /
+  `clipboard-write`, `window-management`, `storage-access` — are left unrestricted.
+  What IS measured is the narrower claim the guards pin: every one of the 23 shipped
+  names is present in that list, so the header logs no `Unrecognized feature` noise
+  (which `verify:page` fails on). `same-origin` rather than games' `same-site`: the
+  superadmin gateway mounts this console at a path on its OWN origin
+  (`/superadmin/service-catalog/**`, `StripPrefix=2`), the host shell refuses a cross-origin `remoteEntry` outright, and
   `hugmesh-gateway`'s own `SecurityConfig` already defaults every proxied response to
   CORP `same-origin` — so this only makes explicit at the origin what the edge
   already asserted. Empty `()` allowlists rather than games' `(self)` grants: this
@@ -418,8 +424,10 @@ is defence-in-depth.
   because the gateway deliberately declines it platform-wide (it would break
   module-federation remotes that are not CORP-tagged) and this remote's subresources
   are all same-origin. Two guards pin it — `npm run verify:headers` (static, per
-  BLOCK, also run inside the image build) and `npm run verify:page` (headless Chrome
-  over the real conf; CI `headers` job).
+  BLOCK, plus the `ngCspNonce` marker in `src/index.html` that the conf's sub_filters
+  rewrite; also run inside the image build) and `npm run verify:page` (headless Chrome
+  over the real conf; CI `headers` job, which `build:image` needs, so a red one blocks
+  the push rather than merely reddening the pipeline).
 
 ## Roadmap
 
