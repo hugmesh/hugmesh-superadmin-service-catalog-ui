@@ -26,6 +26,12 @@ RUN npm run build:service-catalog
 # compiles but never reaches the emitted bundle) still shipped green. An unwired guard is
 # a comment. This is the one place every deployable artefact passes through.
 RUN npm run verify:artefact
+# Same reasoning for the response headers this image serves. nginx.conf is the ONLY
+# place COEP/CORP/Permissions-Policy/CSP exist, nothing in the Angular build touches
+# it, and nginx will happily start on a conf that emits none of them — so without a
+# gate here, "the headers are configured" is a claim no build step ever checks.
+# Static and offline; `npm run verify:page` is the browser half and runs in CI.
+RUN npm run verify:headers
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
