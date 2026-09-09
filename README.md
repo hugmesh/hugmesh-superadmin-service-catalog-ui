@@ -446,7 +446,10 @@ is defence-in-depth.
   land a labelled x86 build node somewhere the pre-flight can see, then
   build-from-source services provision with no further UI change.
 - **App-profile resolution** — a later effector that parses the app-profile JSON
-  (resource/role/cert/exposure defaults) instead of storing it opaque.
+  (resource/role/cert/exposure defaults) instead of storing it opaque (issue #3, admin-bff
+  work). The profiles form already shows a bff 400 reason verbatim — both bff error bodies
+  surface: `{error}` (ApiException) and the bean-validation `{error:"validation failed",
+  fields:{...}}`, which `ServiceCatalogService` folds into one message.
 - **MFA step-up** — superadmin Service Catalog mutations (offer/withdraw/provision)
   are candidate step-up actions under the platform MFA rollout (WebAuthn+TOTP). The UI
   half is in place (the same pause/challenge/retry the wizard uses, see above); the

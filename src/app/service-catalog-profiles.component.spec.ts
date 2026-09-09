@@ -117,11 +117,16 @@ describe('ServiceCatalogProfilesComponent (app_profile CRUD)', () => {
     expect(err.textContent).toContain('already exists');
   });
 
-  it('surfaces a 400 (the bff\'s own validation message) VERBATIM, never a generic flash', async () => {
+  it('surfaces a 400 (the bff\'s own validation reason) VERBATIM, never a generic flash', async () => {
     await build();
     component.name.set('huge');
     component.profileJson.set('{}');
-    serviceCatalog.createProfile.and.rejectWith(new ServiceCatalogApiError(400, 'profileJson is too long'));
+    // The message ServiceCatalogService.toApiError builds from the bff's real
+    // {error:"validation failed", fields:{profileJson:"profileJson is too long"}} body
+    // (asserted on the wire in service-catalog.service.spec.ts).
+    serviceCatalog.createProfile.and.rejectWith(
+      new ServiceCatalogApiError(400, 'validation failed: profileJson is too long'),
+    );
     await component.submit();
     fixture.detectChanges();
     const err = el().querySelector('[data-testid="service-catalog-profiles-form-error"]')!;

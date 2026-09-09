@@ -200,6 +200,60 @@ describe('ServiceCatalogService (exact PR1 bff paths)', () => {
     await p;
   });
 
+  it('createProfile 400: the bff bean-validation body {error:"validation failed", fields:{...}} surfaces the FIELD reason, not the constant', async () => {
+    // The EXACT body hugmesh-admin-bff-api's ValidationExceptionHandler renders for a
+    // failed @Valid AppProfileRequest (the @Size bound on profileJson). The reason is
+    // only in `fields`; the top-level `error` is always the constant "validation failed".
+    const p = service.createProfile('huge', '{}');
+    httpMock.expectOne('/bff/superadmin/app-profiles').flush(
+      { error: 'validation failed', fields: { profileJson: 'profileJson is too long' } },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    let caught: unknown;
+    try {
+      await p;
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught instanceof ServiceCatalogApiError).toBeTrue();
+    expect((caught as ServiceCatalogApiError).isBadRequest).toBeTrue();
+    expect((caught as ServiceCatalogApiError).message).toBe('validation failed: profileJson is too long');
+  });
+
+  it('createProfile 400: a validation field whose message does not name the field is prefixed with it; several fields are listed', async () => {
+    const p = service.createProfile('', '{}');
+    httpMock.expectOne('/bff/superadmin/app-profiles').flush(
+      { error: 'validation failed', fields: { name: 'invalid', profileJson: 'profileJson is too long' } },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    let caught: unknown;
+    try {
+      await p;
+    } catch (e) {
+      caught = e;
+    }
+    expect((caught as ServiceCatalogApiError).message).toBe(
+      'validation failed: name: invalid; profileJson is too long',
+    );
+  });
+
+  it('createProfile 400: an {error} body WITHOUT fields (ApiException.badRequest channel) is unchanged', async () => {
+    const p = service.createProfile('x', '{}');
+    httpMock.expectOne('/bff/superadmin/app-profiles').flush(
+      { error: 'template rejected: resources.cpu is not a Kubernetes quantity' },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    let caught: unknown;
+    try {
+      await p;
+    } catch (e) {
+      caught = e;
+    }
+    expect((caught as ServiceCatalogApiError).message).toBe(
+      'template rejected: resources.cpu is not a Kubernetes quantity',
+    );
+  });
+
   it('updateProfile → PUT /bff/superadmin/app-profiles/{name} (path name identifies the row)', async () => {
     const p = service.updateProfile('small-postgres', '{"cpu":"1"}');
     const req = httpMock.expectOne('/bff/superadmin/app-profiles/small-postgres');

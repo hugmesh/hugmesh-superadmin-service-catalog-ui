@@ -294,6 +294,22 @@ export function archetypeNeedsJavaPackageSlug(archetype: string): boolean {
   return ARCHETYPE_JAVA_PACKAGE.includes(archetype);
 }
 
+/** Render the bff's bean-validation {@code fields} map ({field: message}) as one
+ *  human-readable reason list. The admin-bff's constraint messages already name
+ *  their field ("profileJson is too long", "name is required"), so the field key
+ *  is prefixed only when the message does not mention it (a bare "invalid"). A
+ *  non-object / empty {@code fields} yields '' so every other error body is
+ *  byte-identical to before. */
+function describeValidationFields(fields: unknown): string {
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return '';
+  return Object.entries(fields as Record<string, unknown>)
+    .map(([field, msg]) => {
+      const text = typeof msg === 'string' && msg.trim() ? msg.trim() : 'invalid';
+      return text.toLowerCase().includes(field.toLowerCase()) ? text : `${field}: ${text}`;
+    })
+    .join('; ');
+}
+
 /** A typed error the service raises so components can surface the EXACT failure
  *  the bff returned — in particular the 403 the SUPERADMIN gate returns (the
  *  canonical default-deny signal), the 404 (a profile/deployment that is gone),
@@ -406,8 +422,19 @@ export class ServiceCatalogService {
 
   /** Map a caught error to a {@link ServiceCatalogApiError} so the 400/403/404/409
    *  surfacing the UI keys off is identical to the pre-migration fetch layer. The
-   *  bff returns a JSON {@code {message|error}} body; never let a parse miss mask
-   *  the status. */
+   *  bff speaks TWO error bodies and both must surface their reason:
+   *  <ul>
+   *    <li>{@code {"error": message}} — an {@code ApiException} (admin-bff
+   *        {@code ApiExceptionHandler}): the 403 gates, 404/409, and the effector's
+   *        own 400s. {@code message} is read first for the legacy shape.</li>
+   *    <li>{@code {"error":"validation failed","fields":{field:msg}}} — a jakarta
+   *        bean-validation 400 ({@code ValidationExceptionHandler}), e.g. the
+   *        {@code @Size} bound on {@code AppProfileRequest.profileJson}. The reason
+   *        lives in {@code fields}, so it is folded into the message
+   *        ("validation failed: profileJson is too long") — otherwise the operator
+   *        would only ever see the constant "validation failed".</li>
+   *  </ul>
+   *  Never let a parse miss mask the status. */
   private toApiError(method: string, path: string, e: unknown): never {
     if (e instanceof HttpErrorResponse) {
       const body = e.error;
@@ -417,6 +444,8 @@ export class ServiceCatalogService {
       } else if (body && typeof body === 'object') {
         const record = body as Record<string, unknown>;
         detail = (record['message'] as string) ?? (record['error'] as string) ?? '';
+        const fields = describeValidationFields(record['fields']);
+        if (fields) detail = detail ? `${detail}: ${fields}` : fields;
       }
       throw new ServiceCatalogApiError(
         e.status,

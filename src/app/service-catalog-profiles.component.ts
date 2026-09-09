@@ -19,10 +19,12 @@ type Mode = 'create' | 'edit';
  * The editor validates that profileJson PARSES as JSON before submit (a malformed
  * template is a UI-side block, not a server round-trip). loading / empty / error
  * states; a 403/404/409 each surfaces a clear message, and a 400 surfaces the bff's
- * OWN message verbatim — today that is only the size bound ("profileJson is too long"),
- * but it is also the channel a content-validating resolver (issue #3) will speak
- * through, so the UI needs no change when the bff starts rejecting a template's
- * resource/role/cert/exposure content rather than storing it opaque.
+ * OWN reason verbatim — today that is only the size bound, rendered by
+ * ServiceCatalogService as "validation failed: profileJson is too long" (the bff's
+ * bean-validation body keeps the reason in `fields`, which the service folds into
+ * the message). A content-validating resolver (issue #3) can speak through either
+ * bff channel — bean validation (`fields`) or ApiException.badRequest (`{error}`) —
+ * and both surface here without a UI change.
  */
 @Component({
   selector: 'hug-service-catalog-profiles',
