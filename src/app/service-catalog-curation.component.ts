@@ -2,6 +2,16 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from './service-catalog.service';
+import { StepUpChallengeComponent } from './step-up-challenge.component';
+
+type CurationAction = 'offer' | 'withdraw';
+
+/** A paused offer/withdraw awaiting a step-up token: what to retry, and how to describe it. */
+interface CurationStepUpChallenge {
+  kind: CurationAction;
+  key: string;
+  action: string;
+}
 
 /**
  * The CURATION view — the SUPERADMIN's per-domain offered catalog over
@@ -17,11 +27,18 @@ import { ServiceCatalogService, ServiceCuration, ServiceCatalogApiError } from '
  * The domain is the path segment (never a body field). loading / empty / error
  * states; a 403/404 degrades gracefully. The form controls each carry a <label> +
  * aria-describedby help; the offered list announces its state.
+ *
+ * STEP-UP: offer and withdraw are candidates for the platform's step-up gate. When the
+ * bff answers either with the "requires step-up" 403 contract
+ * ({@link ServiceCatalogApiError.isStepUpRequired}) the action is PAUSED, not failed:
+ * the shared token challenge is shown, and confirming a token retries the SAME
+ * offer/withdraw carrying it in X-ServiceStore-StepUp. A token-less call is unchanged,
+ * so until the bff gates these endpoints nothing here is reachable.
  */
 @Component({
   selector: 'hug-service-catalog-curation',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, StepUpChallengeComponent],
   templateUrl: './service-catalog-curation.component.html',
   styleUrl: './service-catalog-curation.component.scss',
 })
@@ -68,6 +85,13 @@ export class ServiceCatalogCurationComponent {
    */
   readonly keyTouched = signal(false);
 
+  // ── Step-up (offer / withdraw) ───────────────────────────────────────────
+  /** The confirmed step-up token, carried in X-ServiceStore-StepUp on the retried
+   *  offer/withdraw. Memory-only; cleared whenever the bff re-raises the challenge. */
+  readonly stepUpToken = signal('');
+  /** The paused offer/withdraw awaiting a token, or null. */
+  readonly stepUpChallenge = signal<CurationStepUpChallenge | null>(null);
+
   /** The currently-offered (live, non-withdrawn) rows — the visible offered-catalog view. */
   readonly offeredRows = computed(() => (this.rows() ?? []).filter((r) => r.state === 'offered'));
 
@@ -87,10 +111,16 @@ export class ServiceCatalogCurationComponent {
    * must be non-blank, and no call must be in flight.
    *
    * A domain must be LOADED (not just typed) so accidental actions against an unconfirmed
-   * domain are prevented.
+   * domain are prevented, and a pending step-up challenge holds every action until it is
+   * confirmed or cancelled.
    */
   canAct(): boolean {
-    return this.loadedDomain().trim().length > 0 && this.serviceKey().trim().length > 0 && !this.busy();
+    return (
+      this.loadedDomain().trim().length > 0 &&
+      this.serviceKey().trim().length > 0 &&
+      !this.busy() &&
+      this.stepUpChallenge() === null
+    );
   }
 
   /** Fetch the catalog for the typed domain, validate input, and update `loadedDomain`. */
@@ -101,6 +131,7 @@ export class ServiceCatalogCurationComponent {
     this.keyTouched.set(false);
     this.actionError.set('');
     this.notice.set('');
+    this.stepUpChallenge.set(null); // a pending challenge belonged to the previous domain
     await this.fetchCatalog();
   }
 
@@ -138,7 +169,7 @@ export class ServiceCatalogCurationComponent {
     await this.act('withdraw', key);
   }
 
-  private async act(kind: 'offer' | 'withdraw', keyArg?: string): Promise<void> {
+  private async act(kind: CurationAction, keyArg?: string): Promise<void> {
     // Only flag the OFFER form's key field when the action came FROM that form (no
     // explicit keyArg) — a per-row Withdraw carries its own key and must not mark the
     // typed-key input touched.
@@ -152,25 +183,61 @@ export class ServiceCatalogCurationComponent {
     this.busy.set(true);
     try {
       if (kind === 'offer') {
-        await this.serviceCatalog.offer(domain, key);
+        await this.serviceCatalog.offer(domain, key, ...this.stepUpArgs());
         this.notice.set(`Offered “${key}” to ${domain}.`);
         this.serviceKey.set('');
         // The field is intentionally cleared for the next offer — reset its touched
         // state too so the now-empty field isn't flagged after a SUCCESSFUL offer.
         this.keyTouched.set(false);
       } else {
-        await this.serviceCatalog.withdraw(domain, key);
+        await this.serviceCatalog.withdraw(domain, key, ...this.stepUpArgs());
         this.notice.set(`Withdrew “${key}” from ${domain}.`);
       }
       await this.fetchCatalog(); // refresh WITHOUT clearing the success notice
     } catch (e) {
-      this.actionError.set(this.message(e, kind));
+      if (e instanceof ServiceCatalogApiError && e.isStepUpRequired) {
+        // Pause, don't fail: any previously-confirmed token is evidently stale.
+        this.stepUpToken.set('');
+        this.stepUpChallenge.set({
+          kind,
+          key,
+          action: kind === 'offer' ? `Offering “${key}” to ${domain}` : `Withdrawing “${key}” from ${domain}`,
+        });
+      } else {
+        this.actionError.set(this.message(e, kind));
+      }
     } finally {
       this.busy.set(false);
     }
   }
 
-  private message(e: unknown, kind: 'offer' | 'withdraw'): string {
+  /** The optional trailing step-up argument for the service call: present only when a
+   *  token has been confirmed, so a token-less call keeps its exact pre-step-up shape. */
+  private stepUpArgs(): [] | [string] {
+    const token = this.stepUpToken();
+    return token.length > 0 ? [token] : [];
+  }
+
+  /** The operator confirmed a step-up token: retry the paused offer/withdraw with it. */
+  async submitStepUp(token: string): Promise<void> {
+    const challenge = this.stepUpChallenge();
+    if (!challenge || token.trim().length === 0) return;
+    this.stepUpToken.set(token.trim());
+    this.stepUpChallenge.set(null);
+    await this.act(challenge.kind, challenge.key);
+  }
+
+  /** The operator dismissed the challenge: the paused action did not happen — say so. */
+  cancelStepUp(): void {
+    const challenge = this.stepUpChallenge();
+    this.stepUpChallenge.set(null);
+    if (challenge) {
+      const verb = challenge.kind === 'offer' ? 'offered' : 'withdrawn';
+      this.actionError.set(`Step-up cancelled — “${challenge.key}” was not ${verb}.`);
+    }
+  }
+
+  private message(e: unknown, kind: CurationAction): string {
     if (e instanceof ServiceCatalogApiError && e.isForbidden) {
       return 'The server denied this action — superadmin is required to curate the catalog.';
     }

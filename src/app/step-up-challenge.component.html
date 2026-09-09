@@ -1,0 +1,38 @@
+<div
+  class="service-catalog-stepup"
+  role="group"
+  [attr.aria-labelledby]="testId() + '-title'"
+  [attr.data-testid]="testId()"
+>
+  <h4 [id]="testId() + '-title'">Step-up required</h4>
+  <p class="service-catalog-field__help">
+    {{ action() }} needs a fresh step-up confirmation. Paste a valid step-up token
+    (sent as X-ServiceStore-StepUp) to retry. The token is never stored.
+  </p>
+  <div class="service-catalog-field">
+    <label [for]="testId() + '-token'">Step-up token</label>
+    <input
+      [id]="testId() + '-token'"
+      name="stepUpToken"
+      type="password"
+      autocomplete="off"
+      [ngModel]="tokenInput()"
+      (ngModelChange)="tokenInput.set($event)"
+    />
+  </div>
+  <div class="service-catalog-actions">
+    <button
+      type="button"
+      class="service-catalog-btn"
+      [disabled]="tokenInput().trim().length === 0"
+      (click)="submit()"
+      [attr.data-testid]="testId() + '-submit'"
+    >Confirm and retry</button>
+    <button
+      type="button"
+      class="service-catalog-btn service-catalog-btn--secondary"
+      (click)="dismiss()"
+      [attr.data-testid]="testId() + '-cancel'"
+    >Cancel</button>
+  </div>
+</div>

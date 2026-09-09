@@ -119,6 +119,55 @@ describe('ServiceCatalogService (exact PR1 bff paths)', () => {
     expect(row.state).toBe('withdrawn');
   });
 
+  it('offer WITH a step-up token carries it in X-ServiceStore-StepUp (via the HttpContext seam)', async () => {
+    const p = service.offer('acme.test', 'owncast', 'stepup-tok');
+    const req = httpMock.expectOne('/bff/superadmin/service-store/acme.test/offer');
+    expect(req.request.headers.get('X-ServiceStore-StepUp')).withContext('step-up header carried').toBe('stepup-tok');
+    expect(req.request.body).withContext('the token never leaks into the body').toEqual({ serviceKey: 'owncast' });
+    req.flush(curation);
+    await p;
+  });
+
+  it('offer WITHOUT a token sends NO X-ServiceStore-StepUp header (unchanged wire shape)', async () => {
+    const p = service.offer('acme.test', 'owncast');
+    const req = httpMock.expectOne('/bff/superadmin/service-store/acme.test/offer');
+    expect(req.request.headers.has('X-ServiceStore-StepUp')).toBeFalse();
+    req.flush(curation);
+    await p;
+  });
+
+  it('withdraw WITH a step-up token carries it in X-ServiceStore-StepUp; a blank token sends none', async () => {
+    const p1 = service.withdraw('acme.test', 'owncast', 'stepup-tok');
+    const r1 = httpMock.expectOne('/bff/superadmin/service-store/acme.test/withdraw');
+    expect(r1.request.headers.get('X-ServiceStore-StepUp')).toBe('stepup-tok');
+    r1.flush({ ...curation, state: 'withdrawn' });
+    await p1;
+    const p2 = service.withdraw('acme.test', 'owncast', '   ');
+    const r2 = httpMock.expectOne('/bff/superadmin/service-store/acme.test/withdraw');
+    expect(r2.request.headers.has('X-ServiceStore-StepUp')).withContext('blank token = no header').toBeFalse();
+    r2.flush({ ...curation, state: 'withdrawn' });
+    await p2;
+  });
+
+  it('an offer 403 with the "requires step-up" contract is ServiceCatalogApiError.isStepUpRequired', async () => {
+    const p = service.offer('acme.test', 'owncast');
+    httpMock
+      .expectOne('/bff/superadmin/service-store/acme.test/offer')
+      .flush(
+        { error: 'offering a service requires step-up re-authentication (present X-ServiceStore-StepUp)' },
+        { status: 403, statusText: 'Forbidden' },
+      );
+    let caught: unknown;
+    try {
+      await p;
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(ServiceCatalogApiError);
+    expect((caught as ServiceCatalogApiError).isStepUpRequired).toBeTrue();
+    expect((caught as ServiceCatalogApiError).isForbidden).withContext('it is still a 403').toBeTrue();
+  });
+
   it('encodes a domain with dots/slashes safely in the path', async () => {
     const p = service.listCuration('a/b.test');
     expectOne('GET', '/bff/superadmin/service-store/a%2Fb.test', []);
@@ -223,6 +272,23 @@ describe('ServiceCatalogService (exact PR1 bff paths)', () => {
     });
     expect((req.request.body as any).domain).withContext('domain is the PATH, never the body').toBeUndefined();
     req.flush({ ...deployment, propagationState: 'applied' });
+    await p;
+  });
+
+  it('provisionDeployment WITH a step-up token carries it in X-ServiceStore-StepUp', async () => {
+    const p = service.provisionDeployment('acme.test', 'dep-1', { sourceKind: 'SELECT', repoUrl: 'r' }, 'stepup-tok');
+    const req = httpMock.expectOne('/bff/superadmin/service-store/acme.test/deployments/dep-1/provision');
+    expect(req.request.headers.get('X-ServiceStore-StepUp')).toBe('stepup-tok');
+    expect(req.request.body).toEqual({ sourceKind: 'SELECT', repoUrl: 'r' });
+    req.flush({ ...deployment, propagationState: 'applied' });
+    await p;
+  });
+
+  it('provisionDeployment WITHOUT a token sends NO X-ServiceStore-StepUp header', async () => {
+    const p = service.provisionDeployment('acme.test', 'dep-1', { sourceKind: 'SELECT', repoUrl: 'r' });
+    const req = httpMock.expectOne('/bff/superadmin/service-store/acme.test/deployments/dep-1/provision');
+    expect(req.request.headers.has('X-ServiceStore-StepUp')).toBeFalse();
+    req.flush(deployment);
     await p;
   });
 

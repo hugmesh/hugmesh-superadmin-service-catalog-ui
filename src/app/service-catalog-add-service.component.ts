@@ -13,6 +13,15 @@ import {
   ServiceCatalogApiError,
 } from './service-catalog.service';
 import { SourceOption, buildSourceOptions } from './service-source-options';
+import { StepUpChallengeComponent } from './step-up-challenge.component';
+
+/** A paused provision awaiting a step-up token: the EXACT call to retry, plus its label. */
+interface ProvisionStepUpChallenge {
+  domain: string;
+  id: string;
+  body: ProvisionService;
+  action: string;
+}
 
 /**
  * The ADD-A-SERVICE view — the SUPERADMIN flow that drives a per-domain
@@ -49,11 +58,19 @@ import { SourceOption, buildSourceOptions } from './service-source-options';
  * repo coordinates → Provision. The {domain} + {id} are the explicit PATH targets.
  *
  * loading / empty / error states; a 403/404/400 each degrade gracefully.
+ *
+ * STEP-UP: provision is a candidate for the platform's step-up gate. When the bff answers
+ * it with the "requires step-up" 403 contract ({@link ServiceCatalogApiError.isStepUpRequired})
+ * the provision is PAUSED, not failed: the shared token challenge is shown, and confirming
+ * a token retries the SAME {domain}/{id}/body carrying it in X-ServiceStore-StepUp (the
+ * snapshot is retried, so a row/source changed under an open challenge is never what gets
+ * provisioned). A token-less call is unchanged, so until the bff gates the endpoint nothing
+ * here is reachable.
  */
 @Component({
   selector: 'hug-service-catalog-add-service',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, StepUpChallengeComponent],
   templateUrl: './service-catalog-add-service.component.html',
   styleUrl: './service-catalog-add-service.component.scss',
 })
@@ -82,6 +99,13 @@ export class ServiceCatalogAddServiceComponent {
   readonly formError = signal('');
   readonly notice = signal('');
   readonly touched = signal(false);
+
+  // ── step-up (provision) ──
+  /** The confirmed step-up token, carried in X-ServiceStore-StepUp on the retried
+   *  provision. Memory-only; cleared whenever the bff re-raises the challenge. */
+  readonly stepUpToken = signal('');
+  /** The paused provision awaiting a token, or null. */
+  readonly stepUpChallenge = signal<ProvisionStepUpChallenge | null>(null);
 
   /** The LIVE Kaniko-builder capability pre-flight (config flag + x86 build-node
    *  presence), fetched alongside each domain load (see {@link fetchRows}). `null`
@@ -135,13 +159,14 @@ export class ServiceCatalogAddServiceComponent {
   }
 
   /** Can the Provision button fire? A row must be selected, a non-gated source
-   *  chosen, and a repoUrl present (the bff @NotBlank). */
+   *  chosen, a repoUrl present (the bff @NotBlank), and no step-up challenge pending. */
   canProvision(): boolean {
     return (
       this.selectedId().trim().length > 0 &&
       !this.sourceBuilderGated() &&
       this.repoUrl().trim().length > 0 &&
-      !this.busy()
+      !this.busy() &&
+      this.stepUpChallenge() === null
     );
   }
 
@@ -151,6 +176,7 @@ export class ServiceCatalogAddServiceComponent {
     this.formError.set('');
     this.notice.set('');
     this.selectedId.set('');
+    this.stepUpChallenge.set(null); // a pending challenge belonged to the previous selection
     await this.fetchRows();
   }
 
@@ -218,16 +244,22 @@ export class ServiceCatalogAddServiceComponent {
     if (!this.canProvision()) return;
     const domain = this.loadedDomain().trim();
     const id = this.selectedId().trim();
-    const row = this.selectedRow();
     const body: ProvisionService = {
       sourceKind: this.sourceKind(),
       repoUrl: this.repoUrl().trim(),
       path: this.path().trim() || null,
       targetRevision: this.targetRevision().trim() || null,
     };
+    await this.runProvision(domain, id, body);
+  }
+
+  /** The provision call itself, over an explicit snapshot so a step-up retry re-sends
+   *  EXACTLY what paused (never whatever the form holds by then). */
+  private async runProvision(domain: string, id: string, body: ProvisionService): Promise<void> {
+    const row = (this.rows() ?? []).find((r) => r.id === id) ?? null;
     this.busy.set(true);
     try {
-      await this.serviceCatalog.provisionDeployment(domain, id, body);
+      await this.serviceCatalog.provisionDeployment(domain, id, body, ...this.stepUpArgs());
       this.notice.set(
         `Provisioned “${row?.serviceKey ?? id}” in ${domain} from its ${body.sourceKind} source. ` +
           `The per-service role and route-access rule are wired; the ArgoCD apply lands when the ` +
@@ -238,9 +270,45 @@ export class ServiceCatalogAddServiceComponent {
       this.targetRevision.set('');
       await this.fetchRows(); // refresh the propagation state WITHOUT clearing the notice
     } catch (e) {
-      this.formError.set(this.message(e));
+      if (e instanceof ServiceCatalogApiError && e.isStepUpRequired) {
+        // Pause, don't fail: any previously-confirmed token is evidently stale.
+        this.stepUpToken.set('');
+        this.stepUpChallenge.set({
+          domain,
+          id,
+          body,
+          action: `Provisioning “${row?.serviceKey ?? id}” in ${domain}`,
+        });
+      } else {
+        this.formError.set(this.message(e));
+      }
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  /** The optional trailing step-up argument for the service call: present only when a
+   *  token has been confirmed, so a token-less call keeps its exact pre-step-up shape. */
+  private stepUpArgs(): [] | [string] {
+    const token = this.stepUpToken();
+    return token.length > 0 ? [token] : [];
+  }
+
+  /** The operator confirmed a step-up token: retry the paused provision with it. */
+  async submitStepUp(token: string): Promise<void> {
+    const challenge = this.stepUpChallenge();
+    if (!challenge || token.trim().length === 0) return;
+    this.stepUpToken.set(token.trim());
+    this.stepUpChallenge.set(null);
+    await this.runProvision(challenge.domain, challenge.id, challenge.body);
+  }
+
+  /** The operator dismissed the challenge: the paused provision did not happen — say so. */
+  cancelStepUp(): void {
+    const challenge = this.stepUpChallenge();
+    this.stepUpChallenge.set(null);
+    if (challenge) {
+      this.formError.set('Step-up cancelled — the service was not provisioned.');
     }
   }
 

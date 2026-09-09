@@ -2,6 +2,8 @@ import { Injectable, InjectionToken, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
+import { stepUpContext } from './step-up-context';
+
 import { ServiceCurationControllerService } from './api/services/service-curation-controller.service';
 import { AppProfileControllerService } from './api/services/app-profile-controller.service';
 import { ServiceDeploymentControllerService } from './api/services/service-deployment-controller.service';
@@ -325,10 +327,11 @@ export class ServiceCatalogApiError extends Error {
     return this.status === 400;
   }
   /** A step-up-required 403 — the ServiceStoreStepUpGate on the scaffold/federate
-   *  writes. The platform's contract is a 403 whose message contains "requires
+   *  writes today, and on the offer/withdraw/provision writes once the bff gates
+   *  them too. The platform's contract is a 403 whose message contains "requires
    *  step-up" (there is no separate structured signal — the free-text phrase IS the
    *  contract, matched narrowly so an ordinary superadmin-denial 403, which never
-   *  carries that phrase, is NOT mistaken for it). The wizard offers the step-up
+   *  carries that phrase, is NOT mistaken for it). Every caller offers the step-up
    *  token challenge + retry instead of a bare error. */
   get isStepUpRequired(): boolean {
     return this.status === 403 && /requires step-up/i.test(this.message);
@@ -438,10 +441,16 @@ export class ServiceCatalogService {
 
   /** POST /bff/superadmin/service-store/{domain}/offer {serviceKey} → ServiceCuration —
    *  offer a service_key to a {domain}'s admins. domain is the PATH target; the
-   *  acting superadmin subject is stamped from the JWT (never a body field). */
-  async offer(domain: string, serviceKey: string): Promise<ServiceCuration> {
+   *  acting superadmin subject is stamped from the JWT (never a body field).
+   *  `stepUpToken`, when given, is carried in X-ServiceStore-StepUp (see
+   *  {@code step-up-context.ts}); without one the call is exactly as before. A
+   *  "requires step-up" 403 is {@link ServiceCatalogApiError.isStepUpRequired}. */
+  async offer(domain: string, serviceKey: string, stepUpToken?: string): Promise<ServiceCuration> {
     try {
-      const row = await this.curationApi.serviceCurationOffer({ domain, body: { serviceKey } });
+      const row = await this.curationApi.serviceCurationOffer(
+        { domain, body: { serviceKey } },
+        stepUpContext(stepUpToken),
+      );
       return row as unknown as ServiceCuration;
     } catch (e) {
       return this.toApiError('POST', `/bff/superadmin/service-store/${domain}/offer`, e);
@@ -449,10 +458,14 @@ export class ServiceCatalogService {
   }
 
   /** POST /bff/superadmin/service-store/{domain}/withdraw {serviceKey} → ServiceCuration —
-   *  withdraw a service_key from a {domain}'s offered catalog (CAS offered->withdrawn). */
-  async withdraw(domain: string, serviceKey: string): Promise<ServiceCuration> {
+   *  withdraw a service_key from a {domain}'s offered catalog (CAS offered->withdrawn).
+   *  `stepUpToken` as for {@link offer}. */
+  async withdraw(domain: string, serviceKey: string, stepUpToken?: string): Promise<ServiceCuration> {
     try {
-      const row = await this.curationApi.serviceCurationWithdraw({ domain, body: { serviceKey } });
+      const row = await this.curationApi.serviceCurationWithdraw(
+        { domain, body: { serviceKey } },
+        stepUpContext(stepUpToken),
+      );
       return row as unknown as ServiceCuration;
     } catch (e) {
       return this.toApiError('POST', `/bff/superadmin/service-store/${domain}/withdraw`, e);
@@ -559,10 +572,19 @@ export class ServiceCatalogService {
    *  rejected by the bff with a 400 "requires the in-cluster builder (Kaniko)" until the
    *  generator's builder exists, so the UI guards them (disabled+helptext) AND surfaces
    *  that 400 gracefully if one is forced through. A missing/blank repoUrl is also a 400
-   *  at the bff (@NotBlank). The {domain} is the explicit PATH target. */
-  async provisionDeployment(domain: string, id: string, body: ProvisionService): Promise<ServiceDeployment> {
+   *  at the bff (@NotBlank). The {domain} is the explicit PATH target. `stepUpToken`
+   *  as for {@link offer}: carried in X-ServiceStore-StepUp when given, absent otherwise. */
+  async provisionDeployment(
+    domain: string,
+    id: string,
+    body: ProvisionService,
+    stepUpToken?: string,
+  ): Promise<ServiceDeployment> {
     try {
-      const row = await this.deploymentApi.serviceDeploymentProvision({ domain, id, body: body as any });
+      const row = await this.deploymentApi.serviceDeploymentProvision(
+        { domain, id, body: body as any },
+        stepUpContext(stepUpToken),
+      );
       return row as unknown as ServiceDeployment;
     } catch (e) {
       return this.toApiError(
