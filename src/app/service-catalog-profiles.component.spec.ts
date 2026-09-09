@@ -117,6 +117,34 @@ describe('ServiceCatalogProfilesComponent (app_profile CRUD)', () => {
     expect(err.textContent).toContain('already exists');
   });
 
+  it('surfaces a 400 (the bff\'s own validation reason) VERBATIM, never a generic flash', async () => {
+    await build();
+    component.name.set('huge');
+    component.profileJson.set('{}');
+    // The message ServiceCatalogService.toApiError builds from the bff's real
+    // {error:"validation failed", fields:{profileJson:"profileJson is too long"}} body
+    // (asserted on the wire in service-catalog.service.spec.ts).
+    serviceCatalog.createProfile.and.rejectWith(
+      new ServiceCatalogApiError(400, 'validation failed: profileJson is too long'),
+    );
+    await component.submit();
+    fixture.detectChanges();
+    const err = el().querySelector('[data-testid="service-catalog-profiles-form-error"]')!;
+    expect(err.textContent).toContain('profileJson is too long');
+    expect(err.textContent).not.toContain('Could not save the profile');
+  });
+
+  it('a 400 WITHOUT a server message still gets a specific rejection notice', async () => {
+    await build();
+    component.name.set('x');
+    component.profileJson.set('{}');
+    serviceCatalog.createProfile.and.rejectWith(new ServiceCatalogApiError(400, ''));
+    await component.submit();
+    fixture.detectChanges();
+    const err = el().querySelector('[data-testid="service-catalog-profiles-form-error"]')!;
+    expect(err.textContent).toContain('rejected this profile');
+  });
+
   it('shows the ERROR state on a non-auth list failure', async () => {
     serviceCatalog.listProfiles.and.rejectWith(new ServiceCatalogApiError(500, 'boom'));
     await build();

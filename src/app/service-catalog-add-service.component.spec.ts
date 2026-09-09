@@ -352,6 +352,87 @@ describe('ServiceCatalogAddServiceComponent (4-source provision over effector PR
     expect(err.textContent).toContain('superadmin');
   });
 
+  // ── step-up: pause + retry the SAME provision ─────────────────────────────────
+
+  it('a plain 403 on provision NEVER raises the step-up challenge — regression guard', async () => {
+    await loadDomain('acme.test');
+    selectFirst();
+    component.repoUrl.set('r');
+    serviceCatalog.provisionDeployment.and.rejectWith(new ServiceCatalogApiError(403, 'forbidden'));
+    await component.provision();
+    fixture.detectChanges();
+    expect(component.stepUpChallenge()).toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-add-stepup"]')).toBeNull();
+  });
+
+  it('pauses on a provision "requires step-up" 403 (challenge shown, NO error), then RETRIES the SAME call with the token', async () => {
+    await loadDomain('acme.test');
+    selectFirst();
+    component.repoUrl.set('https://gitlab.acme.test/svc/owncast.git');
+    component.path.set('deploy/');
+    serviceCatalog.provisionDeployment.and.rejectWith(new ServiceCatalogApiError(
+      403,
+      'provisioning a service requires step-up re-authentication (present X-ServiceStore-StepUp)',
+    ));
+    await component.provision();
+    fixture.detectChanges();
+    expect(serviceCatalog.provisionDeployment).toHaveBeenCalledTimes(1);
+    expect(serviceCatalog.provisionDeployment).toHaveBeenCalledWith('acme.test', 'dep-1', {
+      sourceKind: 'SELECT', repoUrl: 'https://gitlab.acme.test/svc/owncast.git', path: 'deploy/', targetRevision: null,
+    });
+    expect(component.stepUpChallenge()?.action).toBe('Provisioning “owncast” in acme.test');
+    expect(el().querySelector('[data-testid="service-catalog-add-stepup"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-add-form-error"]')).withContext('paused, not failed').toBeNull();
+    expect(component.canProvision()).withContext('submit held while the challenge is open').toBeFalse();
+
+    // The form is edited under the open challenge — the RETRY must re-send the paused snapshot, not this.
+    component.repoUrl.set('https://elsewhere.test/other.git');
+    serviceCatalog.provisionDeployment.and.resolveTo(dep('dep-1', 'owncast', 'active', 'applied'));
+    await component.submitStepUp('stepup-tok');
+    fixture.detectChanges();
+    expect(serviceCatalog.provisionDeployment).toHaveBeenCalledTimes(2);
+    expect(serviceCatalog.provisionDeployment.calls.mostRecent().args).toEqual([
+      'acme.test',
+      'dep-1',
+      { sourceKind: 'SELECT', repoUrl: 'https://gitlab.acme.test/svc/owncast.git', path: 'deploy/', targetRevision: null },
+      'stepup-tok',
+    ]);
+    expect(component.stepUpChallenge()).toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-add-notice"]')?.textContent).toContain('Provisioned “owncast”');
+  });
+
+  it('cancelling the challenge reports the provision as NOT performed and makes no second call', async () => {
+    await loadDomain('acme.test');
+    selectFirst();
+    component.repoUrl.set('r');
+    serviceCatalog.provisionDeployment.and.rejectWith(new ServiceCatalogApiError(
+      403,
+      'provisioning a service requires step-up re-authentication (present X-ServiceStore-StepUp)',
+    ));
+    await component.provision();
+    component.cancelStepUp();
+    fixture.detectChanges();
+    expect(serviceCatalog.provisionDeployment).toHaveBeenCalledTimes(1);
+    expect(component.stepUpChallenge()).toBeNull();
+    const err = el().querySelector('[data-testid="service-catalog-add-form-error"]')!;
+    expect(err.textContent).toContain('was not provisioned');
+    expect(component.canProvision()).withContext('submit released after cancel').toBeTrue();
+  });
+
+  it('reloading the domain drops a pending challenge (it belonged to the previous selection)', async () => {
+    await loadDomain('acme.test');
+    selectFirst();
+    component.repoUrl.set('r');
+    serviceCatalog.provisionDeployment.and.rejectWith(new ServiceCatalogApiError(
+      403,
+      'provisioning a service requires step-up re-authentication (present X-ServiceStore-StepUp)',
+    ));
+    await component.provision();
+    expect(component.stepUpChallenge()).not.toBeNull();
+    await loadDomain('other.test');
+    expect(component.stepUpChallenge()).toBeNull();
+  });
+
   // ── a11y ──────────────────────────────────────────────────────────────────────
 
   it('every interactive control has an accessible name (a11y)', async () => {

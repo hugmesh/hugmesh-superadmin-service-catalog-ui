@@ -1,5 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 
+import { STEP_UP_HEADER, STEP_UP_TOKEN } from './step-up-context';
+
 /**
  * Authenticates every same-origin {@code /bff/**} request with the HttpOnly
  * {@code bff_} cookie instead of a browser-held Bearer.
@@ -17,8 +19,16 @@ import { HttpInterceptorFn } from '@angular/common/http';
  * headers; {@code Content-Type} is left to Angular's {@code HttpClient} (it sets
  * {@code application/json} for object bodies), which is what the generated client
  * sends.
+ *
+ * <p>A request whose {@link HttpContext} carries a {@link STEP_UP_TOKEN} (the
+ * offer / withdraw / provision writes, when the operator has confirmed a step-up
+ * challenge) additionally gets the {@code X-ServiceStore-StepUp} header — see
+ * {@code step-up-context.ts} for why the token travels in the context rather than
+ * as a generated header parameter. A request without one is left exactly as before.
  */
 export const bffAuthInterceptor: HttpInterceptorFn = (req, next) => {
-  const headers = req.headers.set('Accept', 'application/json');
+  let headers = req.headers.set('Accept', 'application/json');
+  const stepUp = req.context.get(STEP_UP_TOKEN);
+  if (stepUp.length > 0) headers = headers.set(STEP_UP_HEADER, stepUp);
   return next(req.clone({ headers, withCredentials: true }));
 };

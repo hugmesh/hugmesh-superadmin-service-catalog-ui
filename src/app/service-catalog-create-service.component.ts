@@ -60,7 +60,8 @@ const MOUNT_PATTERN = /^\/[A-Za-z0-9/_-]*$/;
  * → provision → federate (step-up). SCAFFOLD and FEDERATE are step-up-gated: a 403 with the
  * "requires step-up" contract pauses the chain and shows the token challenge; confirming a
  * token RESUMES the SAME chain from the paused step (the token is carried in the
- * X-ServiceStore-StepUp header on scaffold + federate). NEVER fakes success — the federate
+ * X-ServiceStore-StepUp header on scaffold + federate, and on offer + provision once a token
+ * has been confirmed, since the bff may gate those legs too — issue #4). NEVER fakes success — the federate
  * outcome's federationReal=false / gitopsDescriptorPending=true are rendered as explicit
  * pending/dark notices.
  */
@@ -419,7 +420,7 @@ export class ServiceCatalogCreateServiceComponent {
     const key = this.serviceKey().trim();
     switch (id) {
       case 'offer': {
-        await this.serviceCatalog.offer(domain, key);
+        await this.serviceCatalog.offer(domain, key, ...this.stepUpArgs());
         this.patchStep('offer', { detail: `Offered “${key}” to ${domain}.` });
         return;
       }
@@ -451,12 +452,17 @@ export class ServiceCatalogCreateServiceComponent {
         return;
       }
       case 'provision': {
-        await this.serviceCatalog.provisionDeployment(domain, this.createdDeploymentId(), {
-          sourceKind: this.sourceKind(),
-          repoUrl: this.repoUrl().trim(),
-          path: this.path().trim() || null,
-          targetRevision: this.targetRevision().trim() || null,
-        });
+        await this.serviceCatalog.provisionDeployment(
+          domain,
+          this.createdDeploymentId(),
+          {
+            sourceKind: this.sourceKind(),
+            repoUrl: this.repoUrl().trim(),
+            path: this.path().trim() || null,
+            targetRevision: this.targetRevision().trim() || null,
+          },
+          ...this.stepUpArgs(),
+        );
         this.patchStep('provision', {
           detail: `Provisioned from its ${this.sourceKind()} source (the effector ships dark by default).`,
         });
@@ -489,6 +495,16 @@ export class ServiceCatalogCreateServiceComponent {
   }
 
   // ── step-up challenge ─────────────────────────────────────────────────────
+  /** The optional trailing step-up argument for the offer/provision legs: present only
+   *  once a token has been confirmed, so a token-less call keeps its exact pre-step-up
+   *  shape. (scaffold/federate pass the token positionally — their generated clients
+   *  declare the header; see step-up-context.ts for why these two differ.) Without this,
+   *  a gated offer/provision leg would pause, resume token-less, and pause again forever. */
+  private stepUpArgs(): [] | [string] {
+    const token = this.stepUpToken();
+    return token.length > 0 ? [token] : [];
+  }
+
   async submitStepUp(): Promise<void> {
     const token = this.stepUpTokenInput().trim();
     if (token.length === 0) return;

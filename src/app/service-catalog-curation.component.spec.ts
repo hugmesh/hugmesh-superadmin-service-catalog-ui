@@ -136,6 +136,110 @@ describe('ServiceCatalogCurationComponent (per-domain offered catalog)', () => {
     expect(err.textContent).toContain('superadmin');
   });
 
+  // ── step-up: pause + retry the SAME offer/withdraw ────────────────────────────
+
+  it('a plain 403 (no step-up contract) NEVER raises the challenge — regression guard', async () => {
+    await loadDomain('acme.test');
+    component.serviceKey.set('owncast');
+    serviceCatalog.offer.and.rejectWith(new ServiceCatalogApiError(403, 'forbidden'));
+    await component.offer();
+    fixture.detectChanges();
+    expect(component.stepUpChallenge()).toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-curation-stepup"]')).toBeNull();
+  });
+
+  it('pauses on an offer "requires step-up" 403 (challenge shown, NO error), then RETRIES with the token', async () => {
+    await loadDomain('acme.test');
+    component.serviceKey.set('owncast');
+    serviceCatalog.offer.and.rejectWith(new ServiceCatalogApiError(
+      403,
+      'offering a service requires step-up re-authentication (present X-ServiceStore-StepUp)',
+    ));
+    await component.offer();
+    fixture.detectChanges();
+    expect(serviceCatalog.offer).toHaveBeenCalledTimes(1);
+    expect(serviceCatalog.offer).toHaveBeenCalledWith('acme.test', 'owncast');
+    expect(component.stepUpChallenge()?.action).toBe('Offering “owncast” to acme.test');
+    expect(el().querySelector('[data-testid="service-catalog-curation-stepup"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-curation-action-error"]')).withContext('paused, not failed').toBeNull();
+    expect(component.canAct()).withContext('actions held while the challenge is open').toBeFalse();
+
+    serviceCatalog.offer.and.resolveTo(cur('owncast'));
+    await component.submitStepUp('stepup-tok');
+    fixture.detectChanges();
+    expect(serviceCatalog.offer).toHaveBeenCalledTimes(2);
+    expect(serviceCatalog.offer.calls.mostRecent().args).toEqual(['acme.test', 'owncast', 'stepup-tok']);
+    expect(component.stepUpChallenge()).toBeNull();
+    expect(el().querySelector('[data-testid="service-catalog-curation-notice"]')?.textContent).toContain('Offered “owncast”');
+  });
+
+  it('a per-row withdraw pauses on "requires step-up" and retries the SAME key with the token', async () => {
+    serviceCatalog.listCuration.and.resolveTo([cur('owncast')]);
+    await loadDomain('acme.test');
+    serviceCatalog.withdraw.and.rejectWith(new ServiceCatalogApiError(
+      403,
+      'withdrawing a service requires step-up re-authentication (present X-ServiceStore-StepUp)',
+    ));
+    await component.withdraw('owncast');
+    fixture.detectChanges();
+    expect(component.stepUpChallenge()?.action).toBe('Withdrawing “owncast” from acme.test');
+    const rowBtn = el().querySelector('[aria-label="Withdraw owncast from acme.test"]') as HTMLButtonElement;
+    expect(rowBtn.disabled).withContext('row action held while the challenge is open').toBeTrue();
+
+    serviceCatalog.withdraw.and.resolveTo(cur('owncast', 'withdrawn'));
+    await component.submitStepUp('stepup-tok');
+    expect(serviceCatalog.withdraw.calls.mostRecent().args).toEqual(['acme.test', 'owncast', 'stepup-tok']);
+    expect(component.stepUpChallenge()).toBeNull();
+  });
+
+  it('cancelling the challenge reports the action as NOT performed and makes no second call', async () => {
+    await loadDomain('acme.test');
+    component.serviceKey.set('owncast');
+    serviceCatalog.offer.and.rejectWith(new ServiceCatalogApiError(
+      403,
+      'offering a service requires step-up re-authentication (present X-ServiceStore-StepUp)',
+    ));
+    await component.offer();
+    component.cancelStepUp();
+    fixture.detectChanges();
+    expect(serviceCatalog.offer).toHaveBeenCalledTimes(1);
+    expect(component.stepUpChallenge()).toBeNull();
+    const err = el().querySelector('[data-testid="service-catalog-curation-action-error"]')!;
+    expect(err.textContent).toContain('was not offered');
+    expect(component.canAct()).withContext('actions released after cancel').toBeTrue();
+  });
+
+  it('a wrong token re-raises the challenge (the bff is the authority) and drops the stale token', async () => {
+    await loadDomain('acme.test');
+    component.serviceKey.set('owncast');
+    serviceCatalog.offer.and.rejectWith(new ServiceCatalogApiError(
+      403,
+      'offering a service requires step-up re-authentication (present X-ServiceStore-StepUp)',
+    ));
+    await component.offer();
+    await component.submitStepUp('bad-tok');
+    expect(serviceCatalog.offer.calls.mostRecent().args).toEqual(['acme.test', 'owncast', 'bad-tok']);
+    expect(component.stepUpChallenge()).withContext('re-raised').not.toBeNull();
+    expect(component.stepUpToken()).withContext('stale token dropped').toBe('');
+  });
+
+  it('the challenge controls have accessible names (a11y)', async () => {
+    await loadDomain('acme.test');
+    component.serviceKey.set('owncast');
+    serviceCatalog.offer.and.rejectWith(new ServiceCatalogApiError(
+      403,
+      'offering a service requires step-up re-authentication (present X-ServiceStore-StepUp)',
+    ));
+    await component.offer();
+    fixture.detectChanges();
+    const box = el().querySelector('[data-testid="service-catalog-curation-stepup"]')!;
+    const controls = Array.from(box.querySelectorAll('input, button')) as HTMLElement[];
+    expect(controls.length).toBe(3);
+    for (const c of controls) {
+      expect(accessibleName(c)).withContext(c.outerHTML).toBeTruthy();
+    }
+  });
+
   it('degrades a 403 on the catalog LOAD to the empty state (graceful)', async () => {
     serviceCatalog.listCuration.and.rejectWith(new ServiceCatalogApiError(403, 'forbidden'));
     await loadDomain('acme.test');

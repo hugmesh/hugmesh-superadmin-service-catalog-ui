@@ -42,6 +42,14 @@
     @if (actionError()) {
       <p class="service-catalog-error" role="alert" data-testid="service-catalog-curation-action-error">{{ actionError() }}</p>
     }
+    @if (stepUpChallenge(); as challenge) {
+      <hug-step-up-challenge
+        [action]="challenge.action"
+        testId="service-catalog-curation-stepup"
+        (confirm)="submitStepUp($event)"
+        (cancel)="cancelStepUp()"
+      />
+    }
 
     <form class="service-catalog-offer-form" (ngSubmit)="offer()">
       <div class="service-catalog-field">
@@ -93,7 +101,7 @@
             <button
               type="button"
               class="service-catalog-btn service-catalog-btn--danger"
-              [disabled]="busy()"
+              [disabled]="busy() || stepUpChallenge() !== null"
               [attr.aria-label]="'Withdraw ' + row.serviceKey + ' from ' + loadedDomain()"
               (click)="withdraw(row.serviceKey)"
             >Withdraw</button>

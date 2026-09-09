@@ -395,6 +395,43 @@ describe('ServiceCatalogCreateServiceComponent (scaffold + federate wizard)', ()
     expect(component.applyDone()).toBeTrue();
   });
 
+  it('pauses on an OFFER step-up 403 too, then RESUMES carrying the token into offer + provision', async () => {
+    // Issue #4: once the bff gates offer/provision, the chain must not resume token-less
+    // (that would pause again forever). The same confirmed token rides every gated leg.
+    let offerCalls = 0;
+    serviceCatalog.offer.and.callFake(async () => {
+      offerCalls += 1;
+      if (offerCalls === 1) {
+        throw new ServiceCatalogApiError(
+          403,
+          'offering a service requires step-up re-authentication (present X-ServiceStore-StepUp)',
+        );
+      }
+      return {
+        id: 'cur-1', domain: 'acme.test', serviceKey: 'owncast', state: 'offered' as const,
+        curatedBySubject: 'google:root', createdAt: 'T', updatedAt: 'T',
+      };
+    });
+    await fillValidToReview();
+    await component.apply();
+    await settle();
+    expect(component.stepUpChallenge()?.action).toBe('Offer to the domain catalog');
+    expect(serviceCatalog.offer.calls.argsFor(0)).withContext('first attempt is token-less').toEqual(['acme.test', 'owncast']);
+    expect(serviceCatalog.createDeployment).withContext('chain paused before the next leg').not.toHaveBeenCalled();
+
+    component.stepUpTokenInput.set('stepup-tok');
+    await component.submitStepUp();
+    await settle();
+
+    expect(offerCalls).toBe(2);
+    expect(serviceCatalog.offer.calls.argsFor(1)).withContext('offer retry carries the token').toEqual(['acme.test', 'owncast', 'stepup-tok']);
+    expect(serviceCatalog.createScaffold.calls.mostRecent().args[2]).toBe('stepup-tok');
+    expect(serviceCatalog.provisionDeployment.calls.mostRecent().args[3]).withContext('provision reuses the same token').toBe('stepup-tok');
+    expect(serviceCatalog.federateDeployment.calls.mostRecent().args[3]).toBe('stepup-tok');
+    expect(component.stepUpChallenge()).toBeNull();
+    expect(component.applyDone()).toBeTrue();
+  });
+
   it('cancelling the step-up marks the paused step errored and stops the chain', async () => {
     serviceCatalog.createScaffold.and.rejectWith(
       new ServiceCatalogApiError(

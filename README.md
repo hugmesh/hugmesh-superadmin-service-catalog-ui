@@ -139,8 +139,8 @@ in-remote target.)
 | method | path | body | role |
 | --- | --- | --- | --- |
 | `GET` | `/bff/superadmin/service-store/{domain}` | — | SUPERADMIN |
-| `POST` | `/bff/superadmin/service-store/{domain}/offer` | `{serviceKey}` | SUPERADMIN |
-| `POST` | `/bff/superadmin/service-store/{domain}/withdraw` | `{serviceKey}` | SUPERADMIN |
+| `POST` | `/bff/superadmin/service-store/{domain}/offer` | `{serviceKey}` (`X-ServiceStore-StepUp` when challenged) | SUPERADMIN |
+| `POST` | `/bff/superadmin/service-store/{domain}/withdraw` | `{serviceKey}` (`X-ServiceStore-StepUp` when challenged) | SUPERADMIN |
 | `GET` | `/bff/superadmin/app-profiles` | — | SUPERADMIN |
 | `GET` | `/bff/superadmin/app-profiles/{name}` | — | SUPERADMIN |
 | `POST` | `/bff/superadmin/app-profiles` | `{name, profileJson}` | SUPERADMIN |
@@ -149,7 +149,7 @@ in-remote target.)
 | `GET` | `/bff/superadmin/service-store/{domain}/deployments` | — | SUPERADMIN |
 | `POST` | `/bff/superadmin/service-store/{domain}/deployments` | `{serviceKey, profileRef?, endingAt?, enforceActions?}` | SUPERADMIN |
 | `POST` | `/bff/superadmin/service-store/{domain}/deployments/{id}/end` | — | SUPERADMIN |
-| `POST` | `/bff/superadmin/service-store/{domain}/deployments/{id}/provision` | `{sourceKind, repoUrl, path?, targetRevision?}` | SUPERADMIN |
+| `POST` | `/bff/superadmin/service-store/{domain}/deployments/{id}/provision` | `{sourceKind, repoUrl, path?, targetRevision?}` (`X-ServiceStore-StepUp` when challenged) | SUPERADMIN |
 | `GET` | `/bff/admin/service-store` | — | ADMIN \| SUPERADMIN |
 | `GET` | `/bff/superadmin/service-store/builder` | — | SUPERADMIN |
 | `GET` | `/bff/superadmin/service-store/scaffold/archetypes` | — | SUPERADMIN |
@@ -185,7 +185,14 @@ wizard** surface (`ServiceStoreWizardController`, PR #24). `POST .../scaffold` a
 `POST .../deployments/{id}/federate` are **step-up-gated**: each call carries a fresh
 token in the `X-ServiceStore-StepUp` header, and a missing/expired one comes back as a
 403 with the platform "requires step-up" contract (`ServiceCatalogApiError.isStepUpRequired`)
-rather than an ordinary superadmin-denial 403. `GET .../scaffold/{id}/archive` streams the
+rather than an ordinary superadmin-denial 403. The `offer` / `withdraw` / `provision` rows
+speak the **same client contract** (issue #4): the Curation and Add-a-service views pause on
+a "requires step-up" 403, show the shared `<hug-step-up-challenge>`, and retry the same call
+with the confirmed token — carried through an `HttpContext` seam (`step-up-context.ts`) into
+the header by `bffAuthInterceptor`, because those three generated clients declare no header
+parameter yet. A token-less call is byte-identical to before, so until the admin-bff gates
+those endpoints (it does not today — only `ServiceStoreWizardController` reads the header)
+that path is unreachable; it exists so the bff gate can land without a UI dead-end. `GET .../scaffold/{id}/archive` streams the
 rendered starter codebase as a zip over the same `bff_` cookie (a plain anchor href, no
 in-JS blob fetch). `POST .../federate` returns `{deployment, federationReal,
 gitopsDescriptorPending}` **honestly** — both flags are dark/pending by default (the bff's
@@ -439,9 +446,16 @@ is defence-in-depth.
   land a labelled x86 build node somewhere the pre-flight can see, then
   build-from-source services provision with no further UI change.
 - **App-profile resolution** — a later effector that parses the app-profile JSON
-  (resource/role/cert/exposure defaults) instead of storing it opaque.
+  (resource/role/cert/exposure defaults) instead of storing it opaque (issue #3, admin-bff
+  work). The profiles form already shows a bff 400 reason verbatim — both bff error bodies
+  surface: `{error}` (ApiException) and the bean-validation `{error:"validation failed",
+  fields:{...}}`, which `ServiceCatalogService` folds into one message.
 - **MFA step-up** — superadmin Service Catalog mutations (offer/withdraw/provision)
-  are candidate step-up actions under the platform MFA rollout (WebAuthn+TOTP).
+  are candidate step-up actions under the platform MFA rollout (WebAuthn+TOTP). The UI
+  half is in place (the same pause/challenge/retry the wizard uses, see above); the
+  security-bearing half — `ServiceStoreStepUpGate` on `ServiceCurationController` and
+  `ServiceDeploymentController.provision` in hugmesh-admin-bff-api, plus the regenerated
+  OpenAPI header parameters — is still to land.
 - **Enable real federation registration** — swap the admin-bff's
   `NoopFederationModuleClient` for a real one (and land the GitOps descriptor
   automation) so the create-and-federate wizard's `federate` step actually
