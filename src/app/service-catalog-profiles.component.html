@@ -51,7 +51,8 @@
       ></textarea>
       <span id="service-catalog-profile-json-help" class="service-catalog-field__help">
         Resource / role / cert / exposure defaults as a JSON document. Validated as JSON before saving;
-        the values are not parsed yet (a later effector resolves them).
+        the values are stored as-is and not yet interpreted by any deploy step (a later effector
+        resolves them, and any rejection it makes is shown here verbatim).
       </span>
       @if (jsonInvalid()) {
         <span class="service-catalog-error" role="alert" data-testid="service-catalog-profile-json-error">

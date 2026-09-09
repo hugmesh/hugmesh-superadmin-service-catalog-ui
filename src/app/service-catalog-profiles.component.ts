@@ -18,7 +18,11 @@ type Mode = 'create' | 'edit';
  *
  * The editor validates that profileJson PARSES as JSON before submit (a malformed
  * template is a UI-side block, not a server round-trip). loading / empty / error
- * states; a 403/404/409 each surfaces a clear message.
+ * states; a 403/404/409 each surfaces a clear message, and a 400 surfaces the bff's
+ * OWN message verbatim — today that is only the size bound ("profileJson is too long"),
+ * but it is also the channel a content-validating resolver (issue #3) will speak
+ * through, so the UI needs no change when the bff starts rejecting a template's
+ * resource/role/cert/exposure content rather than storing it opaque.
  */
 @Component({
   selector: 'hug-service-catalog-profiles',
@@ -219,6 +223,9 @@ export class ServiceCatalogProfilesComponent implements OnInit {
       if (e.isForbidden) return 'The server denied this action — superadmin is required to manage profiles.';
       if (e.isConflict) return 'A profile with that name already exists. Choose a different name.';
       if (e.isNotFound) return 'That profile no longer exists.';
+      // The bff message carries the exact reason (the size bound today; a template
+      // content/schema rejection once the resolver lands). Surface it verbatim.
+      if (e.isBadRequest) return e.message || 'The server rejected this profile.';
     }
     return 'Could not save the profile. Please try again.';
   }
