@@ -267,8 +267,15 @@ toggleable — both fail safe, loudly.
   withdraw a `service_key` for it. Shows the current offered set per domain.
 - **App profiles** — CRUD the global deploy-template library (a name + a JSON
   document of resource/role/cert/exposure defaults). The editor validates the
-  JSON before saving; the values are not parsed yet (a later effector resolves
-  them).
+  document against the committed schema `schemas/app-profile.schema.json` before
+  saving (`src/app/app-profile-schema.ts` interprets that file; nothing is
+  hard-coded): sections `resources` / `roles` / `certs` / `exposure`, every
+  object closed (an unknown field is refused and named), every refusal listed
+  with its dotted field path. **The server does not validate it yet** — measured
+  on `hugmesh-admin-bff-api` `origin/main` @`45769af`, `profileJson` carries only
+  `@Size(max = 1_000_000)` and is never parsed; the bff half is
+  `hugmesh-admin-bff-api#55`, so this is a usability gate, not an integrity one.
+  The values are stored as-is and not resolved yet (a later effector reads them).
 - **Deployments (accounting)** — view the `service_deployment` rows (service,
   state `active|ended`, `created_at`, `ending_at` expiry clock, `enforce_actions`,
   `propagation_state`) and **record** a deployment (`serviceKey` + optional
@@ -445,11 +452,14 @@ is defence-in-depth.
   infra-side, on the admin-bff/cluster: flip `app.appstore.builder.enabled` and
   land a labelled x86 build node somewhere the pre-flight can see, then
   build-from-source services provision with no further UI change.
-- **App-profile resolution** — a later effector that parses the app-profile JSON
-  (resource/role/cert/exposure defaults) instead of storing it opaque (issue #3, admin-bff
-  work). The profiles form already shows a bff 400 reason verbatim — both bff error bodies
-  surface: `{error}` (ApiException) and the bean-validation `{error:"validation failed",
-  fields:{...}}`, which `ServiceCatalogService` folds into one message.
+- **App-profile resolution** — a later effector that reads the app-profile JSON
+  (resource/role/cert/exposure defaults, now in the shape `schemas/app-profile.schema.json`
+  defines) instead of storing it opaque (issue #3, admin-bff work). The bff's own
+  validation of that schema on save is the other half of the 2026-09-16 decision and is
+  admin-bff work too; the profiles form already shows a bff 400 reason verbatim — both bff
+  error bodies surface: `{error}` (ApiException) and the bean-validation
+  `{error:"validation failed", fields:{...}}`, which `ServiceCatalogService` folds into one
+  message, so a path-keyed `fields` map (`resources.cpu: …`) renders field by field.
 - **MFA step-up** — superadmin Service Catalog mutations (offer/withdraw/provision)
   are candidate step-up actions under the platform MFA rollout (WebAuthn+TOTP). The UI
   half is in place (the same pause/challenge/retry the wizard uses, see above); the
@@ -541,10 +551,18 @@ Verified directly against the current source (not from the roadmap narrative alo
   and `gitopsDescriptorPending=true` until the GitOps descriptor automation exists; the
   wizard's Review & apply step renders both as explicit dark/pending notices rather than
   a completed federation (`src/app/service-catalog-create-service.component.ts:482`).
-- **App-profile JSON is stored opaque, not yet parsed/validated for content** — the
-  editor validates only that the value is well-formed JSON; a later effector is
-  needed to resolve the resource/role/cert/exposure defaults it encodes
-  (`src/app/service-catalog-profiles.component.html:54`).
+- **App-profile JSON is validated in the BROWSER only, and not yet resolved** — the
+  editor refuses a document that does not match `schemas/app-profile.schema.json`
+  (unknown field, wrong type, value outside its pattern/range) and names every offending
+  field, but nothing server-side re-checks it: on `hugmesh-admin-bff-api` `origin/main`
+  @`45769af`, `AppProfileRequest.profileJson` is `@Size(max = 1_000_000) @Nullable String`
+  and `AppProfileService.create/update` never parse it, so a direct API call or a stale tab
+  still stores an unchecked body. The bff-side validation of the same schema is
+  `hugmesh-admin-bff-api#55` and the effector that resolves the resource/role/cert/exposure
+  defaults is issue #3 — both admin-bff work. A profile stored
+  before the schema existed (the flat `{"cpu","memory"}` form) shows its field errors the
+  moment it is opened for edit and cannot be saved until it is moved under `resources`
+  (`src/app/service-catalog-profiles.component.ts`).
 - **Deployment lifecycle is accounting-only** — recording/ending a `service_deployment`
   row does not itself provision or tear down a real service; that is the separate
   `AddService`/provision effector path (`src/app/service-catalog-deployments.component.ts:16`).

@@ -1,14 +1,20 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { ServiceCatalogService, AppProfile, ServiceCatalogApiError } from './service-catalog.service';
+import {
+  APP_PROFILE_SECTIONS,
+  AppProfileFieldError,
+  DEFAULT_APP_PROFILE_JSON,
+  validateAppProfile,
+} from './app-profile-schema';
 
 type Mode = 'create' | 'edit';
 
 /**
  * The APP PROFILES view — SUPERADMIN CRUD over the global deploy-template library
- * (/bff/superadmin/app-profiles, AppProfileController). A profile is a name + an
- * opaque profileJson (resource/role/cert/exposure defaults) a deployment can
+ * (/bff/superadmin/app-profiles, AppProfileController). A profile is a name + a
+ * profileJson document of resource/role/cert/exposure defaults a deployment can
  * reference by name.
  *
  *   list   → GET    /bff/superadmin/app-profiles
@@ -16,15 +22,26 @@ type Mode = 'create' | 'edit';
  *   update → PUT    /bff/superadmin/app-profiles/{name}  {name, profileJson}  (path name wins)
  *   delete → DELETE /bff/superadmin/app-profiles/{name}                       (204)
  *
- * The editor validates that profileJson PARSES as JSON before submit (a malformed
- * template is a UI-side block, not a server round-trip). loading / empty / error
- * states; a 403/404/409 each surfaces a clear message, and a 400 surfaces the bff's
- * OWN reason verbatim — today that is only the size bound, rendered by
- * ServiceCatalogService as "validation failed: profileJson is too long" (the bff's
- * bean-validation body keeps the reason in `fields`, which the service folds into
- * the message). A content-validating resolver (issue #3) can speak through either
- * bff channel — bean validation (`fields`) or ApiException.badRequest (`{error}`) —
- * and both surface here without a UI change.
+ * The editor validates profileJson against the COMMITTED SCHEMA
+ * (schemas/app-profile.schema.json, via ./app-profile-schema) before submit: a
+ * template that does not parse, or that parses but carries an unknown field, a wrong
+ * type, or a value outside its pattern/range, is refused HERE with every offending
+ * field named — no server round-trip.
+ *
+ * <p>THE SERVER HALF IS NOT BUILT YET. Measured on hugmesh-admin-bff-api origin/main
+ * @45769af: {@code AppProfileRequest.profileJson} carries only {@code @Size(max =
+ * 1_000_000)} and {@code AppProfileService.create/update} never parse it. So a body
+ * that bypasses this editor (a direct API call, a stale tab) is stored AS-IS today —
+ * this validation is a usability gate, not an integrity one. The bff half is
+ * hugmesh-admin-bff-api#55 (operator decision 2026-09-16 "A: define a schema",
+ * issue #3); when it lands, its refusal already surfaces through ServiceCatalogService,
+ * which folds a bean-validation `fields` map ("resources.cpu: must match …") into the
+ * message and passes an ApiException `{error}` through as-is. loading / empty / error
+ * states; a 403/404/409 each surfaces a clear message.
+ *
+ * Opening an EXISTING profile for edit validates its stored body immediately, so a
+ * row written before the schema existed (the flat {"cpu","memory"} form) shows what
+ * must change rather than failing only on save.
  */
 @Component({
   selector: 'hug-service-catalog-profiles',
@@ -53,10 +70,15 @@ export class ServiceCatalogProfilesComponent implements OnInit {
   /** The profile name field. Read-only (displays `p.name`) in edit mode. */
   readonly name = signal('');
   /**
-   * The profile body as a JSON string. Defaults to a minimal `cpu`/`memory` example.
-   * Validated client-side by `jsonValid()` before any submit to avoid a round-trip 400.
+   * The profile body as a JSON string. Defaults to the schema's own first example
+   * (the `resources.cpu`/`memory` pair). Validated client-side against the committed
+   * schema (`validation`) before any submit to avoid a round-trip 400.
    */
-  readonly profileJson = signal('{\n  "cpu": "500m",\n  "memory": "512Mi"\n}');
+  readonly profileJson = signal(DEFAULT_APP_PROFILE_JSON);
+  /** Schema validation of the current body, recomputed as the operator types. */
+  readonly validation = computed(() => validateAppProfile(this.profileJson()));
+  /** The schema's top-level sections, for the help text. */
+  readonly sections = APP_PROFILE_SECTIONS.join(' / ');
   /** True while a POST/PUT/DELETE call is in flight — disables action buttons. */
   readonly busy = signal(false);
   /** Inline error from the last form action — displayed in an `role=alert` live region. */
@@ -80,25 +102,47 @@ export class ServiceCatalogProfilesComponent implements OnInit {
   }
 
   /**
-   * Whether `profileJson` is parseable as JSON. An empty body is permitted — treated
-   * as `'{}'` on submit (the simplest valid profile).
+   * Whether `profileJson` matches the committed app-profile schema. An empty body is
+   * permitted — treated as `'{}'` on submit (the minimal valid profile).
    *
-   * @returns `true` when blank OR when the string parses without error.
+   * @returns `true` when blank OR when the text parses AND validates.
    */
   jsonValid(): boolean {
-    const raw = this.profileJson().trim();
-    if (raw.length === 0) return true;
-    try {
-      JSON.parse(raw);
-      return true;
-    } catch {
-      return false;
-    }
+    return this.validation().ok;
   }
 
-  /** True when the body has been touched AND `jsonValid()` returns false — activates the JSON error message. */
+  /** True when the body has been touched AND `jsonValid()` returns false — activates the field-error list. */
   jsonInvalid(): boolean {
     return this.touched() && !this.jsonValid();
+  }
+
+  /** How many field errors are rendered at most. Validation recomputes on every
+   *  keystroke and a large body can produce tens of thousands of refusals (a 538 KB
+   *  body — inside the bff's own 1 MB bound — measures at 50,001), one `<li>` each:
+   *  past a screenful the list stops being readable and only costs DOM. */
+  static readonly MAX_RENDERED_ERRORS = 50;
+
+  /** The field-level refusals for the current body, capped at
+   *  {@link MAX_RENDERED_ERRORS} (empty when valid). {@link hiddenErrorCount} reports
+   *  how many are not shown, so the count is never silently understated. */
+  schemaErrors(): AppProfileFieldError[] {
+    const v = this.validation();
+    return v.ok ? [] : v.errors.slice(0, ServiceCatalogProfilesComponent.MAX_RENDERED_ERRORS);
+  }
+
+  /** Field errors beyond the rendered cap (0 when all of them are shown). */
+  hiddenErrorCount(): number {
+    const v = this.validation();
+    return v.ok ? 0 : Math.max(0, v.errors.length - ServiceCatalogProfilesComponent.MAX_RENDERED_ERRORS);
+  }
+
+  /** The heading over the error list: a parse failure and a schema mismatch read differently. */
+  schemaErrorsTitle(): string {
+    const v = this.validation();
+    if (v.ok) return '';
+    return v.kind === 'json'
+      ? 'The template is not valid JSON.'
+      : 'The template does not match the app-profile schema (schemas/app-profile.schema.json):';
   }
 
   /**
@@ -141,7 +185,7 @@ export class ServiceCatalogProfilesComponent implements OnInit {
   newProfile(): void {
     this.mode.set('create');
     this.name.set('');
-    this.profileJson.set('{\n  "cpu": "500m",\n  "memory": "512Mi"\n}');
+    this.profileJson.set(DEFAULT_APP_PROFILE_JSON);
     this.formError.set('');
     this.notice.set('');
     this.touched.set(false);
@@ -149,7 +193,9 @@ export class ServiceCatalogProfilesComponent implements OnInit {
 
   /**
    * Load an existing profile into the editor for `'edit'` mode (PUT).
-   * Populates `name` and `profileJson` from the list row; clears prior errors.
+   * Populates `name` and `profileJson` from the list row; clears prior errors. The
+   * stored body is validated at once (`touched` is set), so a row written before the
+   * schema existed shows its field errors on open instead of only on save.
    *
    * @param p - The profile row from the list to load into the form.
    */
@@ -159,13 +205,14 @@ export class ServiceCatalogProfilesComponent implements OnInit {
     this.profileJson.set(p.profileJson ?? '');
     this.formError.set('');
     this.notice.set('');
-    this.touched.set(false);
+    this.touched.set(true);
   }
 
   /**
    * Submit the editor form: creates (`POST /bff/superadmin/app-profiles`) or updates
    * (`PUT /bff/superadmin/app-profiles/{name}`) depending on `mode`. Validates
-   * client-side before calling; reloads the list on success; surfaces error messages
+   * client-side against the schema before calling (a refused body never leaves the
+   * browser); reloads the list on success; surfaces error messages
    * from `ServiceCatalogApiError` (403 / 409 conflict / 404) without a generic flash.
    *
    * @throws BFF errors are caught and surfaced into `formError`.
@@ -225,8 +272,8 @@ export class ServiceCatalogProfilesComponent implements OnInit {
       if (e.isForbidden) return 'The server denied this action — superadmin is required to manage profiles.';
       if (e.isConflict) return 'A profile with that name already exists. Choose a different name.';
       if (e.isNotFound) return 'That profile no longer exists.';
-      // The bff message carries the exact reason (the size bound today; a template
-      // content/schema rejection once the resolver lands). Surface it verbatim.
+      // The bff message carries the exact reason (the size bound, or the bff's own
+      // schema refusal naming the field path). Surface it verbatim.
       if (e.isBadRequest) return e.message || 'The server rejected this profile.';
     }
     return 'Could not save the profile. Please try again.';
