@@ -4,6 +4,7 @@ import {
   AppProfileSubSchema,
   DEFAULT_APP_PROFILE_JSON,
   SUPPORTED_KEYWORDS,
+  validateAgainstSchema,
   validateAppProfile,
 } from './app-profile-schema';
 
@@ -12,6 +13,14 @@ function walk(schema: AppProfileSubSchema, at: string, visit: (at: string, keywo
   for (const keyword of Object.keys(schema)) visit(at, keyword, schema);
   for (const [k, sub] of Object.entries(schema.properties ?? {})) walk(sub, `${at}.${k}`, visit);
   if (schema.items) walk(schema.items, `${at}[]`, visit);
+}
+
+/** Every subschema NODE in the committed schema, depth-first — including a node that
+ *  carries no keyword at all, which the keyword walk above would never visit. */
+function walkNodes(schema: AppProfileSubSchema, at: string, visit: (at: string, node: AppProfileSubSchema) => void): void {
+  visit(at, schema);
+  for (const [k, sub] of Object.entries(schema.properties ?? {})) walkNodes(sub, `${at}.${k}`, visit);
+  if (schema.items) walkNodes(schema.items, `${at}[]`, visit);
 }
 
 function errorsOf(raw: string): Record<string, string> {
@@ -69,6 +78,14 @@ describe('schemas/app-profile.schema.json — the committed contract', () => {
       if (keyword === 'pattern') expect(() => new RegExp(node.pattern as string, 'u')).withContext(at).not.toThrow();
     });
     expect(unknown).toEqual([]);
+  });
+
+  it('declares a string "type" on EVERY subschema — a typeless node would have all its keywords skipped', () => {
+    const typeless: string[] = [];
+    walkNodes(APP_PROFILE_SCHEMA, '$', (at, node) => {
+      if (typeof node.type !== 'string') typeless.push(at);
+    });
+    expect(typeless).withContext('subschemas with no type keyword').toEqual([]);
   });
 
   it('gives truthful hints: every leaf example satisfies its own leaf schema, and every root example validates', () => {
@@ -205,5 +222,54 @@ describe('validateAppProfile — each invalid class is refused with the field na
   it('reports EVERY error at once, not just the first', () => {
     const errs = errorsOf('{"resources":{"cpu":"lots"},"roles":["x"],"bogus":1,"exposure":{"ports":[0]}}');
     expect(Object.keys(errs).sort()).toEqual(['bogus', 'exposure.ports[0]', 'resources.cpu', 'roles[0]']);
+  });
+});
+
+describe('the interpreter fails CLOSED on a schema it cannot enforce', () => {
+  /** A probe schema — NOT the committed file, which trips none of these. */
+  function probe(leaf: Record<string, unknown>): AppProfileSubSchema {
+    return {
+      type: 'object',
+      additionalProperties: false,
+      properties: { certs: { type: 'object', additionalProperties: false, properties: { keyAlgorithm: leaf } } },
+    } as unknown as AppProfileSubSchema;
+  }
+
+  function refusal(schema: AppProfileSubSchema, raw: string): string {
+    const v = validateAgainstSchema(schema, raw);
+    expect(v.ok).withContext(`expected a refusal for ${raw}`).toBeFalse();
+    return v.ok ? '' : v.errors.map((e) => `${e.path}: ${e.message}`).join(' | ');
+  }
+
+  it('refuses every value under a subschema that declares NO type (the simplest fail-open)', () => {
+    const p = probe({ description: 'a leaf added with no type keyword' });
+    for (const body of [
+      '{"certs":{"keyAlgorithm":"absolutely-not-rsa-or-ec"}}',
+      '{"certs":{"keyAlgorithm":12345}}',
+      '{"certs":{"keyAlgorithm":null}}',
+      '{"certs":{"keyAlgorithm":[1,2,3]}}',
+      '{"certs":{"keyAlgorithm":{"nested":{"deep":true}}}}',
+    ]) {
+      expect(refusal(p, body)).withContext(body).toBe('certs.keyAlgorithm: schema error: subschema declares no "type"');
+    }
+  });
+
+  it('refuses a type the interpreter does not implement rather than accepting anything', () => {
+    expect(refusal(probe({ type: 'null' }), '{"certs":{"keyAlgorithm":null}}'))
+      .toBe('certs.keyAlgorithm: schema error: unsupported type "null"');
+  });
+
+  it('refuses a non-boolean additionalProperties rather than treating the object as open', () => {
+    const p = {
+      type: 'object',
+      additionalProperties: { type: 'string' },
+      properties: { certs: { type: 'object', additionalProperties: false, properties: {} } },
+    } as unknown as AppProfileSubSchema;
+    expect(refusal(p, '{"anythingAtAll":"x"}'))
+      .toBe('$: schema error: unsupported additionalProperties (must be a boolean)');
+  });
+
+  it('still accepts a correctly typed value under the same probe (the guards are not blanket refusals)', () => {
+    expect(validateAgainstSchema(probe({ type: 'string', pattern: '^(rsa|ec)$' }), '{"certs":{"keyAlgorithm":"ec"}}').ok).toBeTrue();
   });
 });

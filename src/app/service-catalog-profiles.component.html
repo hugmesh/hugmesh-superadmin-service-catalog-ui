@@ -50,9 +50,10 @@
         aria-describedby="service-catalog-profile-json-help"
       ></textarea>
       <span id="service-catalog-profile-json-help" class="service-catalog-field__help">
-        A JSON object with the sections {{ sections }} — validated against the committed schema
-        (schemas/app-profile.schema.json) before saving, and again by the server. Unknown fields are
-        refused. The values are stored as-is and not yet interpreted by any deploy step (a later
+        A JSON object with the sections {{ sections }} — validated here against the committed schema
+        (schemas/app-profile.schema.json) before saving; unknown fields are refused. The server does
+        NOT check it yet (hugmesh-admin-bff-api#55), so a body sent outside this editor is stored
+        unchecked. The values are stored as-is and not yet interpreted by any deploy step (a later
         effector resolves them).
       </span>
       @if (jsonInvalid()) {
@@ -63,6 +64,11 @@
               <li [attr.data-field]="e.path"><code>{{ e.path }}</code> {{ e.message }}</li>
             }
           </ul>
+          @if (hiddenErrorCount() > 0) {
+            <p class="service-catalog-profile-form__errors-more" data-testid="service-catalog-profile-schema-errors-more">
+              …and {{ hiddenErrorCount() }} more not shown.
+            </p>
+          }
         </div>
       }
     </div>

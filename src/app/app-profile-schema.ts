@@ -11,7 +11,12 @@
  *       on exactly that), and the bff, mirroring the same file, stays in step;</li>
  *   <li>a keyword the interpreter does not implement is NEVER silently skipped (which
  *       would fail OPEN): {@link SUPPORTED_KEYWORDS} is pinned by the spec, which walks
- *       the schema and fails the moment an unimplemented keyword appears in it.</li>
+ *       the schema and fails the moment an unimplemented keyword appears in it;</li>
+ *   <li>and the two ways a node could carry NO enforceable rule at all — a subschema with
+ *       no {@code type}, or an {@code additionalProperties} that is not a boolean — are
+ *       refusals, not silent acceptance ({@link validateAgainstSchema} reports them as
+ *       {@code schema error: ...} against the offending path). The spec pins both the
+ *       runtime behaviour and, statically, that the committed file never trips them.</li>
  * </ul>
  *
  * <p>Unknown-field rejection is EXPLICIT: every object in the schema carries
@@ -41,7 +46,7 @@ type TypeName = (typeof TYPES)[number];
  *  so the spec's keyword guard can be exact: anything NOT here is a spec failure. */
 export const SUPPORTED_KEYWORDS: ReadonlySet<string> = new Set([
   // annotations (no validation effect; `examples` feeds the hint in a pattern error)
-  '$schema', '$id', 'title', 'description', 'examples',
+  '$schema', '$id', '$comment', 'title', 'description', 'examples',
   // object
   'type', 'properties', 'additionalProperties', 'required',
   // string
@@ -59,7 +64,7 @@ export interface AppProfileSubSchema {
   description?: string;
   examples?: unknown[];
   properties?: Record<string, AppProfileSubSchema>;
-  additionalProperties?: boolean;
+  additionalProperties?: unknown;
   required?: string[];
   pattern?: string;
   minLength?: number;
@@ -89,6 +94,17 @@ export const DEFAULT_APP_PROFILE_JSON = '{\n  "resources": {\n    "cpu": "500m",
  * operator fixes a template in one pass.
  */
 export function validateAppProfile(raw: string): AppProfileValidation {
+  return validateAgainstSchema(APP_PROFILE_SCHEMA, raw);
+}
+
+/**
+ * {@link validateAppProfile} against an ARBITRARY subschema. Exported so the spec can
+ * drive the interpreter with a probe schema and prove the fail-CLOSED paths (a node with
+ * no {@code type}, an unsupported {@code type}, a non-boolean {@code additionalProperties})
+ * actually refuse — the committed file trips none of them, so nothing else may call this
+ * with anything but {@link APP_PROFILE_SCHEMA}.
+ */
+export function validateAgainstSchema(schema: AppProfileSubSchema, raw: string): AppProfileValidation {
   const text = raw.trim();
   let parsed: unknown;
   try {
@@ -98,7 +114,7 @@ export function validateAppProfile(raw: string): AppProfileValidation {
     return { ok: false, kind: 'json', errors: [{ path: '$', message: `not valid JSON (${reason})` }] };
   }
   const errors: AppProfileFieldError[] = [];
-  check(parsed, APP_PROFILE_SCHEMA, '$', errors);
+  check(parsed, schema, '$', errors);
   if (errors.length > 0) {
     return { ok: false, kind: 'schema', errors };
   }
@@ -136,21 +152,33 @@ function hint(schema: AppProfileSubSchema): string {
 
 function check(value: unknown, schema: AppProfileSubSchema, path: string, errors: AppProfileFieldError[]): void {
   const type = schema.type;
-  if (type !== undefined) {
-    if (!(TYPES as readonly string[]).includes(type)) {
-      // Fail CLOSED on a type the interpreter does not know rather than accept anything.
-      errors.push({ path, message: `schema error: unsupported type "${type}"` });
-      return;
-    }
-    if (!isType(value, type as TypeName)) {
-      errors.push({ path, message: `must be ${article(type as TypeName)}` });
-      return;
-    }
+  if (type === undefined) {
+    // Fail CLOSED. Every branch below is gated on `type`, so a subschema without one
+    // would have ALL of its keywords skipped and accept any value — the simplest way to
+    // fail open, and one the keyword guard cannot see (it only rejects UNKNOWN keywords).
+    errors.push({ path, message: 'schema error: subschema declares no "type"' });
+    return;
+  }
+  if (!(TYPES as readonly string[]).includes(type)) {
+    // Fail CLOSED on a type the interpreter does not know rather than accept anything.
+    errors.push({ path, message: `schema error: unsupported type "${type}"` });
+    return;
+  }
+  if (!isType(value, type as TypeName)) {
+    errors.push({ path, message: `must be ${article(type as TypeName)}` });
+    return;
   }
 
   if (type === 'object') {
     const obj = value as Record<string, unknown>;
     const props = schema.properties ?? {};
+    const additional = schema.additionalProperties;
+    if (additional !== undefined && additional !== false && additional !== true) {
+      // A schema-object additionalProperties is a form the interpreter does not implement;
+      // treating it as "open" would accept every unknown key silently.
+      errors.push({ path, message: 'schema error: unsupported additionalProperties (must be a boolean)' });
+      return;
+    }
     for (const req of schema.required ?? []) {
       if (!Object.prototype.hasOwnProperty.call(obj, req)) {
         errors.push({ path: child(path, req), message: 'is required' });
@@ -159,7 +187,7 @@ function check(value: unknown, schema: AppProfileSubSchema, path: string, errors
     for (const key of Object.keys(obj)) {
       const sub = Object.prototype.hasOwnProperty.call(props, key) ? props[key] : undefined;
       if (sub === undefined) {
-        if (schema.additionalProperties === false) {
+        if (additional === false) {
           const allowed = Object.keys(props);
           errors.push({
             path: child(path, key),

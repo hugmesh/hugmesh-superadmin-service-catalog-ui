@@ -41,6 +41,10 @@
       font-family: t.$font-mono;
     }
   }
+
+  &__errors-more {
+    margin: 0.25rem 0 0;
+  }
 }
 
 .service-catalog-list {

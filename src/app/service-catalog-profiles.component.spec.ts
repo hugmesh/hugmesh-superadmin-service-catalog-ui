@@ -137,6 +137,34 @@ describe('ServiceCatalogProfilesComponent (app_profile CRUD)', () => {
     expect(box.textContent).toContain('resources, roles, certs, exposure');
   });
 
+  it('caps the rendered error list and says how many are not shown (validation runs on every keystroke)', async () => {
+    await build();
+    const cap = ServiceCatalogProfilesComponent.MAX_RENDERED_ERRORS;
+    const bogus: Record<string, number> = {};
+    for (let i = 0; i < cap + 7; i++) bogus[`bogus${i}`] = i;
+    component.name.set('many');
+    component.profileJson.set(JSON.stringify(bogus));
+    await component.submit();
+    fixture.detectChanges();
+    expect(serviceCatalog.createProfile).not.toHaveBeenCalled();
+    expect(component.schemaErrors().length).toBe(cap);
+    expect(refusedFields(el()).length).toBe(cap);
+    expect(component.hiddenErrorCount()).toBe(7);
+    const more = el().querySelector('[data-testid="service-catalog-profile-schema-errors-more"]')!;
+    expect(more).not.toBeNull();
+    expect(more.textContent).toContain('7 more');
+  });
+
+  it('shows no overflow line when every error fits under the cap', async () => {
+    await build();
+    component.name.set('few');
+    component.profileJson.set('{"cpu":"500m","memory":"512Mi"}');
+    await component.submit();
+    fixture.detectChanges();
+    expect(component.hiddenErrorCount()).toBe(0);
+    expect(el().querySelector('[data-testid="service-catalog-profile-schema-errors-more"]')).toBeNull();
+  });
+
   it('refuses an unknown NESTED field, naming its dotted path', async () => {
     await build();
     component.name.set('nested');

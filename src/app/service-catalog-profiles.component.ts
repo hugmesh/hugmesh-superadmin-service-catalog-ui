@@ -26,13 +26,18 @@ type Mode = 'create' | 'edit';
  * (schemas/app-profile.schema.json, via ./app-profile-schema) before submit: a
  * template that does not parse, or that parses but carries an unknown field, a wrong
  * type, or a value outside its pattern/range, is refused HERE with every offending
- * field named — no server round-trip. The bff validates the same schema on save
- * (issue #3, operator decision 2026-09-16 "A: define a schema"), so a body that
- * slips past this editor (a direct API call, a stale tab) is still refused server
- * side; that refusal surfaces verbatim through ServiceCatalogService, which folds a
- * bean-validation `fields` map ("resources.cpu: must match …") into the message and
- * passes an ApiException `{error}` through as-is. loading / empty / error states; a
- * 403/404/409 each surfaces a clear message.
+ * field named — no server round-trip.
+ *
+ * <p>THE SERVER HALF IS NOT BUILT YET. Measured on hugmesh-admin-bff-api origin/main
+ * @45769af: {@code AppProfileRequest.profileJson} carries only {@code @Size(max =
+ * 1_000_000)} and {@code AppProfileService.create/update} never parse it. So a body
+ * that bypasses this editor (a direct API call, a stale tab) is stored AS-IS today —
+ * this validation is a usability gate, not an integrity one. The bff half is
+ * hugmesh-admin-bff-api#55 (operator decision 2026-09-16 "A: define a schema",
+ * issue #3); when it lands, its refusal already surfaces through ServiceCatalogService,
+ * which folds a bean-validation `fields` map ("resources.cpu: must match …") into the
+ * message and passes an ApiException `{error}` through as-is. loading / empty / error
+ * states; a 403/404/409 each surfaces a clear message.
  *
  * Opening an EXISTING profile for edit validates its stored body immediately, so a
  * row written before the schema existed (the flat {"cpu","memory"} form) shows what
@@ -111,10 +116,24 @@ export class ServiceCatalogProfilesComponent implements OnInit {
     return this.touched() && !this.jsonValid();
   }
 
-  /** The field-level refusals for the current body (empty when valid). */
+  /** How many field errors are rendered at most. Validation recomputes on every
+   *  keystroke and a large body can produce tens of thousands of refusals (a 538 KB
+   *  body — inside the bff's own 1 MB bound — measures at 50,001), one `<li>` each:
+   *  past a screenful the list stops being readable and only costs DOM. */
+  static readonly MAX_RENDERED_ERRORS = 50;
+
+  /** The field-level refusals for the current body, capped at
+   *  {@link MAX_RENDERED_ERRORS} (empty when valid). {@link hiddenErrorCount} reports
+   *  how many are not shown, so the count is never silently understated. */
   schemaErrors(): AppProfileFieldError[] {
     const v = this.validation();
-    return v.ok ? [] : v.errors;
+    return v.ok ? [] : v.errors.slice(0, ServiceCatalogProfilesComponent.MAX_RENDERED_ERRORS);
+  }
+
+  /** Field errors beyond the rendered cap (0 when all of them are shown). */
+  hiddenErrorCount(): number {
+    const v = this.validation();
+    return v.ok ? 0 : Math.max(0, v.errors.length - ServiceCatalogProfilesComponent.MAX_RENDERED_ERRORS);
   }
 
   /** The heading over the error list: a parse failure and a schema mismatch read differently. */

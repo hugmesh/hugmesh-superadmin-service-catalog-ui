@@ -271,8 +271,11 @@ toggleable — both fail safe, loudly.
   saving (`src/app/app-profile-schema.ts` interprets that file; nothing is
   hard-coded): sections `resources` / `roles` / `certs` / `exposure`, every
   object closed (an unknown field is refused and named), every refusal listed
-  with its dotted field path. The bff validates the same schema on save; the
-  values are stored as-is and not resolved yet (a later effector reads them).
+  with its dotted field path. **The server does not validate it yet** — measured
+  on `hugmesh-admin-bff-api` `origin/main` @`45769af`, `profileJson` carries only
+  `@Size(max = 1_000_000)` and is never parsed; the bff half is
+  `hugmesh-admin-bff-api#55`, so this is a usability gate, not an integrity one.
+  The values are stored as-is and not resolved yet (a later effector reads them).
 - **Deployments (accounting)** — view the `service_deployment` rows (service,
   state `active|ended`, `created_at`, `ending_at` expiry clock, `enforce_actions`,
   `propagation_state`) and **record** a deployment (`serviceKey` + optional
@@ -548,11 +551,15 @@ Verified directly against the current source (not from the roadmap narrative alo
   and `gitopsDescriptorPending=true` until the GitOps descriptor automation exists; the
   wizard's Review & apply step renders both as explicit dark/pending notices rather than
   a completed federation (`src/app/service-catalog-create-service.component.ts:482`).
-- **App-profile JSON is validated for shape, not yet resolved** — the editor refuses a
-  document that does not match `schemas/app-profile.schema.json` (unknown field, wrong
-  type, value outside its pattern/range) and names every offending field; the bff-side
-  validation of the same schema and the effector that resolves the
-  resource/role/cert/exposure defaults are admin-bff work (issue #3). A profile stored
+- **App-profile JSON is validated in the BROWSER only, and not yet resolved** — the
+  editor refuses a document that does not match `schemas/app-profile.schema.json`
+  (unknown field, wrong type, value outside its pattern/range) and names every offending
+  field, but nothing server-side re-checks it: on `hugmesh-admin-bff-api` `origin/main`
+  @`45769af`, `AppProfileRequest.profileJson` is `@Size(max = 1_000_000) @Nullable String`
+  and `AppProfileService.create/update` never parse it, so a direct API call or a stale tab
+  still stores an unchecked body. The bff-side validation of the same schema is
+  `hugmesh-admin-bff-api#55` and the effector that resolves the resource/role/cert/exposure
+  defaults is issue #3 — both admin-bff work. A profile stored
   before the schema existed (the flat `{"cpu","memory"}` form) shows its field errors the
   moment it is opened for edit and cannot be saved until it is moved under `resources`
   (`src/app/service-catalog-profiles.component.ts`).

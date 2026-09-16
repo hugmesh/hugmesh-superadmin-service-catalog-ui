@@ -64,8 +64,11 @@ export interface ServiceCuration {
 }
 
 /** AppProfile — an app_profile row: a reusable, GLOBAL (cross-domain) deploy
- *  template. `name` is the unique natural key; `profileJson` is opaque
- *  resource/role/cert/exposure defaults (unparsed in PR1). */
+ *  template. `name` is the unique natural key; `profileJson` is the
+ *  resource/role/cert/exposure defaults document, validated in the EDITOR against
+ *  `schemas/app-profile.schema.json` (see `./app-profile-schema`). The bff still
+ *  stores it unparsed — server-side validation is hugmesh-admin-bff-api#55 and the
+ *  effector that resolves the defaults is issue #3. */
 export interface AppProfile {
   id: string;
   name: string;
