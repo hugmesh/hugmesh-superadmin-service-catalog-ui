@@ -272,10 +272,24 @@ toggleable — both fail safe, loudly.
   hard-coded): sections `resources` / `roles` / `certs` / `exposure`, every
   object closed (an unknown field is refused and named), every refusal listed
   with its dotted field path. **The server does not validate it yet** — measured
-  on `hugmesh-admin-bff-api` `origin/main` @`45769af`, `profileJson` carries only
-  `@Size(max = 1_000_000)` and is never parsed; the bff half is
+  on `hugmesh-admin-bff-api` `origin/main` @`07bd5d3` (2026-09-17), `profileJson`
+  carries only `@Size(max = 1_000_000)` and is never parsed; the bff half is
   `hugmesh-admin-bff-api#55`, so this is a usability gate, not an integrity one.
   The values are stored as-is and not resolved yet (a later effector reads them).
+  - **Operator decision 37 (2026-09-17, hugmesh-generator#347) RATIFIED the three
+    choices this schema had to make on its own**: `roles[]` are Casdoor
+    `ROLE_<UPPER>` names (37a, *not* the per-service `requiresRole` slug), unknown
+    keys are STRICT (37b, `additionalProperties: false` everywhere), and
+    `exposure.mfaRequired` stays (37c). `src/app/app-profile-schema.decision37.spec.ts`
+    pins all three, so a later change cannot quietly take the branch the operator
+    declined.
+  - **The schema file is now a two-repo contract.** Ratification un-parked
+    `hugmesh-admin-bff-api#55`, which commits a **byte-identical** copy at
+    `src/main/resources/schema/app-profile.schema.json` and validates saves against
+    it. Both copies are pinned to the same sha256:
+    `npm run verify:schema` here (it runs first inside `npm test`, so CI enforces
+    it) and `AppProfileSchemaMirrorTest` there. Editing the schema turns **both**
+    suites red until both copies and both pins move in one change.
 - **Deployments (accounting)** — view the `service_deployment` rows (service,
   state `active|ended`, `created_at`, `ending_at` expiry clock, `enforce_actions`,
   `propagation_state`) and **record** a deployment (`serviceKey` + optional
