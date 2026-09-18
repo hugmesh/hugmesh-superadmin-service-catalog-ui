@@ -286,10 +286,24 @@ toggleable — both fail safe, loudly.
   - **The schema file is now a two-repo contract.** Ratification un-parked
     `hugmesh-admin-bff-api#55`, which commits a **byte-identical** copy at
     `src/main/resources/schema/app-profile.schema.json` and validates saves against
-    it. Both copies are pinned to the same sha256:
-    `npm run verify:schema` here (it runs first inside `npm test`, so CI enforces
-    it) and `AppProfileSchemaMirrorTest` there. Editing the schema turns **both**
-    suites red until both copies and both pins move in one change.
+    it. `npm run verify:schema` (which runs first inside `npm test`, so CI enforces
+    it) guards that with **two checks, and it is worth knowing which does what**:
+    - a **local sha256 pin**, so the schema cannot be edited without also moving a
+      literal. On its own this proves nothing about the other repo — moving the
+      schema and the literal together in ONE repo satisfies it completely. That was
+      a real hole, not a hypothetical: widening `certs.ttl` `maxLength` 32 → 64 here
+      and moving only this repo's pin left **both** suites green with the files
+      diverged (`cmp` → `differ: char 4898, line 63`).
+    - the **mirror check**, which reads the BFF's copy and compares the two files
+      byte for byte. This is the one that enforces the contract. It runs whenever
+      `hugmesh-admin-bff-api` is checked out beside this repo, and in CI, where
+      `.gitlab-ci.yml` clones it and sets `HUGMESH_SCHEMA_MIRROR_REQUIRED=1` so a
+      failed clone fails the job instead of silently skipping. Point it somewhere
+      else with `ADMIN_BFF_SCHEMA=<bff>/src/main/resources/schema/app-profile.schema.json`.
+
+    So: editing the schema on one side turns both suites red **wherever the mirror
+    check runs** — always in CI, always on a developer box with both checkouts. When
+    the BFF is not readable the script says `mirror NOT VERIFIED` and means it.
 - **Deployments (accounting)** — view the `service_deployment` rows (service,
   state `active|ended`, `created_at`, `ending_at` expiry clock, `enforce_actions`,
   `propagation_state`) and **record** a deployment (`serviceKey` + optional

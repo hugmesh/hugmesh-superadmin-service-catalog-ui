@@ -27,9 +27,13 @@ import {
  * <p>This is a RATIFICATION, so these tests assert the chosen shape DIRECTLY rather than
  * only its consequences: each one goes red if a later change quietly takes the other branch
  * of the question the operator answered. The sibling half of the same decision — that the
- * BFF may now cut a byte-identical copy of the file and validate against it — is pinned by
+ * BFF may now cut a byte-identical copy of the file and validate against it — is guarded by
  * {@code scripts/assert-schema-pin.mjs} here and {@code AppProfileSchemaMirrorTest} in
- * hugmesh-admin-bff-api, both against the same sha256 literal.
+ * hugmesh-admin-bff-api. Note what each of those does and does not prove: the matching sha256
+ * LITERALS only make an edit deliberate within one repo (moving the file and the literal
+ * together satisfies both repos' literals while the files diverge — measured), so each side
+ * also READS the other repo's file and compares bytes whenever that checkout is reachable.
+ * That byte comparison is the half that enforces the contract.
  */
 describe('decision 37 — the ratified app-profile contract', () => {
 
