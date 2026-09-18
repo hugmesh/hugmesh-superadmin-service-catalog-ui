@@ -14,3 +14,6 @@
 # committed. This repo only reads it, but the e2e helper walks up from cwd
 # looking for it, so it could land at the repo root too.
 .e2e-credentials
+
+# cross-repo schema mirror clone made by the CI test job (scripts/assert-schema-pin.mjs)
+/.schema-sibling
