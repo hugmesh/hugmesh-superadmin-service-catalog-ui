@@ -11,6 +11,7 @@ import { RequestBuilder } from '../../request-builder';
 export interface Allowlist$Params {
   provider: string;
   handle: string;
+  domain?: string;
 }
 
 export function allowlist(http: HttpClient, rootUrl: string, params: Allowlist$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -20,6 +21,7 @@ export function allowlist(http: HttpClient, rootUrl: string, params: Allowlist$P
   if (params) {
     rb.path('provider', params.provider, {});
     rb.path('handle', params.handle, {});
+    rb.query('domain', params.domain, {});
   }
 
   return http.request(

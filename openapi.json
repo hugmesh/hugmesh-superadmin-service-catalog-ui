@@ -9,11 +9,11 @@
     "url" : ""
   } ],
   "tags" : [ {
-    "name" : "Mastodon appearance default admin",
-    "description" : "ADMIN-write-gated: set the platform-wide default appearance for the hugmesh-mastodon-ui remote (domain-scoped to the acting admin's own brand)."
-  }, {
     "name" : "Mastodon appearance default",
     "description" : "Read-only: the admin-configured platform-wide default appearance for the hugmesh-mastodon-ui remote (domain-scoped)."
+  }, {
+    "name" : "Mastodon appearance default admin",
+    "description" : "ADMIN-write-gated: set the platform-wide default appearance for the hugmesh-mastodon-ui remote (domain-scoped to the acting admin's own brand)."
   }, {
     "name" : "Notifications (feature/infra triggers)",
     "description" : "ADMIN/SUPERADMIN trigger for feature-availability + infra-impacting @system notifications (domain from the validated JWT, fail-closed; neutral sender, no actor in the payload)."
@@ -171,6 +171,48 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PhoneDevice"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/superadmin/optional-services/{slug}" : {
+      "put" : {
+        "tags" : [ "optional-service-superadmin-controller" ],
+        "summary" : "Enable or disable an optional service",
+        "operationId" : "optionalServicesSetEnabled",
+        "parameters" : [ {
+          "name" : "slug",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetOptionalServiceEnabledRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
                 }
               }
             }
@@ -551,6 +593,95 @@
         }
       }
     },
+    "/bff/admin/themes/{domain}" : {
+      "get" : {
+        "tags" : [ "domain-theme-admin-controller" ],
+        "summary" : "Get a domain's theme",
+        "operationId" : "domainThemeAdminGet",
+        "parameters" : [ {
+          "name" : "domain",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "domain-theme-admin-controller" ],
+        "summary" : "Set a domain's theme",
+        "operationId" : "domainThemeAdminSet",
+        "parameters" : [ {
+          "name" : "domain",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DomainThemeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DomainTheme"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "domain-theme-admin-controller" ],
+        "summary" : "Clear a domain's theme",
+        "operationId" : "domainThemeAdminClear",
+        "parameters" : [ {
+          "name" : "domain",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/bff/admin/oidc-providers/{provider}/roles" : {
       "put" : {
         "tags" : [ "oidc-provider-roles-controller" ],
@@ -615,6 +746,46 @@
         }
       }
     },
+    "/bff/admin/mfa/role-policy/{role}" : {
+      "put" : {
+        "tags" : [ "role-mfa-policy-controller" ],
+        "summary" : "Set a role MFA policy",
+        "operationId" : "roleMfaPolicySet",
+        "parameters" : [ {
+          "name" : "role",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "pattern" : "[A-Za-z0-9_-]+",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetRoleMfaPolicyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RoleMfaPolicy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/admin/mastodon/appearance-default" : {
       "put" : {
         "tags" : [ "Mastodon appearance default admin" ],
@@ -625,6 +796,38 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/AppearanceDefaultUpdate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/egress-vpn/report" : {
+      "put" : {
+        "tags" : [ "egress-vpn-controller" ],
+        "summary" : "Report node state",
+        "operationId" : "egressVpnReport",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VpnReportRequest"
               }
             }
           },
@@ -1392,6 +1595,27 @@
             "minLength" : 0,
             "type" : "string"
           }
+        }, {
+          "name" : "X-ServiceStore-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -1507,6 +1731,27 @@
           "schema" : {
             "maxLength" : 36,
             "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "name" : "X-ServiceStore-StepUp",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "bff_session",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Authorization",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
             "type" : "string"
           }
         } ],
@@ -2666,6 +2911,38 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/bff/internal/aio-triage/ingest" : {
+      "post" : {
+        "tags" : [ "aio-triage-ingest-controller" ],
+        "summary" : "Ingest a collected infra/NIDS signal batch for edge-AI triage",
+        "operationId" : "aioTriageIngest",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AioTriageIngestRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -5189,7 +5466,7 @@
           "in" : "path",
           "required" : true,
           "schema" : {
-            "pattern" : "ROLE_MATRIX|ROLE_MASTODON|PROFILE",
+            "pattern" : "ROLE_MATRIX|ROLE_MASTODON|ROLE_MESH|PROFILE",
             "type" : "string"
           }
         }, {
@@ -5236,7 +5513,7 @@
           "in" : "path",
           "required" : true,
           "schema" : {
-            "pattern" : "ROLE_MATRIX|ROLE_MASTODON|PROFILE",
+            "pattern" : "ROLE_MATRIX|ROLE_MASTODON|ROLE_MESH|PROFILE",
             "type" : "string"
           }
         }, {
@@ -5592,6 +5869,28 @@
         }
       }
     },
+    "/bff/superadmin/optional-services" : {
+      "get" : {
+        "tags" : [ "optional-service-superadmin-controller" ],
+        "summary" : "Optional-services catalogue + toggleability",
+        "operationId" : "optionalServicesCatalogue",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/superadmin/fleet-entitlements" : {
       "get" : {
         "tags" : [ "fleet-entitlement-superadmin-controller" ],
@@ -5710,6 +6009,64 @@
                   "additionalProperties" : {
                     "type" : "object"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/public/theme" : {
+      "get" : {
+        "tags" : [ "domain-theme-surface-controller" ],
+        "summary" : "Resolve a domain's theme",
+        "operationId" : "domainThemeResolve",
+        "parameters" : [ {
+          "name" : "domain",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicTheme"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/public/theme.css" : {
+      "get" : {
+        "tags" : [ "domain-theme-surface-controller" ],
+        "summary" : "A domain's theme as CSS",
+        "operationId" : "domainThemeCss",
+        "parameters" : [ {
+          "name" : "domain",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/css" : {
+                "schema" : {
+                  "type" : "string"
                 }
               }
             }
@@ -5995,6 +6352,13 @@
           "name" : "handle",
           "in" : "path",
           "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "domain",
+          "in" : "query",
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
@@ -6506,6 +6870,50 @@
         }
       }
     },
+    "/bff/admin/users/search" : {
+      "get" : {
+        "tags" : [ "user-directory-controller" ],
+        "summary" : "Search users",
+        "operationId" : "adminUserSearch",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string",
+            "default" : ""
+          }
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "maximum" : 25,
+            "minimum" : 1,
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 10
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DirectoryUser"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bff/admin/usb-devices" : {
       "get" : {
         "tags" : [ "backup-controller" ],
@@ -6533,6 +6941,28 @@
         "tags" : [ "admin-controller" ],
         "summary" : "Usage",
         "operationId" : "adminUsage",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/themes" : {
+      "get" : {
+        "tags" : [ "domain-theme-admin-controller" ],
+        "summary" : "List themes",
+        "operationId" : "domainThemeAdminList",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -6857,6 +7287,25 @@
                   "additionalProperties" : {
                     "type" : "object"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bff/admin/mfa/role-policy" : {
+      "get" : {
+        "tags" : [ "role-mfa-policy-controller" ],
+        "summary" : "List role MFA policies",
+        "operationId" : "roleMfaPolicyList",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RoleMfaPolicyList"
                 }
               }
             }
@@ -8579,6 +9028,20 @@
           }
         }
       },
+      "SetOptionalServiceEnabledRequest" : {
+        "required" : [ "enabled" ],
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "reason" : {
+            "maxLength" : 512,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
       "GameDomainOfferRequest" : {
         "type" : "object",
         "properties" : {
@@ -8830,6 +9293,75 @@
           }
         }
       },
+      "DomainThemeRequest" : {
+        "required" : [ "preset" ],
+        "type" : "object",
+        "properties" : {
+          "preset" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "pattern" : "^[a-z0-9][a-z0-9-]*$",
+            "type" : "string"
+          },
+          "ramp" : {
+            "pattern" : "^(dark|light|dawn|morning|afternoon|dusk|evening|midnight)?$",
+            "type" : "string"
+          },
+          "style" : {
+            "pattern" : "^(soft|sharp|outlined|elevated|flat|glass)?$",
+            "type" : "string"
+          },
+          "decor" : {
+            "pattern" : "^(none|uwu|arrows|terminal|sparkle)?$",
+            "type" : "string"
+          },
+          "primaryHex" : {
+            "pattern" : "^(#[0-9A-Fa-f]{6})?$",
+            "type" : "string"
+          },
+          "secondaryHex" : {
+            "pattern" : "^(#[0-9A-Fa-f]{6})?$",
+            "type" : "string"
+          },
+          "renderedCss" : {
+            "maxLength" : 262144,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
+      "DomainTheme" : {
+        "type" : "object",
+        "properties" : {
+          "domain" : {
+            "type" : "string"
+          },
+          "preset" : {
+            "type" : "string"
+          },
+          "ramp" : {
+            "type" : "string"
+          },
+          "style" : {
+            "type" : "string"
+          },
+          "decor" : {
+            "type" : "string"
+          },
+          "primaryHex" : {
+            "type" : "string"
+          },
+          "secondaryHex" : {
+            "type" : "string"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          },
+          "renderedBy" : {
+            "type" : "string"
+          }
+        }
+      },
       "SetRolesRequest" : {
         "type" : "object",
         "properties" : {
@@ -8846,6 +9378,67 @@
           }
         }
       },
+      "SetRoleMfaPolicyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "required" : {
+            "type" : "boolean"
+          },
+          "methods" : {
+            "maxItems" : 3,
+            "minItems" : 0,
+            "type" : "array",
+            "items" : {
+              "maxLength" : 16,
+              "minLength" : 0,
+              "type" : "string"
+            }
+          },
+          "graceSeconds" : {
+            "maximum" : 2592000,
+            "minimum" : 0,
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "RoleMfaPolicy" : {
+        "type" : "object",
+        "properties" : {
+          "domain" : {
+            "type" : "string"
+          },
+          "role" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "methods" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "graceSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fromRow" : {
+            "type" : "boolean"
+          },
+          "floor" : {
+            "type" : "boolean"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
       "AppearanceDefaultUpdate" : {
         "required" : [ "prefs" ],
         "type" : "object",
@@ -8856,6 +9449,22 @@
             "additionalProperties" : {
               "type" : "object"
             }
+          }
+        }
+      },
+      "VpnReportRequest" : {
+        "required" : [ "node", "state" ],
+        "type" : "object",
+        "properties" : {
+          "node" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "state" : {
+            "maxLength" : 16,
+            "minLength" : 0,
+            "type" : "string"
           }
         }
       },
@@ -8894,6 +9503,11 @@
           },
           "enabled" : {
             "type" : "boolean"
+          },
+          "idp" : {
+            "maxLength" : 16,
+            "minLength" : 0,
+            "type" : "string"
           }
         }
       },
@@ -8947,6 +9561,15 @@
           "lastReconciledGeneration" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "idp" : {
+            "type" : "string"
+          },
+          "selinuxLevel" : {
+            "type" : "string"
+          },
+          "selinuxLevelPg" : {
+            "type" : "string"
           }
         }
       },
@@ -10310,6 +10933,37 @@
           }
         }
       },
+      "AioTriageIngestRequest" : {
+        "required" : [ "adminSubjects", "domain", "eventKey", "signals" ],
+        "type" : "object",
+        "properties" : {
+          "domain" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "adminSubjects" : {
+            "maxItems" : 100,
+            "minItems" : 0,
+            "type" : "array",
+            "items" : {
+              "maxLength" : 255,
+              "minLength" : 0,
+              "type" : "string"
+            }
+          },
+          "eventKey" : {
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "signals" : {
+            "maxLength" : 16384,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }
+      },
       "AccountOut" : {
         "type" : "object",
         "properties" : {
@@ -11067,6 +11721,11 @@
           },
           "enabled" : {
             "type" : "boolean"
+          },
+          "idp" : {
+            "maxLength" : 16,
+            "minLength" : 0,
+            "type" : "string"
           }
         }
       },
@@ -11770,7 +12429,7 @@
             "type" : "string"
           },
           "role" : {
-            "pattern" : "ROLE_MATRIX|ROLE_MASTODON|PROFILE",
+            "pattern" : "ROLE_MATRIX|ROLE_MASTODON|ROLE_MESH|PROFILE",
             "type" : "string"
           },
           "ttlSeconds" : {
@@ -11858,6 +12517,32 @@
             "type" : "string"
           },
           "kind" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PublicTheme" : {
+        "type" : "object",
+        "properties" : {
+          "domain" : {
+            "type" : "string"
+          },
+          "preset" : {
+            "type" : "string"
+          },
+          "ramp" : {
+            "type" : "string"
+          },
+          "style" : {
+            "type" : "string"
+          },
+          "decor" : {
+            "type" : "string"
+          },
+          "primaryHex" : {
+            "type" : "string"
+          },
+          "secondaryHex" : {
             "type" : "string"
           }
         }
@@ -12073,6 +12758,23 @@
           }
         }
       },
+      "DirectoryUser" : {
+        "type" : "object",
+        "properties" : {
+          "username" : {
+            "type" : "string"
+          },
+          "handle" : {
+            "type" : "string"
+          },
+          "provider" : {
+            "type" : "string"
+          },
+          "domain" : {
+            "type" : "string"
+          }
+        }
+      },
       "TestRun" : {
         "type" : "object",
         "properties" : {
@@ -12231,6 +12933,20 @@
             "type" : "array",
             "items" : {
               "type" : "string"
+            }
+          }
+        }
+      },
+      "RoleMfaPolicyList" : {
+        "type" : "object",
+        "properties" : {
+          "domain" : {
+            "type" : "string"
+          },
+          "policies" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RoleMfaPolicy"
             }
           }
         }
@@ -12456,6 +13172,15 @@
           "generation" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "idp" : {
+            "type" : "string"
+          },
+          "selinuxLevel" : {
+            "type" : "string"
+          },
+          "selinuxLevelPg" : {
+            "type" : "string"
           }
         }
       },

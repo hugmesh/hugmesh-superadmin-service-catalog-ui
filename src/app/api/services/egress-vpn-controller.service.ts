@@ -19,6 +19,8 @@ import { egressVpnImportConfig } from '../fn/egress-vpn-controller/egress-vpn-im
 import { EgressVpnImportConfig$Params } from '../fn/egress-vpn-controller/egress-vpn-import-config';
 import { egressVpnList } from '../fn/egress-vpn-controller/egress-vpn-list';
 import { EgressVpnList$Params } from '../fn/egress-vpn-controller/egress-vpn-list';
+import { egressVpnReport } from '../fn/egress-vpn-controller/egress-vpn-report';
+import { EgressVpnReport$Params } from '../fn/egress-vpn-controller/egress-vpn-report';
 import { egressVpnRevokeAssignment } from '../fn/egress-vpn-controller/egress-vpn-revoke-assignment';
 import { EgressVpnRevokeAssignment$Params } from '../fn/egress-vpn-controller/egress-vpn-revoke-assignment';
 import { egressVpnRevokeConfig } from '../fn/egress-vpn-controller/egress-vpn-revoke-config';
@@ -31,6 +33,51 @@ import { VpnNodeAssignment } from '../models/vpn-node-assignment';
 export class EgressVpnControllerService extends BaseService {
   constructor(config: ApiConfiguration, http: HttpClient) {
     super(config, http);
+  }
+
+  /** Path part for operation `egressVpnReport()` */
+  static readonly EgressVpnReportPath = '/bff/admin/egress-vpn/report';
+
+  /**
+   * Report node state.
+   *
+   *
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `egressVpnReport()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  egressVpnReport$Response(params: EgressVpnReport$Params, context?: HttpContext): Promise<StrictHttpResponse<{
+[key: string]: {
+};
+}>> {
+    const obs = egressVpnReport(this.http, this.rootUrl, params, context);
+    return firstValueFrom(obs);
+  }
+
+  /**
+   * Report node state.
+   *
+   *
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `egressVpnReport$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  egressVpnReport(params: EgressVpnReport$Params, context?: HttpContext): Promise<{
+[key: string]: {
+};
+}> {
+    const resp = this.egressVpnReport$Response(params, context);
+    return resp.then((r: StrictHttpResponse<{
+[key: string]: {
+};
+}>): {
+[key: string]: {
+};
+} => r.body);
   }
 
   /** Path part for operation `egressVpnImportConfig()` */

@@ -13,6 +13,8 @@ import { ProvisionServiceRequest } from '../../models/provision-service-request'
 export interface ServiceDeploymentProvision$Params {
   domain: string;
   id: string;
+  'X-ServiceStore-StepUp'?: string;
+  Authorization?: string;
       body: ProvisionServiceRequest
 }
 
@@ -21,6 +23,8 @@ export function serviceDeploymentProvision(http: HttpClient, rootUrl: string, pa
   if (params) {
     rb.path('domain', params.domain, {});
     rb.path('id', params.id, {});
+    rb.header('X-ServiceStore-StepUp', params['X-ServiceStore-StepUp'], {});
+    rb.header('Authorization', params.Authorization, {});
     rb.body(params.body, 'application/json');
   }
 
