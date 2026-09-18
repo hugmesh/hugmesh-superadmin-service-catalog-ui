@@ -272,10 +272,38 @@ toggleable — both fail safe, loudly.
   hard-coded): sections `resources` / `roles` / `certs` / `exposure`, every
   object closed (an unknown field is refused and named), every refusal listed
   with its dotted field path. **The server does not validate it yet** — measured
-  on `hugmesh-admin-bff-api` `origin/main` @`45769af`, `profileJson` carries only
-  `@Size(max = 1_000_000)` and is never parsed; the bff half is
+  on `hugmesh-admin-bff-api` `origin/main` @`07bd5d3` (2026-09-17), `profileJson`
+  carries only `@Size(max = 1_000_000)` and is never parsed; the bff half is
   `hugmesh-admin-bff-api#55`, so this is a usability gate, not an integrity one.
   The values are stored as-is and not resolved yet (a later effector reads them).
+  - **Operator decision 37 (2026-09-17, hugmesh-generator#347) RATIFIED the three
+    choices this schema had to make on its own**: `roles[]` are Casdoor
+    `ROLE_<UPPER>` names (37a, *not* the per-service `requiresRole` slug), unknown
+    keys are STRICT (37b, `additionalProperties: false` everywhere), and
+    `exposure.mfaRequired` stays (37c). `src/app/app-profile-schema.decision37.spec.ts`
+    pins all three, so a later change cannot quietly take the branch the operator
+    declined.
+  - **The schema file is now a two-repo contract.** Ratification un-parked
+    `hugmesh-admin-bff-api#55`, which commits a **byte-identical** copy at
+    `src/main/resources/schema/app-profile.schema.json` and validates saves against
+    it. `npm run verify:schema` (which runs first inside `npm test`, so CI enforces
+    it) guards that with **two checks, and it is worth knowing which does what**:
+    - a **local sha256 pin**, so the schema cannot be edited without also moving a
+      literal. On its own this proves nothing about the other repo — moving the
+      schema and the literal together in ONE repo satisfies it completely. That was
+      a real hole, not a hypothetical: widening `certs.ttl` `maxLength` 32 → 64 here
+      and moving only this repo's pin left **both** suites green with the files
+      diverged (`cmp` → `differ: char 4898, line 63`).
+    - the **mirror check**, which reads the BFF's copy and compares the two files
+      byte for byte. This is the one that enforces the contract. It runs whenever
+      `hugmesh-admin-bff-api` is checked out beside this repo, and in CI, where
+      `.gitlab-ci.yml` clones it and sets `HUGMESH_SCHEMA_MIRROR_REQUIRED=1` so a
+      failed clone fails the job instead of silently skipping. Point it somewhere
+      else with `ADMIN_BFF_SCHEMA=<bff>/src/main/resources/schema/app-profile.schema.json`.
+
+    So: editing the schema on one side turns both suites red **wherever the mirror
+    check runs** — always in CI, always on a developer box with both checkouts. When
+    the BFF is not readable the script says `mirror NOT VERIFIED` and means it.
 - **Deployments (accounting)** — view the `service_deployment` rows (service,
   state `active|ended`, `created_at`, `ending_at` expiry clock, `enforce_actions`,
   `propagation_state`) and **record** a deployment (`serviceKey` + optional

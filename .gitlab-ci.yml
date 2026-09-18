@@ -8,6 +8,9 @@ stages: [test, e2e, build]
 test:
   stage: test
   tags: [hugmesh-x86, privileged]
+  variables:
+    # Branch of hugmesh-admin-bff-api holding the other half of the app-profile schema contract.
+    ADMIN_BFF_REF: "main"
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -37,12 +40,30 @@ test:
     # report is still published.
     - rm -rf "${CI_PROJECT_DIR}/test-results" "${CI_PROJECT_DIR}/coverage"
     - mkdir -p "${CI_PROJECT_DIR}/test-results" "${CI_PROJECT_DIR}/coverage"
+    # THE CROSS-REPO SCHEMA MIRROR (operator decision 37; issue #3, admin-bff-api#55).
+    # schemas/app-profile.schema.json must stay BYTE-IDENTICAL to the BFF's copy, which the
+    # BFF validates every app-profile save against. scripts/assert-schema-pin.mjs compares the
+    # two FILES, and can only do that if the BFF is readable — so clone it. Its local sha256
+    # pin is NOT a substitute: moving the schema and that literal together in one repo keeps
+    # both repos green while the files diverge. That was measured (`cmp` -> differ at line 63,
+    # both suites green), which is why this clone exists.
+    - rm -rf "${CI_PROJECT_DIR}/.schema-sibling"
+    - mkdir -p "${CI_PROJECT_DIR}/.schema-sibling"
+    - ORG_BASE="$(dirname "${CI_REPOSITORY_URL}")"
+    - git clone --depth 1 --branch "${ADMIN_BFF_REF}" "${ORG_BASE}/hugmesh-admin-bff-api.git" "${CI_PROJECT_DIR}/.schema-sibling/hugmesh-admin-bff-api"
+    # A FAILED CLONE MUST NOT LOOK LIKE A PASS: assert the file by name before the run, and
+    # pass HUGMESH_SCHEMA_MIRROR_REQUIRED=1 below so the script ALSO refuses to skip.
+    - test -f "${CI_PROJECT_DIR}/.schema-sibling/hugmesh-admin-bff-api/src/main/resources/schema/app-profile.schema.json"
+      || { echo "BFF SCHEMA MISSING - the mirror check would SKIP and this job would be green while blind"; exit 1; }
     - >-
       docker run --rm --shm-size=1gb
       -v "${CI_PROJECT_DIR}:/src:ro"
       -v "${CI_PROJECT_DIR}/test-results:/out/test-results"
       -v "${CI_PROJECT_DIR}/coverage:/out/coverage"
+      -v "${CI_PROJECT_DIR}/.schema-sibling:/mirror:ro"
       -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)"
+      -e ADMIN_BFF_SCHEMA=/mirror/hugmesh-admin-bff-api/src/main/resources/schema/app-profile.schema.json
+      -e HUGMESH_SCHEMA_MIRROR_REQUIRED=1
       -w /workspace node:24-alpine sh -c '
         set -e;
         apk add --no-cache chromium;
