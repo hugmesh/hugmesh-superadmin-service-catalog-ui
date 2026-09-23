@@ -9,7 +9,10 @@ export interface DomainEntry {
   casdoorOrg?: string;
   clusterDomain?: string;
   generation?: number;
+  idp?: string;
   meshTag?: string;
   nsPrefix?: string;
   org?: string;
+  selinuxLevel?: string;
+  selinuxLevelPg?: string;
 }

@@ -3,12 +3,16 @@
 
 export { WorkloadSuperadminControllerService } from './services/workload-superadmin-controller.service';
 export { PhoneManagementSuperadminControllerService } from './services/phone-management-superadmin-controller.service';
+export { OptionalServiceSuperadminControllerService } from './services/optional-service-superadmin-controller.service';
 export { GamesCatalogSuperadminControllerService } from './services/games-catalog-superadmin-controller.service';
 export { FleetEntitlementSuperadminControllerService } from './services/fleet-entitlement-superadmin-controller.service';
 export { BackingServiceControllerService } from './services/backing-service-controller.service';
 export { AppProfileControllerService } from './services/app-profile-controller.service';
+export { DomainThemeAdminControllerService } from './services/domain-theme-admin-controller.service';
 export { OidcProviderRolesControllerService } from './services/oidc-provider-roles-controller.service';
+export { RoleMfaPolicyControllerService } from './services/role-mfa-policy-controller.service';
 export { MastodonAppearanceDefaultAdminService } from './services/mastodon-appearance-default-admin.service';
+export { EgressVpnControllerService } from './services/egress-vpn-controller.service';
 export { DomainRegistryControllerService } from './services/domain-registry-controller.service';
 export { DomainCapabilityAdminControllerService } from './services/domain-capability-admin-controller.service';
 export { BackupAdminControllerService } from './services/backup-admin-controller.service';
@@ -27,6 +31,7 @@ export { ImageBuildIngestControllerService } from './services/image-build-ingest
 export { GoLiveInternalControllerService } from './services/go-live-internal-controller.service';
 export { PhoneIngestControllerService } from './services/phone-ingest-controller.service';
 export { DeviceEnrollmentControllerService } from './services/device-enrollment-controller.service';
+export { AioTriageIngestControllerService } from './services/aio-triage-ingest-controller.service';
 export { GameInstanceControllerService } from './services/game-instance-controller.service';
 export { DesktopInstallRequestUserControllerService } from './services/desktop-install-request-user-controller.service';
 export { TestReportsControllerService } from './services/test-reports-controller.service';
@@ -39,7 +44,6 @@ export { NotificationsFeatureInfraTriggersService } from './services/notificatio
 export { ImageBuildControllerService } from './services/image-build-controller.service';
 export { GoLiveControllerService } from './services/go-live-controller.service';
 export { ForumAdminControllerService } from './services/forum-admin-controller.service';
-export { EgressVpnControllerService } from './services/egress-vpn-controller.service';
 export { StoragePoolControllerService } from './services/storage-pool-controller.service';
 export { RadioDeviceControllerService } from './services/radio-device-controller.service';
 export { DeviceLicenseControllerService } from './services/device-license-controller.service';
@@ -53,6 +57,7 @@ export { AccountAppealAdminControllerService } from './services/account-appeal-a
 export { ServiceCatalogEffectorControllerService } from './services/service-catalog-effector-controller.service';
 export { ServiceCatalogBuilderControllerService } from './services/service-catalog-builder-controller.service';
 export { PhoneFleetSuperadminControllerService } from './services/phone-fleet-superadmin-controller.service';
+export { DomainThemeSurfaceControllerService } from './services/domain-theme-surface-controller.service';
 export { AppealContactControllerService } from './services/appeal-contact-controller.service';
 export { AnnouncementSurfaceControllerService } from './services/announcement-surface-controller.service';
 export { MastodonAppearanceDefaultService } from './services/mastodon-appearance-default.service';
@@ -60,6 +65,7 @@ export { DomainCapabilityInternalControllerService } from './services/domain-cap
 export { DesktopSudoEntitlementControllerService } from './services/desktop-sudo-entitlement-controller.service';
 export { DesktopRegistryControllerService } from './services/desktop-registry-controller.service';
 export { WorkloadAdminControllerService } from './services/workload-admin-controller.service';
+export { UserDirectoryControllerService } from './services/user-directory-controller.service';
 export { AdminServiceStoreControllerService } from './services/admin-service-store-controller.service';
 export { PlatformCapabilitiesControllerService } from './services/platform-capabilities-controller.service';
 export { ImageCatalogControllerService } from './services/image-catalog-controller.service';

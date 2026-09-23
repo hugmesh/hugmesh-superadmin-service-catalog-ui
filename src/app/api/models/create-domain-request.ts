@@ -7,6 +7,7 @@ export interface CreateDomainRequest {
   casdoorOrg?: string;
   clusterDomain: string;
   enabled?: boolean;
+  idp?: string;
   meshTag?: string;
   nsPrefix?: string;
   org?: string;

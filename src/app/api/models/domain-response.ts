@@ -12,9 +12,12 @@ export interface DomainResponse {
   createdBySubject?: string;
   enabled?: boolean;
   id?: string;
+  idp?: string;
   lastReconciledGeneration?: number;
   meshTag?: string;
   nsPrefix?: string;
   org?: string;
+  selinuxLevel?: string;
+  selinuxLevelPg?: string;
   updatedAt?: string;
 }

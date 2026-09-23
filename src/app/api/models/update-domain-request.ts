@@ -6,6 +6,7 @@ export interface UpdateDomainRequest {
   caRef?: string;
   casdoorOrg?: string;
   enabled?: boolean;
+  idp?: string;
   meshTag?: string;
   nsPrefix?: string;
   org?: string;

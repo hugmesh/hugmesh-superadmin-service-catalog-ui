@@ -12,6 +12,8 @@ import { ServiceCurationRequest } from '../../models/service-curation-request';
 
 export interface ServiceCurationOffer$Params {
   domain: string;
+  'X-ServiceStore-StepUp'?: string;
+  Authorization?: string;
       body: ServiceCurationRequest
 }
 
@@ -19,6 +21,8 @@ export function serviceCurationOffer(http: HttpClient, rootUrl: string, params: 
   const rb = new RequestBuilder(rootUrl, serviceCurationOffer.PATH, 'post');
   if (params) {
     rb.path('domain', params.domain, {});
+    rb.header('X-ServiceStore-StepUp', params['X-ServiceStore-StepUp'], {});
+    rb.header('Authorization', params.Authorization, {});
     rb.body(params.body, 'application/json');
   }
 
