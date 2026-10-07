@@ -583,11 +583,10 @@ describe('ServiceCatalogService (exact PR1 bff paths)', () => {
   });
   // ── OPTIONAL SERVICES ─────────────────────────────────────────────────────
   //
-  // These two call the bff DIRECTLY (HttpClient) rather than through a generated
-  // client, because the endpoint is not in the committed openapi.json yet — the
-  // admin-bff handler is being built in parallel. The assertions below are the wire
-  // contract (URL + method + body + auth), so they stay valid unchanged when these
-  // methods are swapped onto the generated client after the next `npm run gen:spec`.
+  // These two go through the generated OptionalServiceSuperadminControllerService
+  // (operations optionalServicesCatalogue / optionalServicesSetEnabled, in the committed
+  // openapi.json). The assertions below are the wire contract (URL + method + body +
+  // auth) and prove the generated client still honours it.
 
   it('listOptionalServices → GET /bff/superadmin/optional-services', async () => {
     const p = service.listOptionalServices();
