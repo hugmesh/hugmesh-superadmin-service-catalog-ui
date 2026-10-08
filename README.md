@@ -138,7 +138,7 @@ read of their own issuer-derived domain's offered catalog.
 
 A denied child guard routes to **`router.parseUrl('/service-catalog/forbidden')`** — the
 IN-REMOTE mount-path screen, **NOT** `'/forbidden'` and **NOT** `'/login'`. The
-host already authgated the user in (route-access `/service-catalog=superadmin`); a denial
+host already authgated the user in (route-access `/superadmin/service-catalog/**`); a denial
 here is a **within-service privilege boundary**, not an auth failure. (Shipping the
 bare `/forbidden` was a real wiki-ui bug — the mount-prefixed path is the correct
 in-remote target.)
