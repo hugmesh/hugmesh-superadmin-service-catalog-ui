@@ -233,6 +233,8 @@ export type { Exchange$Params as Exchange$Params } from './fn/internal-account-c
 export { exchange as exchange } from './fn/internal-account-controller/exchange';
 export type { StampCustody$Params as StampCustody$Params } from './fn/internal-account-controller/stamp-custody';
 export { stampCustody as stampCustody } from './fn/internal-account-controller/stamp-custody';
+export type { RestartOnboarding$Params as RestartOnboarding$Params } from './fn/internal-account-controller/restart-onboarding';
+export { restartOnboarding as restartOnboarding } from './fn/internal-account-controller/restart-onboarding';
 export type { Complete$Params as Complete$Params } from './fn/internal-account-controller/complete';
 export { complete as complete } from './fn/internal-account-controller/complete';
 export type { EnsureAccount$Params as EnsureAccount$Params } from './fn/internal-account-controller/ensure-account';
