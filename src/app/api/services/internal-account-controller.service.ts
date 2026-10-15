@@ -30,6 +30,8 @@ import { Introspect$Params } from '../fn/internal-account-controller/introspect'
 import { IntrospectResponse } from '../models/introspect-response';
 import { namespaces } from '../fn/internal-account-controller/namespaces';
 import { Namespaces$Params } from '../fn/internal-account-controller/namespaces';
+import { recordUsage } from '../fn/internal-account-controller/record-usage';
+import { RecordUsage$Params } from '../fn/internal-account-controller/record-usage';
 import { sessionsForAccount } from '../fn/internal-account-controller/sessions-for-account';
 import { SessionsForAccount$Params } from '../fn/internal-account-controller/sessions-for-account';
 import { stampCustody } from '../fn/internal-account-controller/stamp-custody';
@@ -39,6 +41,31 @@ import { StampCustody$Params } from '../fn/internal-account-controller/stamp-cus
 export class InternalAccountControllerService extends BaseService {
   constructor(config: ApiConfiguration, http: HttpClient) {
     super(config, http);
+  }
+
+  /** Path part for operation `recordUsage()` */
+  static readonly RecordUsagePath = '/bff/internal/usage';
+
+  /**
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `recordUsage()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  recordUsage$Response(params: RecordUsage$Params, context?: HttpContext): Promise<StrictHttpResponse<void>> {
+    const obs = recordUsage(this.http, this.rootUrl, params, context);
+    return firstValueFrom(obs);
+  }
+
+  /**
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `recordUsage$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  recordUsage(params: RecordUsage$Params, context?: HttpContext): Promise<void> {
+    const resp = this.recordUsage$Response(params, context);
+    return resp.then((r: StrictHttpResponse<void>): void => r.body);
   }
 
   /** Path part for operation `createSession()` */

@@ -381,6 +381,17 @@ npm run gen:spec   # copies ../hugmesh-admin-bff-api/src/main/resources/openapi/
 npm run gen        # just run ng-openapi-gen against the already-present openapi.json
 ```
 
+`npm run verify:spec` (`scripts/assert-spec-pin.mjs`) guards the copy. It compares `openapi.json`
+byte for byte with the BFF's committed spec, found at `$ADMIN_BFF_SPEC` or in the sibling
+`../hugmesh-admin-bff-api` checkout, and prints which operations and schemas differ. It runs inside
+`npm test`, and `HUGMESH_SCHEMA_MIRROR_REQUIRED=1` (set in CI, which clones the BFF's `main`) turns an
+unreadable BFF spec into a failure instead of a skip. Without that flag an unreadable spec prints
+`NOT VERIFIED` and exits 0, so the check did not run. Two limits:
+
+- It does not check that `src/app/api/` was regenerated from `openapi.json`.
+- Because CI compares against the BFF's `main`, a BFF change to the spec turns this repo's CI red
+  until `npm run gen:spec` is run here and the result is committed.
+
 `service-catalog.service.ts` is a thin **delegating** wrapper over the generated, typed clients
 (`ServiceCurationControllerService` / `AppProfileControllerService` /
 `ServiceDeploymentControllerService` / `AdminServiceStoreControllerService`, plus the builder and

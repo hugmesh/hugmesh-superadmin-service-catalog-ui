@@ -8,6 +8,7 @@ export { GamesCatalogSuperadminControllerService } from './services/games-catalo
 export { FleetEntitlementSuperadminControllerService } from './services/fleet-entitlement-superadmin-controller.service';
 export { BackingServiceControllerService } from './services/backing-service-controller.service';
 export { AppProfileControllerService } from './services/app-profile-controller.service';
+export { TorAdminControllerService } from './services/tor-admin-controller.service';
 export { DomainThemeAdminControllerService } from './services/domain-theme-admin-controller.service';
 export { OidcProviderRolesControllerService } from './services/oidc-provider-roles-controller.service';
 export { RoleMfaPolicyControllerService } from './services/role-mfa-policy-controller.service';
@@ -26,6 +27,7 @@ export { BackupSuperadminControllerService } from './services/backup-superadmin-
 export { AuthControllerService } from './services/auth-controller.service';
 export { AccountAppealUserControllerService } from './services/account-appeal-user-controller.service';
 export { InternalAccountControllerService } from './services/internal-account-controller.service';
+export { TorInternalControllerService } from './services/tor-internal-controller.service';
 export { OidcFirstLoginControllerService } from './services/oidc-first-login-controller.service';
 export { ImageBuildIngestControllerService } from './services/image-build-ingest-controller.service';
 export { GoLiveInternalControllerService } from './services/go-live-internal-controller.service';
@@ -41,6 +43,7 @@ export { AdminControllerService } from './services/admin-controller.service';
 export { BackupControllerService } from './services/backup-controller.service';
 export { PhoneFleetOwnerControllerService } from './services/phone-fleet-owner-controller.service';
 export { NotificationsFeatureInfraTriggersService } from './services/notifications-feature-infra-triggers.service';
+export { MatrixAdminDeactivateControllerService } from './services/matrix-admin-deactivate-controller.service';
 export { ImageBuildControllerService } from './services/image-build-controller.service';
 export { GoLiveControllerService } from './services/go-live-controller.service';
 export { ForumAdminControllerService } from './services/forum-admin-controller.service';
