@@ -381,6 +381,15 @@ npm run gen:spec   # copies ../hugmesh-admin-bff-api/src/main/resources/openapi/
 npm run gen        # just run ng-openapi-gen against the already-present openapi.json
 ```
 
+`npm run verify:client` guards that the committed client really is the generator's output. It
+runs `ng-openapi-gen` into an empty temporary directory and compares that tree byte for byte with
+`src/app/api/`, so it fails on a committed file the generator no longer emits, a generated file
+that was never committed, and a hand-edited file. It runs inside `npm test`, right after
+`verify:schema`. A plain `npm run gen` cannot show an orphan: `ng-openapi-gen` only prunes stale
+files inside directories it still emits, so a whole directory it dropped (this left nine
+`fn/mfa-*` files behind) survives a regeneration with a clean `git status`. The guard checks the
+client against the committed `openapi.json` only; it does not check that spec against the BFF's.
+
 `service-catalog.service.ts` is a thin **delegating** wrapper over the generated, typed clients
 (`ServiceCurationControllerService` / `AppProfileControllerService` /
 `ServiceDeploymentControllerService` / `AdminServiceStoreControllerService`, plus the builder and
