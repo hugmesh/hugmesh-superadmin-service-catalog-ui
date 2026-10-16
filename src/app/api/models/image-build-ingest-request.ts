@@ -11,7 +11,6 @@ export interface ImageBuildIngestRequest {
   hostKeyPub?: string;
   hostname?: string;
   imageRef?: string;
-  k8sSecretName?: string;
   keysRef?: string;
   machineKeyFp?: string;
   message?: string;

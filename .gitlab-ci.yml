@@ -55,6 +55,12 @@ test:
     # pass HUGMESH_SCHEMA_MIRROR_REQUIRED=1 below so the script ALSO refuses to skip.
     - test -f "${CI_PROJECT_DIR}/.schema-sibling/hugmesh-admin-bff-api/src/main/resources/schema/app-profile.schema.json"
       || { echo "BFF SCHEMA MISSING - the mirror check would SKIP and this job would be green while blind"; exit 1; }
+    # THE OPENAPI SPEC MIRROR (issue #20). openapi.json is a copy of the BFF's committed spec and the
+    # whole generated client is built from it. scripts/assert-spec-pin.mjs compares the two files, from
+    # the SAME clone, so a BFF spec change that is not re-synced here fails this job. Same rule as above:
+    # assert the file by name so a failed clone cannot make the check skip.
+    - test -f "${CI_PROJECT_DIR}/.schema-sibling/hugmesh-admin-bff-api/src/main/resources/openapi/openapi.json"
+      || { echo "BFF OPENAPI SPEC MISSING - the spec mirror check would SKIP and this job would be green while blind"; exit 1; }
     - >-
       docker run --rm --shm-size=1gb
       -v "${CI_PROJECT_DIR}:/src:ro"
@@ -63,6 +69,7 @@ test:
       -v "${CI_PROJECT_DIR}/.schema-sibling:/mirror:ro"
       -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)"
       -e ADMIN_BFF_SCHEMA=/mirror/hugmesh-admin-bff-api/src/main/resources/schema/app-profile.schema.json
+      -e ADMIN_BFF_SPEC=/mirror/hugmesh-admin-bff-api/src/main/resources/openapi/openapi.json
       -e HUGMESH_SCHEMA_MIRROR_REQUIRED=1
       -w /workspace node:24-alpine sh -c '
         set -e;
