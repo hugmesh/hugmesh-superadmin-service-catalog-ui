@@ -12,6 +12,7 @@ import { SetRoleMfaPolicyRequest } from '../../models/set-role-mfa-policy-reques
 
 export interface RoleMfaPolicySet$Params {
   role: string;
+  domain?: string;
       body: SetRoleMfaPolicyRequest
 }
 
@@ -19,6 +20,7 @@ export function roleMfaPolicySet(http: HttpClient, rootUrl: string, params: Role
   const rb = new RequestBuilder(rootUrl, roleMfaPolicySet.PATH, 'put');
   if (params) {
     rb.path('role', params.role, {});
+    rb.query('domain', params.domain, {});
     rb.body(params.body, 'application/json');
   }
 

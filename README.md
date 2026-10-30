@@ -508,7 +508,7 @@ The bff `@PreAuthorize` stays authoritative; this UI's gating is defence in dept
 ## Releases
 
 The package version is `package.json` `"version"` (`package-lock.json` must match). It is
-**`0.2.0-beta.1`**: built and tested, with no recorded live check yet. Raise the MINOR to `0.3.0`
+**`0.2.0-beta.2`**: built and tested, with no recorded live check yet. Raise the MINOR to `0.3.0`
 once a live check is recorded, and raise the beta number for each new beta of the same base.
 
 `.github/workflows/release.yml` pushes `ghcr.io/hugmesh/hugmesh-superadmin-service-catalog-ui`:
@@ -534,12 +534,12 @@ once a live check is recorded, and raise the beta number for each new beta of th
 To publish a beta, after the version change is merged:
 
 ```
-git tag -a v0.2.0-beta.1 <merge commit> -m 'superadmin-service-catalog-ui 0.2.0-beta.1'
-git push origin v0.2.0-beta.1
+git tag -a v0.2.0-beta.2 <merge commit> -m 'superadmin-service-catalog-ui 0.2.0-beta.2'
+git push origin v0.2.0-beta.2
 ```
 
 The tag push runs the release. To re-run it by hand:
-`gh workflow run release.yml -R hugmesh/hugmesh-superadmin-service-catalog-ui --ref v0.2.0-beta.1`
+`gh workflow run release.yml -R hugmesh/hugmesh-superadmin-service-catalog-ui --ref v0.2.0-beta.2`
 
 ## Roadmap
 
