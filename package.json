@@ -1,6 +1,6 @@
 {
   "name": "@hugmesh/service-catalog",
-  "version": "0.2.0-beta.1",
+  "version": "0.2.0-beta.2",
   "description": "Superadmin Service Catalog console — native-federation remote (exposes ./ServiceCatalog at remoteEntry.json on :8080), SUPERADMIN-only console over hugmesh-admin-bff-api /bff/superadmin/service-store + /bff/superadmin/app-profiles (per-domain service curation, app-profile deploy templates, service-deployment lifecycle accounting); mounted by the hugmesh.net host at /service-catalog.",
   "license": "MIT",
   "private": true,

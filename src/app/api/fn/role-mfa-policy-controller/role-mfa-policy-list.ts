@@ -10,11 +10,13 @@ import { RequestBuilder } from '../../request-builder';
 import { RoleMfaPolicyList } from '../../models/role-mfa-policy-list';
 
 export interface RoleMfaPolicyList$Params {
+  domain?: string;
 }
 
 export function roleMfaPolicyList(http: HttpClient, rootUrl: string, params?: RoleMfaPolicyList$Params, context?: HttpContext): Observable<StrictHttpResponse<RoleMfaPolicyList>> {
   const rb = new RequestBuilder(rootUrl, roleMfaPolicyList.PATH, 'get');
   if (params) {
+    rb.query('domain', params.domain, {});
   }
 
   return http.request(
