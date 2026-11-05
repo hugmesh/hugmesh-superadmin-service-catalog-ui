@@ -8,9 +8,6 @@ stages: [test, e2e, build]
 test:
   stage: test
   tags: [hugmesh-x86, privileged]
-  variables:
-    # Branch of hugmesh-admin-bff-api holding the other half of the app-profile schema contract.
-    ADMIN_BFF_REF: "main"
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -50,7 +47,20 @@ test:
     - rm -rf "${CI_PROJECT_DIR}/.schema-sibling"
     - mkdir -p "${CI_PROJECT_DIR}/.schema-sibling"
     - ORG_BASE="$(dirname "${CI_REPOSITORY_URL}")"
-    - git clone --depth 1 --branch "${ADMIN_BFF_REF}" "${ORG_BASE}/hugmesh-admin-bff-api.git" "${CI_PROJECT_DIR}/.schema-sibling/hugmesh-admin-bff-api"
+    # THE BFF COMMIT IS PINNED (issue #33). .admin-bff-ref holds one full commit SHA, the same file
+    # .github/workflows/release.yml reads, so both pipelines check the same BFF. A branch here made
+    # a tag pipeline compare against whatever the BFF's main held when the tag ran. `git clone
+    # --branch` cannot take a SHA, so the pinned commit is fetched into an empty repo instead.
+    # scripts/assert-admin-bff-ref.mjs (inside `npm test`) fails if either pipeline names a branch.
+    - ADMIN_BFF_REF="$(tr -d '[:space:]' < "${CI_PROJECT_DIR}/.admin-bff-ref")"
+    - echo "${ADMIN_BFF_REF}" | grep -Ex '[0-9a-f]{40}' >/dev/null
+      || { echo ".admin-bff-ref must hold one full 40-hex commit SHA, not '${ADMIN_BFF_REF}'"; exit 1; }
+    - BFF_DIR="${CI_PROJECT_DIR}/.schema-sibling/hugmesh-admin-bff-api"
+    - git init -q "${BFF_DIR}"
+    - git -C "${BFF_DIR}" fetch -q --depth 1 "${ORG_BASE}/hugmesh-admin-bff-api.git" "${ADMIN_BFF_REF}"
+    - git -C "${BFF_DIR}" -c advice.detachedHead=false checkout -q --detach FETCH_HEAD
+    - test "$(git -C "${BFF_DIR}" rev-parse HEAD)" = "${ADMIN_BFF_REF}"
+      || { echo "BFF checkout is not at the pinned ${ADMIN_BFF_REF}"; exit 1; }
     # A FAILED CLONE MUST NOT LOOK LIKE A PASS: assert the file by name before the run, and
     # pass HUGMESH_SCHEMA_MIRROR_REQUIRED=1 below so the script ALSO refuses to skip.
     - test -f "${CI_PROJECT_DIR}/.schema-sibling/hugmesh-admin-bff-api/src/main/resources/schema/app-profile.schema.json"
