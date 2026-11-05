@@ -7,7 +7,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { check } from './assert-admin-bff-ref.mjs';
@@ -48,6 +49,24 @@ test('the CLI exits 0 on this repo and names the pin', () => {
   const r = spawnSync(process.execPath, [join(ROOT, 'scripts/assert-admin-bff-ref.mjs')], { encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, new RegExp('admin-bff pin OK: .* ' + PIN));
+});
+
+test('the CLI exits 1 when a pipeline is set back to main', () => {
+  const root = mkdtempSync(join(process.env.TMPDIR || tmpdir(), 'bff-ref-'));
+  try {
+    mkdirSync(join(root, 'scripts'));
+    mkdirSync(join(root, '.github/workflows'), { recursive: true });
+    copyFileSync(join(ROOT, 'scripts/assert-admin-bff-ref.mjs'), join(root, 'scripts/assert-admin-bff-ref.mjs'));
+    writeFileSync(join(root, '.admin-bff-ref'), real.refFile);
+    writeFileSync(join(root, '.github/workflows/release.yml'), swap(real.releaseYml, GH_REF, 'ref: main'));
+    writeFileSync(join(root, '.gitlab-ci.yml'), real.gitlabCi);
+    const r = spawnSync(process.execPath, [join(root, 'scripts/assert-admin-bff-ref.mjs')], { encoding: 'utf8' });
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(r.stderr, /admin-bff pin FAILED/);
+    assert.match(r.stderr, /release\.yml fetches the BFF at 'main'/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('release.yml checking out main directly fails', () => {
