@@ -307,8 +307,10 @@ Both fail safe, loudly.
   - **The server validates it too.** On `hugmesh-admin-bff-api` `origin/main`,
     `AppProfileService.create` and `update` check `profileJson` against a byte-identical copy of
     this schema before the write (`hugmesh-admin-bff-api#55`, closed). A direct API call or a stale
-    tab cannot store a body the console would refuse. The values are stored verbatim and not
-    resolved yet (a later effector reads them; issue #3).
+    tab cannot store a body the console would refuse. The values are stored verbatim. Resolving
+    them is issue #3, now in progress: the bff's `AddServiceEffector` applies `exposure.routes`,
+    `roles[]` and `exposure.mfaRequired` at provision and records `resources` / `certs` only
+    (see the Roadmap).
   - **Operator decision 37 (2026-09-17, hugmesh-generator#347) RATIFIED the three choices this
     schema had to make on its own**: `roles[]` are Casdoor `ROLE_<UPPER>` names (37a, *not* the
     per-service `requiresRole` slug), unknown keys are STRICT (37b, `additionalProperties: false`
@@ -552,10 +554,17 @@ The tag push runs the release. To re-run it by hand:
   `app.appstore.builder.enabled` and land a node labelled `hugmesh.net/build-node=true` where the
   pre-flight can see it. Build-from-source services then provision with no further UI change. The
   generator's own note says the flag flips only after the push-credential ExternalSecret lands.
-- **App-profile resolution.** A later effector reads the app-profile JSON (resource, role, cert and
-  exposure defaults, in the shape `schemas/app-profile.schema.json` defines) instead of storing it
-  opaque. It is issue #3, admin-bff work; the bff's `AppProfileService` says nothing reads the
-  values yet. The bff already validates the schema on save. The profiles form shows a bff 400 reason
+- **App-profile resolution (issue #3, admin-bff work, first slice in progress).** On
+  `/provision` the bff's `AddServiceEffector` loads the deployment's `profileRef` and parses the
+  JSON (`schemas/app-profile.schema.json`). It applies the parts the effector already owns.
+  `exposure.routes` become extra route-access rules beside the derived `/api/<service>/`.
+  `roles[]` become extra `ROLE_<UPPER>` grants on every one of those rules. `exposure.mfaRequired`
+  sets `mfa_required` on each rule it writes. An unknown `profileRef`, or a stored profile the
+  schema refuses, fails the provision with a 422 and no effect. Still open: `resources.*`,
+  `certs.*` and `exposure.ports` are recorded only, because no ArgoCD or ExternalSecret parameter
+  channel exists to carry them. Teardown also re-reads the profile at expiry, so a profile edited
+  or deleted after provision is torn down by what it says then. The bff already validates the
+  schema on save. The profiles form shows a bff 400 reason
   verbatim. Both bff error bodies surface: `{error}` (ApiException) and the bean-validation
   `{error:"validation failed", fields:{...}}`. `ServiceCatalogService` folds them into one message,
   so a path-keyed `fields` map (`resources.cpu: …`) renders field by field.
@@ -638,8 +647,9 @@ Checked against the current source, not against the roadmap alone:
   `AppProfileService.create/update` in the bff re-check it before the write. Reads are not
   validated. A profile stored before the schema existed (the flat `{"cpu","memory"}` form) stays
   readable, shows its field errors the moment it opens for edit, and cannot be saved until it moves
-  under `resources` (`src/app/service-catalog-profiles.component.ts`). The effector that resolves
-  the resource, role, cert and exposure defaults is issue #3 (admin-bff work).
+  under `resources` (`src/app/service-catalog-profiles.component.ts`). Such a profile is also
+  refused (422) when a deployment that references it is provisioned. The bff resolves routes, roles
+  and `mfaRequired`. Resource and cert defaults are not consumed yet (issue #3, admin-bff work).
 - **Deployment lifecycle is accounting-only.** See "Deployments (accounting)"
   (`service-catalog-deployments.component.ts`).
 - **The mount path differs between code and platform.** The routes, the guard and the forbidden
