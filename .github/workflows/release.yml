@@ -44,7 +44,8 @@ name: Release
 #
 # No image is pushed unless the same two gates the GitLab pipeline puts in
 # front of build:image pass here first: `test` (schema + OpenAPI spec mirror
-# against hugmesh-admin-bff-api main, generated-client guard, script tests,
+# against the hugmesh-admin-bff-api commit pinned in .admin-bff-ref,
+# generated-client guard, script tests,
 # Karma) and `headers` (nginx -t, the static header check, and the built page
 # rendered under those headers). The Dockerfile's own verify:artefact and
 # verify:headers steps still run inside the image build.
@@ -70,9 +71,12 @@ concurrency:
 
 env:
   IMAGE_NAME: ghcr.io/hugmesh/hugmesh-superadmin-service-catalog-ui
-  # Branch of hugmesh-admin-bff-api holding the other half of the schema and
-  # OpenAPI spec mirrors (same value as ADMIN_BFF_REF in .gitlab-ci.yml).
-  ADMIN_BFF_REF: main
+  # The hugmesh-admin-bff-api commit the schema and OpenAPI spec mirrors are
+  # checked against is NOT set here: it is the full SHA in .admin-bff-ref,
+  # which .gitlab-ci.yml reads too (the `test` job reads it below). A moving
+  # branch let a BFF spec commit that landed between a merge and its tag push
+  # fail the tag run (issue #33). scripts/assert-admin-bff-ref.mjs fails if
+  # either pipeline stops using that file or names a branch.
 
 jobs:
   version:
@@ -129,11 +133,24 @@ jobs:
         with:
           path: app
 
+      # The BFF commit is the pinned SHA in .admin-bff-ref, never a branch, so a
+      # tag run checks the spec the release was built against (issue #33).
+      - name: Read the pinned hugmesh-admin-bff-api commit
+        id: admin-bff-ref
+        run: |
+          set -euo pipefail
+          sha="$(tr -d '[:space:]' < app/.admin-bff-ref)"
+          if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::app/.admin-bff-ref must hold one full 40-hex commit SHA, not '$sha'"
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
       - name: Check out hugmesh-admin-bff-api (mirror source)
         uses: actions/checkout@v4
         with:
           repository: hugmesh/hugmesh-admin-bff-api
-          ref: ${{ env.ADMIN_BFF_REF }}
+          ref: ${{ steps.admin-bff-ref.outputs.sha }}
           path: bff
           token: ${{ secrets.ADMIN_BFF_READ_TOKEN || github.token }}
           persist-credentials: false
@@ -143,8 +160,15 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Require the BFF mirror files
+        env:
+          PINNED: ${{ steps.admin-bff-ref.outputs.sha }}
         run: |
           set -euo pipefail
+          head="$(git -C bff rev-parse HEAD)"
+          if [ "$head" != "$PINNED" ]; then
+            echo "::error::bff checkout is at $head, not the pinned $PINNED"
+            exit 1
+          fi
           for f in bff/src/main/resources/schema/app-profile.schema.json \
                    bff/src/main/resources/openapi/openapi.json; do
             if [ ! -f "$f" ]; then

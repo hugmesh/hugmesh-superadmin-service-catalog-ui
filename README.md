@@ -327,7 +327,8 @@ Both fail safe, loudly.
       (`cmp` → `differ: char 4898, line 63`).
     - the **mirror check**, which reads the BFF's copy and compares the two files byte for byte.
       This one enforces the contract. It runs whenever `hugmesh-admin-bff-api` is checked out beside
-      this repo, and in CI, where `.gitlab-ci.yml` clones it and sets
+      this repo, and in CI, where both pipelines fetch it at the commit pinned in `.admin-bff-ref`
+      (see "Pinned admin-bff commit" below) and set
       `HUGMESH_SCHEMA_MIRROR_REQUIRED=1` so a failed clone fails the job instead of skipping
       silently. Point it elsewhere with
       `ADMIN_BFF_SCHEMA=<bff>/src/main/resources/schema/app-profile.schema.json`.
@@ -384,11 +385,50 @@ npm run gen        # just run ng-openapi-gen against the already-present openapi
 `npm run verify:spec` (`scripts/assert-spec-pin.mjs`) guards the copy. It compares `openapi.json`
 byte for byte with the BFF's committed spec, found at `$ADMIN_BFF_SPEC` or in the sibling
 `../hugmesh-admin-bff-api` checkout, and prints which operations and schemas differ. It runs inside
-`npm test`, and `HUGMESH_SCHEMA_MIRROR_REQUIRED=1` (set in CI, which clones the BFF's `main`) turns an
-unreadable BFF spec into a failure instead of a skip. Without that flag an unreadable spec prints
-`NOT VERIFIED` and exits 0, so the check did not run. Because CI compares against the BFF's `main`, a
-BFF change to the spec turns this repo's CI red until `npm run gen:spec` is run here and the result
-is committed.
+`npm test`, and `HUGMESH_SCHEMA_MIRROR_REQUIRED=1` (set in CI, which fetches the BFF at the commit
+pinned in `.admin-bff-ref`) turns an unreadable BFF spec into a failure instead of a skip. Without
+that flag an unreadable spec prints `NOT VERIFIED` and exits 0, so the check did not run.
+
+### Pinned admin-bff commit
+
+CI checks `openapi.json` and `schemas/app-profile.schema.json` against **one pinned commit** of
+`hugmesh-admin-bff-api`, not against its `main`. `.admin-bff-ref` holds that commit as one full
+40-hex SHA, and it is the only place the value is written: `.github/workflows/release.yml` and
+`.gitlab-ci.yml` both read the file and both compare the checked-out HEAD with it.
+
+A moving `main` made a tag run compare the release with whatever the BFF held when the tag was
+pushed. Tag run 41003786629 (`v0.2.0-beta.1`) failed that way: a BFF spec commit landed between the
+merge and the tag push (issue #33). With the pin, a merge and its tag check the same BFF spec.
+
+The trade-off: CI no longer turns red on its own when the BFF's spec changes. Picking up a BFF
+change is a deliberate step.
+
+**Bump the pin only in a pull request that regenerates the client.** In that one pull request:
+
+```bash
+# in hugmesh-admin-bff-api, at the commit you want to pin
+git rev-parse HEAD                       # full SHA
+# here
+echo <full-sha> > .admin-bff-ref
+export ADMIN_BFF_SPEC=<bff>/src/main/resources/openapi/openapi.json
+export ADMIN_BFF_SCHEMA=<bff>/src/main/resources/schema/app-profile.schema.json
+export HUGMESH_SCHEMA_MIRROR_REQUIRED=1
+npm run gen:spec
+npm run verify:bff-ref && npm run verify:spec && npm run verify:schema && npm run verify:client
+```
+
+and commit `.admin-bff-ref`, `openapi.json` and everything under `src/app/api/` together.
+`<bff>` must be checked out at the SHA you pinned.
+
+`npm run verify:bff-ref` (`scripts/assert-admin-bff-ref.mjs`, first in `npm test`) fails when
+`.admin-bff-ref` is not a full commit SHA (a branch such as `main`, a tag, a short SHA), when either
+pipeline fetches anything other than that file's value (a literal branch, an `ADMIN_BFF_REF`
+variable, no ref at all, `git clone --branch`), when the two pipelines disagree, or when either still
+assigns a literal `ADMIN_BFF_REF` other than the pin. It reads the pipeline files as text and does
+not prove the SHA exists in the BFF: each pipeline's fetch does that.
+
+The pin today is `f4d6803fb8e51d52e3a997c2ae450489f6a70a5d`, the commit tagged `v0.3.0-beta.1` in
+the BFF. Its `openapi.json` and `app-profile.schema.json` are byte-identical to the copies here.
 
 `npm run verify:client` (`scripts/assert-generated-client.mjs`) guards that the committed client
 really is the generator's output for `openapi.json`. It runs `ng-openapi-gen` into an empty
