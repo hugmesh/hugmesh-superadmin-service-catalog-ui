@@ -597,11 +597,21 @@ The tag push runs the release. To re-run it by hand:
 - **App-profile resolution (issue #3, admin-bff work).** The first slice is
   `hugmesh-admin-bff-api#156`. Once it lands, `AddServiceEffector` loads the deployment's
   `profileRef` at provision and applies `exposure.routes` and `roles[]` as extra route-access
-  rules, each carrying `exposure.mfaRequired`. Teardown removes the same rules, and an unknown
-  `profileRef` refuses the provision with a 422. Still open: `resources.*`, `certs.*` and
+  rules, each carrying `exposure.mfaRequired`. An unknown `profileRef` refuses the provision
+  with a 422. Teardown re-reads the profile and removes the rules its **current** contents
+  describe, because nothing records which rules a provision wrote. So a profile edited before
+  teardown is torn down by its new contents, and a deleted one leaves its rules behind. A grant
+  that another deployment still needs is removed too: two deployments that share a `profileRef`
+  (or whose profile names the other's `/api/<service>/` route and role) write identical rules,
+  and tearing one down deletes the sibling's. A hand-made rule with exactly a grant's shape goes
+  the same way. The service's own `/api/<service>/` × `ROLE_<SERVICE>` rule is removed whatever
+  its user or allow value, as on main today; only on the profile-added pairs are per-user and
+  deny rules left alone. A per-deployment record of rule ids would fix this and is follow-up
+  work; the bff README states the full limit. Still open: `resources.*`, `certs.*` and
   `exposure.ports` are parsed but only logged, because no ArgoCD parameter channel or
   ExternalSecret parameter channel exists to carry them. The bff already validates the schema on
-  save. The profiles form shows a bff 400 reason verbatim. Both bff error bodies surface: `{error}` (ApiException) and the bean-validation
+  save. The profiles form shows a bff 400 reason verbatim. Both bff error bodies surface:
+  `{error}` (ApiException) and the bean-validation
   `{error:"validation failed", fields:{...}}`. `ServiceCatalogService` folds them into one message,
   so a path-keyed `fields` map (`resources.cpu: …`) renders field by field.
 - **MFA step-up.** The bff gate (`ServiceStoreStepUpGate`) now covers `offer`, `provision`,
@@ -677,7 +687,9 @@ Checked against the current source, not against the roadmap alone:
   `federateDeployment()` (`src/app/service-catalog.service.ts`) returns `federationReal=false` and
   `gitopsDescriptorPending=true`, and Review & apply shows both as explicit notices
   (`service-catalog-create-service.component.ts`).
-- **App-profile JSON is validated in the browser AND by the bff, but not yet resolved.** The editor
+- **App-profile JSON is validated in the browser AND by the bff; resolving it is partial at best.**
+  Only routes, roles and `mfaRequired` are applied, and only once `hugmesh-admin-bff-api#156`
+  lands; resources, certs and ports are not consumed at all. The editor
   refuses a document that does not match `schemas/app-profile.schema.json` (unknown field, wrong
   type, value outside its pattern or range) and names every offending field.
   `AppProfileService.create/update` in the bff re-check it before the write. Reads are not
