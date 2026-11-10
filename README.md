@@ -307,8 +307,10 @@ Both fail safe, loudly.
   - **The server validates it too.** On `hugmesh-admin-bff-api` `origin/main`,
     `AppProfileService.create` and `update` check `profileJson` against a byte-identical copy of
     this schema before the write (`hugmesh-admin-bff-api#55`, closed). A direct API call or a stale
-    tab cannot store a body the console would refuse. The values are stored verbatim and not
-    resolved yet (a later effector reads them; issue #3).
+    tab cannot store a body the console would refuse. The values are stored verbatim; the
+    bff's provision effector resolves the routes, roles and `mfaRequired` once
+    `hugmesh-admin-bff-api#156` lands, and resources, certs and ports are still not consumed
+    (issue #3).
   - **Operator decision 37 (2026-09-17, hugmesh-generator#347) RATIFIED the three choices this
     schema had to make on its own**: `roles[]` are Casdoor `ROLE_<UPPER>` names (37a, *not* the
     per-service `requiresRole` slug), unknown keys are STRICT (37b, `additionalProperties: false`
@@ -592,11 +594,14 @@ The tag push runs the release. To re-run it by hand:
   `app.appstore.builder.enabled` and land a node labelled `hugmesh.net/build-node=true` where the
   pre-flight can see it. Build-from-source services then provision with no further UI change. The
   generator's own note says the flag flips only after the push-credential ExternalSecret lands.
-- **App-profile resolution.** A later effector reads the app-profile JSON (resource, role, cert and
-  exposure defaults, in the shape `schemas/app-profile.schema.json` defines) instead of storing it
-  opaque. It is issue #3, admin-bff work; the bff's `AppProfileService` says nothing reads the
-  values yet. The bff already validates the schema on save. The profiles form shows a bff 400 reason
-  verbatim. Both bff error bodies surface: `{error}` (ApiException) and the bean-validation
+- **App-profile resolution (issue #3, admin-bff work).** The first slice is
+  `hugmesh-admin-bff-api#156`. Once it lands, `AddServiceEffector` loads the deployment's
+  `profileRef` at provision and applies `exposure.routes` and `roles[]` as extra route-access
+  rules, each carrying `exposure.mfaRequired`. Teardown removes the same rules, and an unknown
+  `profileRef` refuses the provision with a 422. Still open: `resources.*`, `certs.*` and
+  `exposure.ports` are parsed but only logged, because no ArgoCD parameter channel or
+  ExternalSecret parameter channel exists to carry them. The bff already validates the schema on
+  save. The profiles form shows a bff 400 reason verbatim. Both bff error bodies surface: `{error}` (ApiException) and the bean-validation
   `{error:"validation failed", fields:{...}}`. `ServiceCatalogService` folds them into one message,
   so a path-keyed `fields` map (`resources.cpu: …`) renders field by field.
 - **MFA step-up.** The bff gate (`ServiceStoreStepUpGate`) now covers `offer`, `provision`,
@@ -679,7 +684,9 @@ Checked against the current source, not against the roadmap alone:
   validated. A profile stored before the schema existed (the flat `{"cpu","memory"}` form) stays
   readable, shows its field errors the moment it opens for edit, and cannot be saved until it moves
   under `resources` (`src/app/service-catalog-profiles.component.ts`). The effector that resolves
-  the resource, role, cert and exposure defaults is issue #3 (admin-bff work).
+  the defaults is issue #3 (admin-bff work): its first slice, `hugmesh-admin-bff-api#156`,
+  applies routes, roles and `mfaRequired` once it lands; resources, certs and ports are not
+  consumed yet.
 - **Deployment lifecycle is accounting-only.** See "Deployments (accounting)"
   (`service-catalog-deployments.component.ts`).
 - **The mount path differs between code and platform.** The routes, the guard and the forbidden
