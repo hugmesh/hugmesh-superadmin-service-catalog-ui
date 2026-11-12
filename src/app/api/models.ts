@@ -88,6 +88,7 @@ export type { LoginRequest } from './models/login-request';
 export type { MatrixDeactivateConfirmRequest } from './models/matrix-deactivate-confirm-request';
 export type { MatrixDeactivateProposeRequest } from './models/matrix-deactivate-propose-request';
 export type { Mdm } from './models/mdm';
+export type { MeshTokenIssueRequest } from './models/mesh-token-issue-request';
 export type { ModerationDecisionDto } from './models/moderation-decision-dto';
 export type { NamespaceAccessRequest } from './models/namespace-access-request';
 export type { NetworkSummary } from './models/network-summary';
