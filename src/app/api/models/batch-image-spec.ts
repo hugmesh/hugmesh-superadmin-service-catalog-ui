@@ -3,7 +3,7 @@
 
 import { JsonNode } from '../models/json-node';
 export interface BatchImageSpec {
-  hardwareClass: string;
+  hardwareClass: 'x86' | 'rpi5' | 'frite' | 'jetson' | 'orangepi5' | 'orangepizero2' | 'orangepizero2w' | 'orangepizero3' | 'orangepi3-lts' | 'orangepi4-lts';
   imageSpec?: JsonNode;
   imageType: string;
   sshKeysAllowed?: boolean;

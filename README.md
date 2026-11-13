@@ -429,8 +429,11 @@ variable, no ref at all, `git clone --branch`), when the two pipelines disagree,
 assigns a literal `ADMIN_BFF_REF` other than the pin. It reads the pipeline files as text and does
 not prove the SHA exists in the BFF: each pipeline's fetch does that.
 
-The pin today is `f4d6803fb8e51d52e3a997c2ae450489f6a70a5d`, the commit tagged `v0.3.0-beta.1` in
-the BFF. Its `openapi.json` and `app-profile.schema.json` are byte-identical to the copies here.
+The pin today is `c077c52037f030c62781a86af6d9da6c01e5abb3`, the BFF's main after admin-bff-api #163
+(not a tagged commit). Its `openapi.json` and `app-profile.schema.json` are byte-identical to the
+copies here. That commit publishes `BatchImageSpec.hardwareClass` as an `enum` taken from the
+generator's worklist schema instead of a hand-written `pattern`, so the generated client types it as
+a union of the generator platforms; a new platform reaches this client by the same re-sync.
 
 `npm run verify:client` (`scripts/assert-generated-client.mjs`) guards that the committed client
 really is the generator's output for `openapi.json`. It runs `ng-openapi-gen` into an empty

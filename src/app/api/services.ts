@@ -43,6 +43,7 @@ export { AdminControllerService } from './services/admin-controller.service';
 export { BackupControllerService } from './services/backup-controller.service';
 export { PhoneFleetOwnerControllerService } from './services/phone-fleet-owner-controller.service';
 export { NotificationsFeatureInfraTriggersService } from './services/notifications-feature-infra-triggers.service';
+export { MeshTokenControllerService } from './services/mesh-token-controller.service';
 export { MatrixAdminDeactivateControllerService } from './services/matrix-admin-deactivate-controller.service';
 export { ImageBuildControllerService } from './services/image-build-controller.service';
 export { GoLiveControllerService } from './services/go-live-controller.service';
